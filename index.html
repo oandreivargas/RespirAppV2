@@ -16,7 +16,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <style>
-:root{--bg:#0a0f1a;--bg2:#111827;--bg-card:rgba(255,255,255,0.04);--ball-start:#4fc3f7;--ball-end:#1565c0;--glow-dim:rgba(21,101,192,0.12);--text:#e0e6ed;--text-dim:#5a6e85;--accent:#80cbc4;--accent2:#4db6ac;--danger:#ef5350;--safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px)}
+:root{--bg:#0a0f1a;--bg2:#111827;--bg-card:rgba(255,255,255,0.04);--ball-start:#4fc3f7;--ball-end:#1565c0;--glow-dim:rgba(21,101,192,0.12);--text:#e0e6ed;--text-dim:#5a6e85;--accent:#80cbc4;--accent2:#4db6ac;--danger:#ef5350;--warn:#ffa726;--safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px)}
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:var(--bg);display:flex;flex-direction:column;align-items:center;min-height:100dvh;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',system-ui,sans-serif;color:var(--text);user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 .screen{display:none;flex-direction:column;align-items:center;width:100%;max-width:440px;padding:calc(var(--safe-top)+1rem) 1.5rem calc(var(--safe-bottom)+1.5rem);min-height:100dvh}
@@ -24,14 +24,19 @@ body{background:var(--bg);display:flex;flex-direction:column;align-items:center;
 .screen.scroll{overflow-y:auto;justify-content:flex-start}
 .screen.center{justify-content:center}
 
-/* Components */
 .brand{display:flex;flex-direction:column;align-items:center;gap:.3rem;margin-bottom:1.5rem}
 .brand-icon{font-size:2.4rem}.brand-name{font-size:1.4rem;font-weight:600}.brand-sub{font-size:.8rem;color:var(--text-dim);letter-spacing:.06em}
 
-.card{background:var(--bg-card);border:1px solid rgba(255,255,255,.06);border-radius:1rem;padding:1.2rem;width:100%;margin-bottom:.75rem}
+.card{background:var(--bg-card);border:1px solid rgba(255,255,255,.06);border-radius:1rem;padding:1.2rem;width:100%;margin-bottom:.75rem;cursor:pointer;transition:background .2s,border-color .2s}
 .card:active{background:rgba(255,255,255,.08);border-color:rgba(128,203,196,.3)}
+.card.no-tap{cursor:default}.card.no-tap:active{background:var(--bg-card);border-color:rgba(255,255,255,.06)}
 .card .t{font-size:1.05rem;font-weight:500;margin-bottom:.2rem}
 .card .d{font-size:.78rem;color:var(--text-dim);line-height:1.4}
+.card-icon{font-size:1.5rem;margin-bottom:.5rem}
+
+.main-card{padding:1.4rem;text-align:center;border:1px solid rgba(128,203,196,.15)}
+.main-card .t{font-size:1.1rem}
+.main-card .d{margin-top:.3rem}
 
 .btn{width:100%;padding:.9rem;font-size:1rem;font-weight:500;border:none;border-radius:.85rem;cursor:pointer;letter-spacing:.03em;transition:opacity .2s;margin-top:.5rem}
 .btn:active{opacity:.8}
@@ -50,12 +55,10 @@ textarea.input{min-height:80px;resize:vertical;font-family:inherit}
 .section-title{font-size:1.15rem;font-weight:500;margin:1.5rem 0 .8rem;width:100%;text-align:left}
 .step-indicator{font-size:.75rem;color:var(--text-dim);margin-bottom:1rem}
 
-/* Chips */
 .chips{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:.75rem;width:100%}
 .chip{padding:.55rem .9rem;font-size:.85rem;border:1px solid rgba(255,255,255,.1);border-radius:2rem;cursor:pointer;transition:all .2s;color:var(--text-dim)}
 .chip.sel{background:rgba(128,203,196,.2);border-color:var(--accent);color:var(--accent)}
 
-/* Scale dots */
 .scale-row{display:flex;flex-direction:column;gap:.5rem;width:100%;margin-bottom:1.2rem}
 .scale-label{font-size:.9rem;font-weight:400}
 .scale-dots{display:flex;gap:.6rem;align-items:center}
@@ -63,13 +66,10 @@ textarea.input{min-height:80px;resize:vertical;font-family:inherit}
 .scale-dot.sel{border-color:var(--accent);background:rgba(128,203,196,.25);color:var(--accent);font-weight:600}
 .scale-anchors{display:flex;justify-content:space-between;font-size:.65rem;color:var(--text-dim);margin-top:-.2rem}
 
-/* Protocol cards */
-.proto-card{cursor:pointer}
-
-/* Exercise */
 .top-bar{display:flex;justify-content:space-between;align-items:center;width:100%;margin-bottom:1rem}
 .back-btn{background:none;border:none;color:var(--text-dim);font-size:.9rem;cursor:pointer;padding:.5rem}
 .badge{font-size:.78rem;color:var(--text-dim);background:var(--bg-card);padding:.35rem .8rem;border-radius:1rem}
+
 .exercise-center{display:flex;flex-direction:column;align-items:center;gap:1.8rem;flex:1;justify-content:center}
 .phase-text{font-size:1.4rem;font-weight:300;letter-spacing:.12em;min-height:2rem;text-align:center}
 .ball-container{position:relative;width:260px;height:260px;display:flex;align-items:center;justify-content:center}
@@ -78,16 +78,32 @@ textarea.input{min-height:80px;resize:vertical;font-family:inherit}
 .second-count{font-size:2rem;font-weight:200;color:var(--text-dim);min-height:2.5rem;text-align:center}
 .progress-track{width:100%;height:3px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden}
 .progress-fill{height:100%;width:0%;background:var(--accent);border-radius:2px}
-.cycle-label{font-size:.8rem;color:var(--text-dim);margin-top:.5rem}
+.cycle-label{font-size:.8rem;color:var(--text-dim);margin-top:.5rem;text-align:center}
 
-/* Done */
 .done-check{width:64px;height:64px;border-radius:50%;border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:1.6rem;color:var(--accent);margin-bottom:1rem}
 .compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;width:100%;margin:1rem 0}
 .compare-col{text-align:center;padding:.8rem;background:var(--bg-card);border-radius:.75rem}
 .compare-col .h{font-size:.7rem;color:var(--text-dim);margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.05em}
 .compare-col .v{font-size:1.3rem;font-weight:600;color:var(--accent)}
-.compare-col .l{font-size:.7rem;color:var(--text-dim);margin-top:.1rem}
 .compare-row-label{font-size:.8rem;color:var(--text-dim);margin-top:.8rem;margin-bottom:.3rem;width:100%;text-align:left}
+
+/* Chronometer */
+.chrono-display{font-size:4rem;font-weight:200;font-variant-numeric:tabular-nums;color:var(--text);text-align:center;margin:2rem 0}
+.chrono-cycle{font-size:.9rem;color:var(--text-dim);text-align:center;margin-bottom:1rem}
+.chrono-instruction{font-size:.9rem;color:var(--text-dim);text-align:center;line-height:1.6;margin-bottom:2rem;padding:1rem;background:var(--bg-card);border-radius:.75rem}
+.chrono-results{width:100%}
+.chrono-result-row{display:flex;justify-content:space-between;padding:.6rem 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:.9rem}
+.chrono-avg{font-size:1.5rem;font-weight:600;color:var(--accent);text-align:center;margin:1rem 0}
+.chrono-avg-label{font-size:.8rem;color:var(--text-dim);text-align:center}
+
+/* Audio levels */
+.level-card{text-align:center;padding:1.5rem}
+.level-card .t{font-size:1.1rem}
+.level-card .badge-level{display:inline-block;font-size:.7rem;padding:.2rem .6rem;border-radius:1rem;margin-bottom:.5rem}
+.badge-l1{background:rgba(128,203,196,.2);color:var(--accent)}
+.badge-l2{background:rgba(255,167,38,.2);color:var(--warn)}
+.badge-l3{background:rgba(239,83,80,.2);color:var(--danger)}
+.coming-soon{font-size:.85rem;color:var(--text-dim);text-align:center;padding:2rem;font-style:italic}
 
 /* Admin */
 .admin-section{width:100%;margin-bottom:1.5rem}
@@ -96,19 +112,10 @@ textarea.input{min-height:80px;resize:vertical;font-family:inherit}
 .stat-box{background:var(--bg-card);border-radius:.75rem;padding:.8rem;text-align:center}
 .stat-box .n{font-size:1.5rem;font-weight:600;color:var(--accent)}
 .stat-box .l{font-size:.7rem;color:var(--text-dim);margin-top:.2rem}
-.admin-table{width:100%;border-collapse:collapse;font-size:.75rem;margin-top:.5rem}
-.admin-table th,.admin-table td{padding:.5rem;text-align:left;border-bottom:1px solid rgba(255,255,255,.06)}
-.admin-table th{color:var(--text-dim);font-weight:500}
 
-/* LGPD */
 .consent-text{font-size:.82rem;color:var(--text-dim);line-height:1.7;max-height:50vh;overflow-y:auto;padding:1rem;background:var(--bg2);border-radius:.75rem;margin-bottom:1rem;width:100%}
 .consent-text strong{color:var(--text)}
 
-/* Install banner */
-.install-banner{display:none;position:fixed;bottom:calc(var(--safe-bottom) + 1rem);left:1rem;right:1rem;background:#1a2332;border:1px solid rgba(128,203,196,.2);border-radius:1rem;padding:1rem;z-index:100;align-items:center;justify-content:space-between;gap:.8rem}
-.install-banner.show{display:flex}
-
-/* Tabs */
 .tabs{display:flex;gap:0;width:100%;margin-bottom:1rem;border-bottom:1px solid rgba(255,255,255,.08)}
 .tab{flex:1;padding:.7rem;font-size:.8rem;text-align:center;color:var(--text-dim);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s}
 .tab.active{color:var(--accent);border-bottom-color:var(--accent)}
@@ -116,6 +123,9 @@ textarea.input{min-height:80px;resize:vertical;font-family:inherit}
 .loader{color:var(--text-dim);font-size:.9rem;text-align:center;padding:2rem}
 .error-msg{color:var(--danger);font-size:.82rem;margin-bottom:.5rem;text-align:center;min-height:1.2rem}
 .link{color:var(--accent);cursor:pointer;font-size:.85rem;text-align:center;margin-top:.8rem}
+
+.install-banner{display:none;position:fixed;bottom:calc(var(--safe-bottom) + 1rem);left:1rem;right:1rem;background:#1a2332;border:1px solid rgba(128,203,196,.2);border-radius:1rem;padding:1rem;z-index:100;align-items:center;justify-content:space-between;gap:.8rem}
+.install-banner.show{display:flex}
 </style>
 </head>
 <body>
@@ -155,7 +165,7 @@ textarea.input{min-height:80px;resize:vertical;font-family:inherit}
 
 <!-- QUESTIONNAIRE -->
 <div class="screen scroll" id="questionnaireScreen">
-  <div class="step-indicator" id="qStep">Pergunta 1 de 7</div>
+  <div class="step-indicator" id="qStep">Pergunta 1 de 6</div>
   <div id="qContainer" style="width:100%"></div>
   <div style="display:flex;gap:.5rem;width:100%;margin-top:1rem">
     <button class="btn btn-o" id="qBack" style="flex:1">Voltar</button>
@@ -164,11 +174,76 @@ textarea.input{min-height:80px;resize:vertical;font-family:inherit}
 </div>
 
 <!-- HOME -->
-<div class="screen center" id="homeScreen">
+<div class="screen scroll" id="homeScreen">
   <div class="brand"><div class="brand-icon">🫁</div><div class="brand-name">Respira</div><div class="brand-sub">regulação pelo ritmo</div></div>
-  <div id="protocolList" style="width:100%"></div>
+  <div class="card main-card" id="btnRespireAgora"><div class="card-icon">🌬️</div><div class="t">Respire Agora</div><div class="d">Protocolos guiados de respiração</div></div>
+  <div class="card main-card" id="btnProtocolosAudio"><div class="card-icon">🎧</div><div class="t">Protocolos Respiratórios</div><div class="d">Sessões guiadas com áudio</div></div>
+  <div class="card main-card" id="btnTreinos"><div class="card-icon">⏱️</div><div class="t">Treinos e Testes de Respiração</div><div class="d">Bolt Score · TELL Score · TILL Score</div></div>
   <button class="btn btn-o" id="logoutBtn" style="margin-top:2rem;font-size:.82rem">Sair da conta</button>
   <div class="link" id="adminLink" style="display:none;margin-top:.5rem">Painel Admin</div>
+</div>
+
+<!-- RESPIRE AGORA -->
+<div class="screen scroll" id="breatheNowScreen">
+  <div class="top-bar"><button class="back-btn" id="breatheNowBack">‹ Voltar</button><div class="badge">Respire Agora</div></div>
+  <div class="section-title">Escolha o protocolo</div>
+  <div id="protocolList" style="width:100%"></div>
+</div>
+
+<!-- PROTOCOLOS COM ÁUDIO -->
+<div class="screen scroll" id="audioScreen">
+  <div class="top-bar"><button class="back-btn" id="audioBack">‹ Voltar</button><div class="badge">Protocolos com Áudio</div></div>
+  <div class="section-title">Escolha o nível</div>
+  <div class="card level-card" data-level="1"><div class="badge-level badge-l1">NÍVEL 1</div><div class="t">Iniciante</div><div class="d">Fundamentos da respiração consciente</div></div>
+  <div class="card level-card" data-level="2"><div class="badge-level badge-l2">NÍVEL 2</div><div class="t">Intermediário</div><div class="d">Protocolos de regulação avançada</div></div>
+  <div class="card level-card" data-level="3"><div class="badge-level badge-l3">NÍVEL 3</div><div class="t">Avançado</div><div class="d">Técnicas de alta performance</div></div>
+</div>
+
+<!-- ÁUDIOS DO NÍVEL -->
+<div class="screen scroll" id="audioLevelScreen">
+  <div class="top-bar"><button class="back-btn" id="audioLevelBack">‹ Voltar</button><div class="badge" id="audioLevelBadge">Nível 1</div></div>
+  <div id="audioLevelContent" style="width:100%"></div>
+</div>
+
+<!-- AUDIO PLAYER -->
+<div class="screen center" id="audioPlayerScreen">
+  <div class="top-bar"><button class="back-btn" id="audioPlayerBack">‹ Voltar</button><div class="badge" id="audioPlayerBadge"></div></div>
+  <div class="exercise-center">
+    <div class="card-icon" style="font-size:3rem">🎧</div>
+    <div class="section-title" style="text-align:center" id="audioPlayerTitle"></div>
+    <div id="audioPlayerContainer" style="width:100%"></div>
+  </div>
+</div>
+
+<!-- TESTES DE RESPIRAÇÃO -->
+<div class="screen scroll" id="testsScreen">
+  <div class="top-bar"><button class="back-btn" id="testsBack">‹ Voltar</button><div class="badge">Testes Respiratórios</div></div>
+  <div class="section-title">Escolha o teste</div>
+  <div class="card" data-test="bolt"><div class="t">⏱️ Bolt Score</div><div class="d">Meça seu tempo de pausa confortável após expiração normal. Indicador de tolerância ao CO₂.</div></div>
+  <div class="card" data-test="tell"><div class="t">🔊 TELL Score</div><div class="d">Sustente o som "sssss" o máximo que puder após inspiração completa. Mede controle expiratório.</div></div>
+  <div class="card" data-test="till"><div class="t">🔔 TILL Score</div><div class="d">Sustente o som "zzzzz" o máximo que puder após inspiração completa. Mede ressonância e controle.</div></div>
+</div>
+
+<!-- CRONÔMETRO -->
+<div class="screen center" id="chronoScreen">
+  <div class="top-bar"><button class="back-btn" id="chronoBack">‹ Voltar</button><div class="badge" id="chronoBadge"></div></div>
+  <div class="exercise-center">
+    <div class="chrono-instruction" id="chronoInstruction"></div>
+    <div class="chrono-cycle" id="chronoCycle"></div>
+    <div class="chrono-display" id="chronoDisplay">0.0</div>
+    <button class="btn btn-p" id="chronoBtn" style="max-width:280px">Iniciar</button>
+  </div>
+</div>
+
+<!-- RESULTADO DO TESTE -->
+<div class="screen center" id="chronoResultScreen">
+  <div class="done-check">⏱️</div>
+  <div class="section-title" style="text-align:center" id="chronoResultTitle"></div>
+  <div class="chrono-results" id="chronoResults"></div>
+  <div class="chrono-avg-label">Média</div>
+  <div class="chrono-avg" id="chronoAvg"></div>
+  <button class="btn btn-p" id="chronoResultHome">Voltar ao início</button>
+  <button class="btn btn-o" id="chronoResultRepeat">Refazer teste</button>
 </div>
 
 <!-- WELLBEING BEFORE -->
@@ -189,11 +264,11 @@ textarea.input{min-height:80px;resize:vertical;font-family:inherit}
   </div>
   <div style="width:100%">
     <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
-    <div class="cycle-label" id="cycleLabel" style="text-align:center"></div>
+    <div class="cycle-label" id="cycleLabel"></div>
   </div>
 </div>
 
-<!-- REPEAT PROMPT -->
+<!-- REPEAT -->
 <div class="screen center" id="repeatScreen">
   <div class="done-check">🫁</div>
   <div class="section-title" style="text-align:center">Protocolo concluído</div>
@@ -222,11 +297,7 @@ textarea.input{min-height:80px;resize:vertical;font-family:inherit}
 <div class="screen scroll" id="adminScreen">
   <div class="top-bar"><button class="back-btn" id="adminBack">‹ Voltar</button><div class="badge">Admin</div></div>
   <div class="section-title">Painel Administrativo</div>
-  <div class="tabs">
-    <div class="tab active" data-tab="overview">Visão Geral</div>
-    <div class="tab" data-tab="users">Usuários</div>
-    <div class="tab" data-tab="sessions">Sessões</div>
-  </div>
+  <div class="tabs"><div class="tab active" data-tab="overview">Visão Geral</div><div class="tab" data-tab="users">Usuários</div><div class="tab" data-tab="sessions">Sessões</div></div>
   <div id="adminContent" style="width:100%"><div class="loader">Carregando...</div></div>
 </div>
 
@@ -237,12 +308,9 @@ textarea.input{min-height:80px;resize:vertical;font-family:inherit}
 </div>
 
 <script>
-// ═══════════════════════════════════════
-// CONFIG — ALTERE SEU EMAIL DE ADMIN AQUI
-// ═══════════════════════════════════════
+// ═══ CONFIG ═══
 const ADMIN_EMAIL = 'andrei-94@hotmail.com';
 
-// Firebase Config
 firebase.initializeApp({
   apiKey:"AIzaSyC5Fa-qRDTLyVbC_N-y3lP7o4NSJqTcewc",
   authDomain:"respirapp-58d2b.firebaseapp.com",
@@ -251,538 +319,384 @@ firebase.initializeApp({
   messagingSenderId:"565648433343",
   appId:"1:565648433343:web:1939a62510bc3af509660a"
 });
-
-const auth = firebase.auth();
-const db = firebase.firestore();
+const auth=firebase.auth(), db=firebase.firestore();
 
 // ═══ PROTOCOLS ═══
-const PROTOCOLS = {
-  equilibrio: {
-    name:'4 × 4', subtitle:'Equilíbrio', cycles:7,
-    desc:'4s inspira · 4s expira · 7 ciclos · 56s',
-    phases:[{label:'Inspire',duration:4,scaleFrom:0,scaleTo:1},{label:'Expire',duration:4,scaleFrom:1,scaleTo:0}]
-  },
-  ansiedade: {
-    name:'2 × 4', subtitle:'Anti-ansiedade', cycles:9,
-    desc:'2s inspira · 4s expira · 9 ciclos · 54s',
-    phases:[{label:'Inspire',duration:2,scaleFrom:0,scaleTo:.5},{label:'Expire',duration:4,scaleFrom:.5,scaleTo:0}]
-  },
-  suspiro: {
-    name:'Suspiro', subtitle:'Fisiológico', cycles:8,
-    desc:'2s inspira · 1s suspiro · 4s expira · 8 ciclos · 56s',
-    phases:[{label:'Inspire',duration:2,scaleFrom:0,scaleTo:.65},{label:'Suspiro',duration:1,scaleFrom:.65,scaleTo:1},{label:'Expire',duration:4,scaleFrom:1,scaleTo:0}]
-  }
+const PROTOCOLS={
+  equilibrio:{name:'4 × 4',subtitle:'Equilíbrio',cycles:7,desc:'4s inspira · 4s expira · 7 ciclos · 56s',
+    phases:[{label:'Inspire',duration:4,scaleFrom:0,scaleTo:1},{label:'Expire',duration:4,scaleFrom:1,scaleTo:0}]},
+  ansiedade:{name:'2 × 4',subtitle:'Anti-ansiedade',cycles:9,desc:'2s inspira · 4s expira · 9 ciclos · 54s',
+    phases:[{label:'Inspire',duration:2,scaleFrom:0,scaleTo:.5},{label:'Expire',duration:4,scaleFrom:.5,scaleTo:0}]},
+  suspiro:{name:'Suspiro',subtitle:'Fisiológico',cycles:8,desc:'2s inspira · 1s suspiro · 4s expira · 8 ciclos · 56s',
+    phases:[{label:'Inspire',duration:2,scaleFrom:0,scaleTo:.65},{label:'Suspiro',duration:1,scaleFrom:.65,scaleTo:1},{label:'Expire',duration:4,scaleFrom:1,scaleTo:0}]}
 };
 
-// ═══ QUESTIONNAIRE DEFINITION ═══
-const QUESTIONS = [
-  {id:'q1',type:'multi',label:'Você tem algum tipo dessas situações de saúde?',
-   options:['Problemas de Pressão','Problemas no Coração','Glaucoma ou Pressão nos Olhos','Esquizofrenia','Bipolaridade','Gravidez'],hasOther:true},
+// ═══ QUESTIONNAIRE ═══
+const QUESTIONS=[
+  {id:'q1',type:'multi',label:'Você tem algum tipo dessas situações de saúde?',options:['Problemas de Pressão','Problemas no Coração','Glaucoma ou Pressão nos Olhos','Esquizofrenia','Bipolaridade','Gravidez'],hasOther:true},
   {id:'q2',type:'text',label:'Qual o seu atual desafio com estresse, ansiedade, hiperatividade ou outro?'},
   {id:'q3',type:'text',label:'O que você já tentou para resolver esse problema ou desafio?'},
-  {id:'q4',type:'multi',label:'Esse problema ou desafio tem interferido em qual(is) áreas da sua vida?',
-   options:['Financeiro','Relacionamento afetivo','Ambiente profissional','Bem-estar pessoal','Ambientes sociais/amizades']},
+  {id:'q4',type:'multi',label:'Esse problema ou desafio tem interferido em qual(is) áreas da sua vida?',options:['Financeiro','Relacionamento afetivo','Ambiente profissional','Bem-estar pessoal','Ambientes sociais/amizades']},
   {id:'q5',type:'text',label:'Se gerenciar melhor seu estresse te ajudasse a melhorar 1 única coisa importante na sua vida, o que seria?'},
-  {id:'q6',type:'multi',label:'Nos últimos 12 meses, você tentou alguma dessas soluções?',
-   options:['Suplementos','Academia ou Outros Esportes','Yoga','Meditação','Remédios','Terapias'],hasOther:true}
+  {id:'q7',type:'multi',label:'Nos últimos 12 meses, você tentou alguma dessas soluções?',options:['Suplementos','Academia ou Outros Esportes','Yoga','Meditação','Remédios','Terapias'],hasOther:true}
 ];
 
-// ═══ WELLBEING PARAMS ═══
-const WB_PARAMS = [
+const WB_PARAMS=[
   {id:'stress',label:'Nível de Estresse',low:'Nenhum',high:'Extremo'},
   {id:'sleep',label:'O quão bem você dorme',low:'Muito mal',high:'Muito bem'},
   {id:'energy',label:'Quanta energia você está agora',low:'Nenhuma',high:'Máxima'},
   {id:'clarity',label:'Clareza Mental',low:'Muito baixa',high:'Muito alta'}
 ];
 
+// ═══ AUDIO PROTOCOLS (placeholder — adicionar MP3s aqui) ═══
+const AUDIO_LEVELS={
+  1:{name:'Nível 1 — Iniciante', audios:[]},
+  2:{name:'Nível 2 — Intermediário', audios:[]},
+  3:{name:'Nível 3 — Avançado', audios:[]}
+};
+// Formato para adicionar áudios:
+// { title: 'Nome do Protocolo', file: './audios/protocolo1.mp3' }
+
+// ═══ TESTS ═══
+const TESTS={
+  bolt:{name:'Bolt Score',instruction:'Após uma expiração normal e tranquila, segure a respiração. Toque em "Iniciar" quando parar de respirar e "Parar" quando sentir a primeira vontade de respirar. Não force — o objetivo é medir o ponto de conforto.'},
+  tell:{name:'TELL Score',instruction:'Após uma inspiração completa, sustente o som "sssss" de forma contínua e uniforme. Toque em "Iniciar" quando começar o som e "Parar" quando não conseguir mais manter.'},
+  till:{name:'TILL Score',instruction:'Após uma inspiração completa, sustente o som "zzzzz" de forma contínua e uniforme. Toque em "Iniciar" quando começar o som e "Parar" quando não conseguir mais manter.'}
+};
+
 // ═══ STATE ═══
-let currentUser = null;
-let currentProtocolKey = null;
-let sessionData = {};
-let totalCyclesCompleted = 0;
-let running = false;
-let animFrame = null;
-let qIndex = 0;
-let qAnswers = {};
+let currentUser=null, currentProtocolKey=null, sessionData={}, totalCyclesCompleted=0;
+let running=false, animFrame=null, qIndex=0, qAnswers={};
+let chronoInterval=null, chronoStart=0, chronoCycleNum=0, chronoTimes=[], currentTestKey=null;
+let currentAudioLevel=null;
 
-const $ = id => document.getElementById(id);
-const screens = document.querySelectorAll('.screen');
-
-function show(id) {
-  screens.forEach(s => s.classList.remove('active'));
-  $(id).classList.add('active');
-  $(id).scrollTop = 0;
-}
+const $=id=>document.getElementById(id);
+const screens=document.querySelectorAll('.screen');
+function show(id){screens.forEach(s=>s.classList.remove('active'));$(id).classList.add('active');$(id).scrollTop=0;}
 
 // ═══ AUTH ═══
-let isLogin = false;
-
-$('authToggle').addEventListener('click', () => {
-  isLogin = !isLogin;
-  $('authTitle').textContent = isLogin ? 'Entrar' : 'Criar conta';
-  $('authBtn').textContent = isLogin ? 'Entrar' : 'Criar conta';
-  $('authToggle').textContent = isLogin ? 'Não tenho conta → Criar' : 'Já tenho conta → Entrar';
-  $('authName').style.display = isLogin ? 'none' : '';
-  $('authWhatsapp').style.display = isLogin ? 'none' : '';
-  $('authError').textContent = '';
+let isLogin=false;
+$('authToggle').addEventListener('click',()=>{
+  isLogin=!isLogin;
+  $('authTitle').textContent=isLogin?'Entrar':'Criar conta';
+  $('authBtn').textContent=isLogin?'Entrar':'Criar conta';
+  $('authToggle').textContent=isLogin?'Não tenho conta → Criar':'Já tenho conta → Entrar';
+  $('authName').style.display=isLogin?'none':'';
+  $('authWhatsapp').style.display=isLogin?'none':'';
+  $('authError').textContent='';
 });
 
-$('authBtn').addEventListener('click', async () => {
-  const email = $('authEmail').value.trim();
-  const pass = $('authPass').value;
-  const name = $('authName').value.trim();
-  const whatsapp = $('authWhatsapp').value.trim();
-  $('authError').textContent = '';
-
-  if (!email || !pass) { $('authError').textContent = 'Preencha e-mail e senha.'; return; }
-  if (!isLogin && (!name || !whatsapp)) { $('authError').textContent = 'Preencha todos os campos.'; return; }
-  if (pass.length < 6) { $('authError').textContent = 'Senha precisa ter no mínimo 6 caracteres.'; return; }
-
-  $('authBtn').disabled = true;
-  try {
-    if (isLogin) {
-      await auth.signInWithEmailAndPassword(email, pass);
-    } else {
-      const cred = await auth.createUserWithEmailAndPassword(email, pass);
-      await db.collection('users').doc(cred.user.uid).set({
-        name, email, whatsapp, createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        consentAccepted: false, questionnaireCompleted: false
-      });
-    }
-  } catch (e) {
-    const msgs = {'auth/email-already-in-use':'E-mail já cadastrado.','auth/invalid-email':'E-mail inválido.',
-      'auth/user-not-found':'Usuário não encontrado.','auth/wrong-password':'Senha incorreta.','auth/invalid-credential':'E-mail ou senha incorretos.'};
-    $('authError').textContent = msgs[e.code] || e.message;
-  }
-  $('authBtn').disabled = false;
+$('authBtn').addEventListener('click',async()=>{
+  const email=$('authEmail').value.trim(),pass=$('authPass').value,name=$('authName').value.trim(),whatsapp=$('authWhatsapp').value.trim();
+  $('authError').textContent='';
+  if(!email||!pass){$('authError').textContent='Preencha e-mail e senha.';return;}
+  if(!isLogin&&(!name||!whatsapp)){$('authError').textContent='Preencha todos os campos.';return;}
+  if(pass.length<6){$('authError').textContent='Senha precisa ter no mínimo 6 caracteres.';return;}
+  $('authBtn').disabled=true;
+  try{
+    if(isLogin){await auth.signInWithEmailAndPassword(email,pass);}
+    else{const c=await auth.createUserWithEmailAndPassword(email,pass);await db.collection('users').doc(c.user.uid).set({name,email,whatsapp,createdAt:firebase.firestore.FieldValue.serverTimestamp(),consentAccepted:false,questionnaireCompleted:false});}
+  }catch(e){const m={'auth/email-already-in-use':'E-mail já cadastrado.','auth/invalid-email':'E-mail inválido.','auth/user-not-found':'Usuário não encontrado.','auth/wrong-password':'Senha incorreta.','auth/invalid-credential':'E-mail ou senha incorretos.'};$('authError').textContent=m[e.code]||e.message;}
+  $('authBtn').disabled=false;
 });
 
-$('logoutBtn').addEventListener('click', () => auth.signOut());
+$('logoutBtn').addEventListener('click',()=>auth.signOut());
 
-auth.onAuthStateChanged(async user => {
-  if (!user) { show('authScreen'); currentUser = null; return; }
-  currentUser = user;
-  const doc = await db.collection('users').doc(user.uid).get();
-  if (!doc.exists) { show('authScreen'); return; }
-  const data = doc.data();
-  if (!data.consentAccepted) { show('consentScreen'); return; }
-  if (!data.questionnaireCompleted) { qIndex = 0; renderQuestion(); show('questionnaireScreen'); return; }
-  showHome();
+auth.onAuthStateChanged(async user=>{
+  if(!user){show('authScreen');currentUser=null;return;}
+  currentUser=user;
+  try{
+    const doc=await db.collection('users').doc(user.uid).get();
+    if(!doc.exists){show('authScreen');return;}
+    const data=doc.data();
+    if(!data.consentAccepted){show('consentScreen');return;}
+    if(!data.questionnaireCompleted){qIndex=0;renderQuestion();show('questionnaireScreen');return;}
+    showHome();
+  }catch(e){console.error(e);show('authScreen');}
 });
 
 // ═══ CONSENT ═══
-$('consentBtn').addEventListener('click', async () => {
-  await db.collection('users').doc(currentUser.uid).update({
-    consentAccepted: true, consentAt: firebase.firestore.FieldValue.serverTimestamp()
-  });
-  qIndex = 0; renderQuestion(); show('questionnaireScreen');
-});
-$('consentDecline').addEventListener('click', () => { auth.signOut(); });
+$('consentBtn').addEventListener('click',async()=>{await db.collection('users').doc(currentUser.uid).update({consentAccepted:true,consentAt:firebase.firestore.FieldValue.serverTimestamp()});qIndex=0;renderQuestion();show('questionnaireScreen');});
+$('consentDecline').addEventListener('click',()=>auth.signOut());
 
 // ═══ QUESTIONNAIRE ═══
-function renderQuestion() {
-  const q = QUESTIONS[qIndex];
-  $('qStep').textContent = `Pergunta ${qIndex+1} de ${QUESTIONS.length}`;
-  $('qBack').style.visibility = qIndex === 0 ? 'hidden' : 'visible';
-  $('qNext').textContent = qIndex === QUESTIONS.length - 1 ? 'Finalizar' : 'Próxima';
-
-  let html = `<div class="section-title" style="font-size:1rem">${q.label}</div>`;
-  const prev = qAnswers[q.id] || {};
-
-  if (q.type === 'multi') {
-    html += '<div class="chips">';
-    q.options.forEach(o => {
-      const sel = (prev.selected || []).includes(o);
-      html += `<div class="chip ${sel?'sel':''}" data-val="${o}">${o}</div>`;
-    });
-    html += '</div>';
-    if (q.hasOther) {
-      html += `<input class="input" id="qOther" placeholder="Outro (especifique)" value="${prev.other||''}">`;
-    }
-  } else {
-    html += `<textarea class="input" id="qText" placeholder="Escreva sua resposta...">${prev.text||''}</textarea>`;
-  }
-  $('qContainer').innerHTML = html;
-
-  // Chip listeners
-  $('qContainer').querySelectorAll('.chip').forEach(chip => {
-    chip.addEventListener('click', () => chip.classList.toggle('sel'));
-  });
+function renderQuestion(){
+  const q=QUESTIONS[qIndex];$('qStep').textContent=`Pergunta ${qIndex+1} de ${QUESTIONS.length}`;
+  $('qBack').style.visibility=qIndex===0?'hidden':'visible';
+  $('qNext').textContent=qIndex===QUESTIONS.length-1?'Finalizar':'Próxima';
+  let h=`<div class="section-title" style="font-size:1rem">${q.label}</div>`;
+  const prev=qAnswers[q.id]||{};
+  if(q.type==='multi'){h+='<div class="chips">';q.options.forEach(o=>{const s=(prev.selected||[]).includes(o);h+=`<div class="chip ${s?'sel':''}" data-val="${o}">${o}</div>`;});h+='</div>';if(q.hasOther)h+=`<input class="input" id="qOther" placeholder="Outro (especifique)" value="${prev.other||''}">`;}
+  else h+=`<textarea class="input" id="qText" placeholder="Escreva sua resposta...">${prev.text||''}</textarea>`;
+  $('qContainer').innerHTML=h;
+  $('qContainer').querySelectorAll('.chip').forEach(c=>c.addEventListener('click',()=>c.classList.toggle('sel')));
 }
-
-function saveCurrentAnswer() {
-  const q = QUESTIONS[qIndex];
-  if (q.type === 'multi') {
-    const selected = [...$('qContainer').querySelectorAll('.chip.sel')].map(c => c.dataset.val);
-    const other = q.hasOther && $('qOther') ? $('qOther').value.trim() : '';
-    qAnswers[q.id] = { selected, other };
-  } else {
-    qAnswers[q.id] = { text: $('qText') ? $('qText').value.trim() : '' };
-  }
-}
-
-$('qNext').addEventListener('click', async () => {
-  saveCurrentAnswer();
-  if (qIndex < QUESTIONS.length - 1) {
-    qIndex++;
-    renderQuestion();
-  } else {
-    // Save questionnaire
-    await db.collection('questionnaires').doc(currentUser.uid).set({
-      ...qAnswers, submittedAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-    await db.collection('users').doc(currentUser.uid).update({ questionnaireCompleted: true });
-    showHome();
-  }
-});
-
-$('qBack').addEventListener('click', () => {
-  if (qIndex > 0) { saveCurrentAnswer(); qIndex--; renderQuestion(); }
-});
+function saveCurrentAnswer(){const q=QUESTIONS[qIndex];if(q.type==='multi'){const s=[...$('qContainer').querySelectorAll('.chip.sel')].map(c=>c.dataset.val);const o=q.hasOther&&$('qOther')?$('qOther').value.trim():'';qAnswers[q.id]={selected:s,other:o};}else{qAnswers[q.id]={text:$('qText')?$('qText').value.trim():''};}}
+$('qNext').addEventListener('click',async()=>{saveCurrentAnswer();if(qIndex<QUESTIONS.length-1){qIndex++;renderQuestion();}else{await db.collection('questionnaires').doc(currentUser.uid).set({...qAnswers,submittedAt:firebase.firestore.FieldValue.serverTimestamp()});await db.collection('users').doc(currentUser.uid).update({questionnaireCompleted:true});showHome();}});
+$('qBack').addEventListener('click',()=>{if(qIndex>0){saveCurrentAnswer();qIndex--;renderQuestion();}});
 
 // ═══ HOME ═══
-function showHome() {
-  let html = '';
-  for (const [key, p] of Object.entries(PROTOCOLS)) {
-    html += `<div class="card proto-card" data-key="${key}"><div class="t">${p.name} — ${p.subtitle}</div><div class="d">${p.desc}</div></div>`;
-  }
-  $('protocolList').innerHTML = html;
-  $('protocolList').querySelectorAll('.proto-card').forEach(c => {
-    c.addEventListener('click', () => { currentProtocolKey = c.dataset.key; startSession(); });
-  });
-  $('adminLink').style.display = (currentUser && currentUser.email === ADMIN_EMAIL) ? '' : 'none';
+function showHome(){
+  $('adminLink').style.display=(currentUser&&currentUser.email===ADMIN_EMAIL)?'':'none';
   show('homeScreen');
 }
 
-// ═══ WELLBEING ═══
-function renderWellbeing(containerId) {
-  let html = '';
-  WB_PARAMS.forEach(p => {
-    html += `<div class="scale-row"><div class="scale-label">${p.label}</div><div class="scale-dots" data-param="${p.id}">`;
-    for (let i = 0; i <= 5; i++) {
-      html += `<div class="scale-dot" data-val="${i}">${i}</div>`;
-    }
-    html += `</div><div class="scale-anchors"><span>${p.low}</span><span>${p.high}</span></div></div>`;
-  });
-  $(containerId).innerHTML = html;
-
-  $(containerId).querySelectorAll('.scale-dot').forEach(dot => {
-    dot.addEventListener('click', () => {
-      dot.parentElement.querySelectorAll('.scale-dot').forEach(d => d.classList.remove('sel'));
-      dot.classList.add('sel');
-    });
-  });
-}
-
-function collectWellbeing(containerId) {
-  const result = {};
-  let complete = true;
-  $(containerId).querySelectorAll('.scale-dots').forEach(row => {
-    const sel = row.querySelector('.scale-dot.sel');
-    if (sel) { result[row.dataset.param] = parseInt(sel.dataset.val); }
-    else { complete = false; }
-  });
-  return complete ? result : null;
-}
-
-// ═══ SESSION FLOW ═══
-function startSession() {
-  totalCyclesCompleted = 0;
-  sessionData = { protocol: currentProtocolKey, startedAt: new Date() };
-  renderWellbeing('wbBeforeFields');
-  show('wbBeforeScreen');
-}
-
-$('wbBeforeBack').addEventListener('click', () => showHome());
-
-$('wbBeforeNext').addEventListener('click', () => {
-  const wb = collectWellbeing('wbBeforeFields');
-  if (!wb) { alert('Preencha todos os campos.'); return; }
-  sessionData.wellbeingBefore = wb;
-  startExercise();
+// Navigation: Home → Sub-screens
+$('btnRespireAgora').addEventListener('click',()=>{
+  let h='';for(const[k,p]of Object.entries(PROTOCOLS))h+=`<div class="card" data-key="${k}"><div class="t">${p.name} — ${p.subtitle}</div><div class="d">${p.desc}</div></div>`;
+  $('protocolList').innerHTML=h;
+  $('protocolList').querySelectorAll('.card').forEach(c=>c.addEventListener('click',()=>{currentProtocolKey=c.dataset.key;startSession();}));
+  show('breatheNowScreen');
 });
+$('breatheNowBack').addEventListener('click',()=>showHome());
 
-// ═══ EXERCISE ═══
-const MIN_SCALE = 1, MAX_SCALE = 3.8;
-function easeInOutSine(t) { return -(Math.cos(Math.PI * t) - 1) / 2; }
-function lerp(a, b, t) { return a + (b - a) * t; }
+$('btnProtocolosAudio').addEventListener('click',()=>show('audioScreen'));
+$('audioBack').addEventListener('click',()=>showHome());
 
-function startExercise() {
-  show('exerciseScreen');
-  const p = PROTOCOLS[currentProtocolKey];
-  $('exBadge').textContent = p.name + ' · ' + p.subtitle;
-  $('phaseText').textContent = '';
-  $('secondCount').textContent = '';
-  $('progressFill').style.width = '0%';
-  $('cycleLabel').textContent = '';
-  $('ball').style.transform = 'scale(1)';
+$('btnTreinos').addEventListener('click',()=>show('testsScreen'));
+$('testsBack').addEventListener('click',()=>showHome());
 
-  if (navigator.vibrate) navigator.vibrate(30);
-  requestWakeLock();
-  running = true;
-
-  const cycleDur = p.phases.reduce((s, ph) => s + ph.duration, 0) * 1000;
-  const totalDur = p.cycles * cycleDur;
-  const startTime = performance.now();
-
-  const bounds = [];
-  let cum = 0;
-  for (const ph of p.phases) {
-    bounds.push({ ...ph, startMs: cum, endMs: cum + ph.duration * 1000 });
-    cum += ph.duration * 1000;
+// ═══ AUDIO PROTOCOLS ═══
+document.querySelectorAll('.level-card').forEach(c=>c.addEventListener('click',()=>{
+  currentAudioLevel=parseInt(c.dataset.level);
+  const lvl=AUDIO_LEVELS[currentAudioLevel];
+  $('audioLevelBadge').textContent=lvl.name;
+  if(lvl.audios.length===0){
+    $('audioLevelContent').innerHTML='<div class="coming-soon">Os áudios deste nível serão adicionados em breve.</div><div style="text-align:center;margin-top:1rem;font-size:.8rem;color:var(--text-dim)">Para adicionar áudios, edite a variável AUDIO_LEVELS no código e coloque os arquivos .mp3 na pasta do repositório.</div>';
+  }else{
+    let h='';lvl.audios.forEach((a,i)=>{h+=`<div class="card" data-audio-idx="${i}"><div class="t">🎵 ${a.title}</div></div>`;});
+    $('audioLevelContent').innerHTML=h;
+    $('audioLevelContent').querySelectorAll('.card').forEach(c=>c.addEventListener('click',()=>{
+      const idx=parseInt(c.dataset.audioIdx);const a=lvl.audios[idx];
+      $('audioPlayerBadge').textContent=lvl.name;
+      $('audioPlayerTitle').textContent=a.title;
+      $('audioPlayerContainer').innerHTML=`<audio controls style="width:100%;margin-top:1rem;filter:invert(.85)" src="${a.file}" id="activeAudio"></audio>`;
+      const audioEl=$('activeAudio');
+      audioEl.addEventListener('ended',async()=>{
+        try{await db.collection('sessions').add({userId:currentUser.uid,type:'audio',level:currentAudioLevel,audioTitle:a.title,completedAt:firebase.firestore.FieldValue.serverTimestamp()});}catch(e){}
+      });
+      show('audioPlayerScreen');
+    }));
   }
+  show('audioLevelScreen');
+}));
+$('audioLevelBack').addEventListener('click',()=>show('audioScreen'));
+$('audioPlayerBack').addEventListener('click',()=>{const a=$('activeAudio');if(a)a.pause();show('audioLevelScreen');});
 
-  let lastLabel = '';
+// ═══ TESTS / CHRONOMETER ═══
+document.querySelectorAll('[data-test]').forEach(c=>c.addEventListener('click',()=>{
+  currentTestKey=c.dataset.test;
+  const t=TESTS[currentTestKey];
+  $('chronoBadge').textContent=t.name;
+  $('chronoInstruction').textContent=t.instruction;
+  chronoCycleNum=0;chronoTimes=[];
+  updateChronoUI();
+  show('chronoScreen');
+}));
+$('testsBack').addEventListener('click',()=>showHome());
+$('chronoBack').addEventListener('click',()=>{stopChrono();show('testsScreen');});
 
-  function tick(now) {
-    if (!running) return;
-    const elapsed = now - startTime;
-    if (elapsed >= totalDur) { endExercise(p); return; }
-
-    const ce = elapsed % cycleDur;
-    let ap = bounds[0];
-    for (const b of bounds) { if (ce >= b.startMs && ce < b.endMs) { ap = b; break; } }
-
-    const prog = (ce - ap.startMs) / (ap.endMs - ap.startMs);
-    const eased = easeInOutSine(prog);
-    const ns = lerp(ap.scaleFrom, ap.scaleTo, eased);
-    const scale = lerp(MIN_SCALE, MAX_SCALE, ns);
-
-    $('ball').style.transform = 'scale(' + scale + ')';
-    $('ball').style.boxShadow = '0 0 ' + lerp(20,70,ns) + 'px rgba(79,195,247,' + lerp(.12,.4,ns) + ')';
-    $('phaseText').textContent = ap.label;
-    $('phaseText').style.opacity = ap.label === 'Expire' ? '.65' : '1';
-    if (ap.label !== lastLabel) { if (navigator.vibrate) navigator.vibrate(15); lastLabel = ap.label; }
-    $('secondCount').textContent = Math.ceil((ap.endMs - ce) / 1000);
-    $('cycleLabel').textContent = 'Ciclo ' + (Math.floor(elapsed / cycleDur) + 1) + ' de ' + p.cycles;
-    $('progressFill').style.width = ((elapsed / totalDur) * 100) + '%';
-    animFrame = requestAnimationFrame(tick);
-  }
-  animFrame = requestAnimationFrame(tick);
+function updateChronoUI(){
+  $('chronoCycle').textContent=`Tentativa ${chronoCycleNum+1} de 3`;
+  $('chronoDisplay').textContent='0.0';
+  $('chronoBtn').textContent='Iniciar';
+  $('chronoBtn').className='btn btn-p';
+  $('chronoBtn').onclick=startChrono;
 }
 
-$('exBack').addEventListener('click', () => { running = false; if (animFrame) cancelAnimationFrame(animFrame); showHome(); });
-
-function endExercise(p) {
-  running = false;
-  totalCyclesCompleted += p.cycles;
-  $('repeatInfo').textContent = `${p.name} · ${p.subtitle} — ${totalCyclesCompleted} ciclo(s) completado(s)`;
-  if (navigator.vibrate) navigator.vibrate([30,80,30]);
-  show('repeatScreen');
+function startChrono(){
+  chronoStart=performance.now();
+  $('chronoBtn').textContent='Parar';
+  $('chronoBtn').className='btn btn-d';
+  $('chronoBtn').onclick=stopChronoCycle;
+  if(navigator.vibrate)navigator.vibrate(30);
+  chronoInterval=setInterval(()=>{
+    const elapsed=(performance.now()-chronoStart)/1000;
+    $('chronoDisplay').textContent=elapsed.toFixed(1);
+  },100);
 }
 
-$('repeatYes').addEventListener('click', () => startExercise());
-$('repeatNo').addEventListener('click', () => {
-  renderWellbeing('wbAfterFields');
-  show('wbAfterScreen');
-});
+function stopChronoCycle(){
+  clearInterval(chronoInterval);
+  const elapsed=(performance.now()-chronoStart)/1000;
+  chronoTimes.push(parseFloat(elapsed.toFixed(1)));
+  if(navigator.vibrate)navigator.vibrate([30,50,30]);
+  chronoCycleNum++;
+  if(chronoCycleNum<3){
+    $('chronoDisplay').textContent=elapsed.toFixed(1);
+    $('chronoBtn').textContent=`Próxima (${chronoCycleNum+1}/3)`;
+    $('chronoBtn').className='btn btn-p';
+    $('chronoBtn').onclick=()=>{updateChronoUI();};
+    $('chronoCycle').textContent=`✓ ${elapsed.toFixed(1)}s — ${3-chronoCycleNum} restante(s)`;
+  }else{
+    showChronoResult();
+  }
+}
 
-$('wbAfterNext').addEventListener('click', async () => {
-  const wb = collectWellbeing('wbAfterFields');
-  if (!wb) { alert('Preencha todos os campos.'); return; }
-  sessionData.wellbeingAfter = wb;
-  sessionData.endedAt = new Date();
-  sessionData.totalCycles = totalCyclesCompleted;
-  sessionData.userId = currentUser.uid;
-  sessionData.protocolName = PROTOCOLS[currentProtocolKey].name + ' ' + PROTOCOLS[currentProtocolKey].subtitle;
+function stopChrono(){clearInterval(chronoInterval);}
+
+async function showChronoResult(){
+  const t=TESTS[currentTestKey];
+  const avg=parseFloat((chronoTimes.reduce((a,b)=>a+b,0)/3).toFixed(1));
+  $('chronoResultTitle').textContent=t.name;
+  let h='';chronoTimes.forEach((v,i)=>{h+=`<div class="chrono-result-row"><span>Tentativa ${i+1}</span><span>${v}s</span></div>`;});
+  $('chronoResults').innerHTML=h;
+  $('chronoAvg').textContent=avg+'s';
 
   // Save to Firestore
-  try { await db.collection('sessions').add(sessionData); } catch(e) { console.error(e); }
+  try{await db.collection('sessions').add({userId:currentUser.uid,type:'test',testName:currentTestKey,testLabel:t.name,times:chronoTimes,average:avg,completedAt:firebase.firestore.FieldValue.serverTimestamp()});}catch(e){console.error(e);}
 
-  // Show comparison
-  showComparison(sessionData.wellbeingBefore, wb);
-});
-
-function showComparison(before, after) {
-  const labels = {stress:'Estresse',sleep:'Sono',energy:'Energia',clarity:'Clareza'};
-  let html = '<div class="compare-grid">';
-  html += '<div class="compare-col"><div class="h">Antes</div></div>';
-  html += '<div class="compare-col"><div class="h">Depois</div></div>';
-  html += '</div>';
-
-  for (const key of Object.keys(labels)) {
-    const diff = after[key] - before[key];
-    const arrow = diff > 0 ? ' ↑' : diff < 0 ? ' ↓' : ' =';
-    const color = key === 'stress' ? (diff < 0 ? 'var(--accent)' : diff > 0 ? 'var(--danger)' : 'var(--text-dim)')
-                                   : (diff > 0 ? 'var(--accent)' : diff < 0 ? 'var(--danger)' : 'var(--text-dim)');
-    html += `<div class="compare-row-label">${labels[key]}</div>`;
-    html += '<div class="compare-grid">';
-    html += `<div class="compare-col"><div class="v">${before[key]}</div></div>`;
-    html += `<div class="compare-col"><div class="v" style="color:${color}">${after[key]}${arrow}</div></div>`;
-    html += '</div>';
-  }
-  $('compareResult').innerHTML = html;
-  show('doneScreen');
+  show('chronoResultScreen');
 }
 
-$('doneHome').addEventListener('click', () => showHome());
+$('chronoResultHome').addEventListener('click',()=>showHome());
+$('chronoResultRepeat').addEventListener('click',()=>{chronoCycleNum=0;chronoTimes=[];updateChronoUI();show('chronoScreen');});
+
+// ═══ WELLBEING ═══
+function renderWellbeing(cid){
+  let h='';WB_PARAMS.forEach(p=>{h+=`<div class="scale-row"><div class="scale-label">${p.label}</div><div class="scale-dots" data-param="${p.id}">`;for(let i=0;i<=5;i++)h+=`<div class="scale-dot" data-val="${i}">${i}</div>`;h+=`</div><div class="scale-anchors"><span>${p.low}</span><span>${p.high}</span></div></div>`;});
+  $(cid).innerHTML=h;
+  $(cid).querySelectorAll('.scale-dot').forEach(d=>d.addEventListener('click',()=>{d.parentElement.querySelectorAll('.scale-dot').forEach(x=>x.classList.remove('sel'));d.classList.add('sel');}));
+}
+function collectWellbeing(cid){const r={};let ok=true;$(cid).querySelectorAll('.scale-dots').forEach(row=>{const s=row.querySelector('.scale-dot.sel');if(s)r[row.dataset.param]=parseInt(s.dataset.val);else ok=false;});return ok?r:null;}
+
+// ═══ SESSION (Respire Agora) ═══
+function startSession(){totalCyclesCompleted=0;sessionData={protocol:currentProtocolKey,startedAt:new Date()};renderWellbeing('wbBeforeFields');show('wbBeforeScreen');}
+$('wbBeforeBack').addEventListener('click',()=>show('breatheNowScreen'));
+$('wbBeforeNext').addEventListener('click',()=>{const wb=collectWellbeing('wbBeforeFields');if(!wb){alert('Preencha todos os campos.');return;}sessionData.wellbeingBefore=wb;startExercise();});
+
+// ═══ EXERCISE ═══
+const MIN_SCALE=1,MAX_SCALE=3.8;
+function easeInOutSine(t){return-(Math.cos(Math.PI*t)-1)/2;}
+function lerp(a,b,t){return a+(b-a)*t;}
+
+function startExercise(){
+  show('exerciseScreen');const p=PROTOCOLS[currentProtocolKey];
+  $('exBadge').textContent=p.name+' · '+p.subtitle;$('phaseText').textContent='';$('secondCount').textContent='';$('progressFill').style.width='0%';$('cycleLabel').textContent='';$('ball').style.transform='scale(1)';
+  if(navigator.vibrate)navigator.vibrate(30);requestWakeLock();running=true;
+  const cycleDur=p.phases.reduce((s,ph)=>s+ph.duration,0)*1000;const totalDur=p.cycles*cycleDur;const startTime=performance.now();
+  const bounds=[];let cum=0;for(const ph of p.phases){bounds.push({...ph,startMs:cum,endMs:cum+ph.duration*1000});cum+=ph.duration*1000;}
+  let lastLabel='';
+  function tick(now){
+    if(!running)return;const elapsed=now-startTime;if(elapsed>=totalDur){endExercise(p);return;}
+    const ce=elapsed%cycleDur;let ap=bounds[0];for(const b of bounds){if(ce>=b.startMs&&ce<b.endMs){ap=b;break;}}
+    const prog=(ce-ap.startMs)/(ap.endMs-ap.startMs);const eased=easeInOutSine(prog);const ns=lerp(ap.scaleFrom,ap.scaleTo,eased);const scale=lerp(MIN_SCALE,MAX_SCALE,ns);
+    $('ball').style.transform='scale('+scale+')';$('ball').style.boxShadow='0 0 '+lerp(20,70,ns)+'px rgba(79,195,247,'+lerp(.12,.4,ns)+')';
+    $('phaseText').textContent=ap.label;$('phaseText').style.opacity=ap.label==='Expire'?'.65':'1';
+    if(ap.label!==lastLabel){if(navigator.vibrate)navigator.vibrate(15);lastLabel=ap.label;}
+    $('secondCount').textContent=Math.ceil((ap.endMs-ce)/1000);
+    $('cycleLabel').textContent='Ciclo '+(Math.floor(elapsed/cycleDur)+1)+' de '+p.cycles;
+    $('progressFill').style.width=((elapsed/totalDur)*100)+'%';
+    animFrame=requestAnimationFrame(tick);
+  }
+  animFrame=requestAnimationFrame(tick);
+}
+
+$('exBack').addEventListener('click',()=>{running=false;if(animFrame)cancelAnimationFrame(animFrame);show('breatheNowScreen');});
+
+function endExercise(p){running=false;totalCyclesCompleted+=p.cycles;$('repeatInfo').textContent=`${p.name} · ${p.subtitle} — ${totalCyclesCompleted} ciclo(s)`;if(navigator.vibrate)navigator.vibrate([30,80,30]);show('repeatScreen');}
+
+$('repeatYes').addEventListener('click',()=>startExercise());
+$('repeatNo').addEventListener('click',()=>{renderWellbeing('wbAfterFields');show('wbAfterScreen');});
+
+$('wbAfterNext').addEventListener('click',async()=>{
+  const wb=collectWellbeing('wbAfterFields');if(!wb){alert('Preencha todos os campos.');return;}
+  sessionData.wellbeingAfter=wb;sessionData.endedAt=new Date();sessionData.totalCycles=totalCyclesCompleted;sessionData.userId=currentUser.uid;sessionData.type='breathe';
+  sessionData.protocolName=PROTOCOLS[currentProtocolKey].name+' '+PROTOCOLS[currentProtocolKey].subtitle;
+  try{await db.collection('sessions').add(sessionData);}catch(e){console.error(e);}
+  showComparison(sessionData.wellbeingBefore,wb);
+});
+
+function showComparison(before,after){
+  const labels={stress:'Estresse',sleep:'Sono',energy:'Energia',clarity:'Clareza'};
+  let h='<div class="compare-grid"><div class="compare-col"><div class="h">Antes</div></div><div class="compare-col"><div class="h">Depois</div></div></div>';
+  for(const key of Object.keys(labels)){
+    const diff=after[key]-before[key];const arrow=diff>0?' ↑':diff<0?' ↓':' =';
+    const color=key==='stress'?(diff<0?'var(--accent)':diff>0?'var(--danger)':'var(--text-dim)'):(diff>0?'var(--accent)':diff<0?'var(--danger)':'var(--text-dim)');
+    h+=`<div class="compare-row-label">${labels[key]}</div><div class="compare-grid"><div class="compare-col"><div class="v">${before[key]}</div></div><div class="compare-col"><div class="v" style="color:${color}">${after[key]}${arrow}</div></div></div>`;
+  }
+  $('compareResult').innerHTML=h;show('doneScreen');
+}
+$('doneHome').addEventListener('click',()=>showHome());
 
 // ═══ ADMIN ═══
-$('adminLink').addEventListener('click', () => { show('adminScreen'); loadAdmin('overview'); });
-$('adminBack').addEventListener('click', () => showHome());
+$('adminLink').addEventListener('click',()=>{show('adminScreen');loadAdmin('overview');});
+$('adminBack').addEventListener('click',()=>showHome());
+document.querySelectorAll('.tab').forEach(tab=>tab.addEventListener('click',()=>{document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));tab.classList.add('active');loadAdmin(tab.dataset.tab);}));
 
-document.querySelectorAll('.tab').forEach(tab => {
-  tab.addEventListener('click', () => {
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    tab.classList.add('active');
-    loadAdmin(tab.dataset.tab);
-  });
-});
-
-async function loadAdmin(tab) {
-  $('adminContent').innerHTML = '<div class="loader">Carregando...</div>';
-
-  try {
-    if (tab === 'overview') {
-      const usersSnap = await db.collection('users').get();
-      const sessSnap = await db.collection('sessions').orderBy('startedAt','desc').get();
-      const totalUsers = usersSnap.size;
-      const totalSessions = sessSnap.size;
-
-      const protoCounts = {};
-      let totalCycles = 0;
-      const dailyMap = {};
-      const weeklyMap = {};
-      const monthlyMap = {};
-
-      sessSnap.forEach(doc => {
-        const d = doc.data();
-        const pn = d.protocol || 'unknown';
-        protoCounts[pn] = (protoCounts[pn] || 0) + 1;
-        totalCycles += d.totalCycles || 0;
-
-        if (d.startedAt) {
-          const dt = d.startedAt.toDate ? d.startedAt.toDate() : new Date(d.startedAt);
-          const day = dt.toISOString().slice(0,10);
-          const week = getWeek(dt);
-          const month = dt.toISOString().slice(0,7);
-          dailyMap[day] = (dailyMap[day]||0) + 1;
-          weeklyMap[week] = (weeklyMap[week]||0) + 1;
-          monthlyMap[month] = (monthlyMap[month]||0) + 1;
-        }
+async function loadAdmin(tab){
+  $('adminContent').innerHTML='<div class="loader">Carregando...</div>';
+  try{
+    if(tab==='overview'){
+      const usersSnap=await db.collection('users').get();const sessSnap=await db.collection('sessions').orderBy('startedAt','desc').get();
+      const totalUsers=usersSnap.size;let breatheSess=0,audioSess=0,testSess=0;
+      const protoCounts={};const dailyMap={};const monthlyMap={};
+      sessSnap.forEach(doc=>{const d=doc.data();
+        if(d.type==='breathe'){breatheSess++;const pn=d.protocol||'unknown';protoCounts[pn]=(protoCounts[pn]||0)+1;}
+        else if(d.type==='audio')audioSess++;
+        else if(d.type==='test')testSess++;
+        const ts=d.startedAt||d.completedAt;if(ts){const dt=ts.toDate?ts.toDate():new Date(ts);const day=dt.toISOString().slice(0,10);const month=dt.toISOString().slice(0,7);dailyMap[day]=(dailyMap[day]||0)+1;monthlyMap[month]=(monthlyMap[month]||0)+1;}
       });
-
-      const avgDaily = Object.keys(dailyMap).length ? (totalSessions / Object.keys(dailyMap).length).toFixed(1) : 0;
-
-      let html = '<div class="admin-section"><div class="h2">Resumo Geral</div>';
-      html += '<div class="stat-grid">';
-      html += `<div class="stat-box"><div class="n">${totalUsers}</div><div class="l">Usuários</div></div>`;
-      html += `<div class="stat-box"><div class="n">${totalSessions}</div><div class="l">Sessões</div></div>`;
-      html += `<div class="stat-box"><div class="n">${totalCycles}</div><div class="l">Ciclos totais</div></div>`;
-      html += `<div class="stat-box"><div class="n">${avgDaily}</div><div class="l">Média sessões/dia</div></div>`;
-      html += '</div></div>';
-
-      html += '<div class="admin-section"><div class="h2">Protocolos mais usados</div>';
-      const sorted = Object.entries(protoCounts).sort((a,b) => b[1] - a[1]);
-      sorted.forEach(([k,v]) => {
-        const p = PROTOCOLS[k];
-        const name = p ? p.name + ' ' + p.subtitle : k;
-        const pct = totalSessions ? Math.round(v/totalSessions*100) : 0;
-        html += `<div style="display:flex;justify-content:space-between;padding:.4rem 0;border-bottom:1px solid rgba(255,255,255,.06)">`;
-        html += `<span style="font-size:.85rem">${name}</span>`;
-        html += `<span style="font-size:.85rem;color:var(--accent)">${v} (${pct}%)</span></div>`;
-      });
-      html += '</div>';
-
-      html += '<div class="admin-section"><div class="h2">Frequência mensal</div>';
-      const months = Object.entries(monthlyMap).sort((a,b) => b[0].localeCompare(a[0])).slice(0,6);
-      months.forEach(([m,c]) => {
-        html += `<div style="display:flex;justify-content:space-between;padding:.3rem 0;font-size:.82rem">`;
-        html += `<span style="color:var(--text-dim)">${m}</span><span>${c} sessões</span></div>`;
-      });
-      html += '</div>';
-
-      $('adminContent').innerHTML = html;
-
-    } else if (tab === 'users') {
-      const usersSnap = await db.collection('users').orderBy('createdAt','desc').get();
-      let html = '<div class="admin-section">';
-      usersSnap.forEach(doc => {
-        const u = doc.data();
-        html += '<div class="card" style="cursor:default">';
-        html += `<div class="t">${u.name || 'Sem nome'}</div>`;
-        html += `<div class="d">${u.email || ''}<br>${u.whatsapp || ''}</div>`;
-        const dt = u.createdAt ? (u.createdAt.toDate ? u.createdAt.toDate().toLocaleDateString('pt-BR') : '') : '';
-        html += `<div class="d" style="margin-top:.3rem">Cadastro: ${dt} · Questionário: ${u.questionnaireCompleted?'✓':'Pendente'}</div>`;
-        html += `<button class="btn btn-s" style="margin-top:.5rem;font-size:.75rem;padding:.4rem" onclick="viewQuestionnaire('${doc.id}')">Ver respostas</button>`;
-        html += '</div>';
-      });
-      html += '</div>';
-      $('adminContent').innerHTML = html;
-
-    } else if (tab === 'sessions') {
-      const sessSnap = await db.collection('sessions').orderBy('startedAt','desc').limit(50).get();
-      let html = '<div class="admin-section">';
-      for (const doc of sessSnap.docs) {
-        const s = doc.data();
-        const userName = await getUserName(s.userId);
-        const dt = s.startedAt ? (s.startedAt.toDate ? s.startedAt.toDate().toLocaleString('pt-BR') : '') : '';
-        html += '<div class="card" style="cursor:default">';
-        html += `<div class="t">${userName}</div>`;
-        html += `<div class="d">${s.protocolName || s.protocol} · ${s.totalCycles || 0} ciclos · ${dt}</div>`;
-        if (s.wellbeingBefore && s.wellbeingAfter) {
-          html += '<div style="display:flex;gap:1rem;margin-top:.4rem;font-size:.72rem;color:var(--text-dim)">';
-          ['stress','sleep','energy','clarity'].forEach(k => {
-            const b = s.wellbeingBefore[k]; const a = s.wellbeingAfter[k];
-            const labels = {stress:'Est',sleep:'Son',energy:'Ene',clarity:'Cla'};
-            html += `<span>${labels[k]}: ${b}→${a}</span>`;
-          });
-          html += '</div>';
-        }
-        html += '</div>';
+      const totalSessions=breatheSess+audioSess+testSess;
+      let h='<div class="admin-section"><div class="h2">Resumo Geral</div><div class="stat-grid">';
+      h+=`<div class="stat-box"><div class="n">${totalUsers}</div><div class="l">Usuários</div></div>`;
+      h+=`<div class="stat-box"><div class="n">${totalSessions}</div><div class="l">Sessões totais</div></div>`;
+      h+=`<div class="stat-box"><div class="n">${breatheSess}</div><div class="l">Respire Agora</div></div>`;
+      h+=`<div class="stat-box"><div class="n">${audioSess}</div><div class="l">Com Áudio</div></div>`;
+      h+=`<div class="stat-box"><div class="n">${testSess}</div><div class="l">Testes</div></div>`;
+      const avgD=Object.keys(dailyMap).length?(totalSessions/Object.keys(dailyMap).length).toFixed(1):0;
+      h+=`<div class="stat-box"><div class="n">${avgD}</div><div class="l">Média/dia</div></div>`;
+      h+='</div></div>';
+      if(Object.keys(protoCounts).length){
+        h+='<div class="admin-section"><div class="h2">Protocolos mais usados</div>';
+        Object.entries(protoCounts).sort((a,b)=>b[1]-a[1]).forEach(([k,v])=>{const p=PROTOCOLS[k];const name=p?p.name+' '+p.subtitle:k;h+=`<div style="display:flex;justify-content:space-between;padding:.4rem 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:.85rem"><span>${name}</span><span style="color:var(--accent)">${v}</span></div>`;});
+        h+='</div>';
       }
-      html += '</div>';
-      $('adminContent').innerHTML = html;
+      $('adminContent').innerHTML=h;
+
+    }else if(tab==='users'){
+      const snap=await db.collection('users').orderBy('createdAt','desc').get();
+      let h='';snap.forEach(doc=>{const u=doc.data();const dt=u.createdAt?(u.createdAt.toDate?u.createdAt.toDate().toLocaleDateString('pt-BR'):''):'';
+        h+=`<div class="card no-tap"><div class="t">${u.name||'Sem nome'}</div><div class="d">${u.email||''}<br>${u.whatsapp||''}</div><div class="d" style="margin-top:.3rem">Cadastro: ${dt}</div><button class="btn btn-s" style="margin-top:.5rem;font-size:.75rem;padding:.4rem" onclick="viewQuestionnaire('${doc.id}')">Ver respostas</button></div>`;
+      });
+      $('adminContent').innerHTML=h||'<div class="loader">Nenhum usuário.</div>';
+
+    }else if(tab==='sessions'){
+      const snap=await db.collection('sessions').orderBy(firebase.firestore.FieldPath.documentId(),'desc').limit(50).get();
+      let h='';for(const doc of snap.docs){const s=doc.data();const userName=await getUserName(s.userId);
+        const ts=s.startedAt||s.completedAt;const dt=ts?(ts.toDate?ts.toDate().toLocaleString('pt-BR'):''):'';
+        h+='<div class="card no-tap">';h+=`<div class="t">${userName}</div>`;
+        if(s.type==='breathe')h+=`<div class="d">🌬️ ${s.protocolName||s.protocol} · ${s.totalCycles||0} ciclos · ${dt}</div>`;
+        else if(s.type==='audio')h+=`<div class="d">🎧 ${s.audioTitle||''} · Nível ${s.level||''} · ${dt}</div>`;
+        else if(s.type==='test')h+=`<div class="d">⏱️ ${s.testLabel||s.testName} · Média: ${s.average||0}s · ${dt}</div>`;
+        h+='</div>';
+      }
+      $('adminContent').innerHTML=h||'<div class="loader">Nenhuma sessão.</div>';
     }
-  } catch(e) { $('adminContent').innerHTML = '<div class="error-msg">Erro ao carregar: ' + e.message + '</div>'; }
+  }catch(e){$('adminContent').innerHTML='<div class="error-msg">Erro: '+e.message+'</div>';}
 }
 
-const userNameCache = {};
-async function getUserName(uid) {
-  if (userNameCache[uid]) return userNameCache[uid];
-  try {
-    const doc = await db.collection('users').doc(uid).get();
-    const name = doc.exists ? doc.data().name : 'Desconhecido';
-    userNameCache[uid] = name;
-    return name;
-  } catch(e) { return 'Desconhecido'; }
-}
+const userNameCache={};
+async function getUserName(uid){if(userNameCache[uid])return userNameCache[uid];try{const d=await db.collection('users').doc(uid).get();const n=d.exists?d.data().name:'Desconhecido';userNameCache[uid]=n;return n;}catch(e){return'Desconhecido';}}
 
-window.viewQuestionnaire = async function(uid) {
-  try {
-    const doc = await db.collection('questionnaires').doc(uid).get();
-    if (!doc.exists) { alert('Questionário não preenchido.'); return; }
-    const d = doc.data();
-    let msg = '';
-    QUESTIONS.forEach(q => {
-      const a = d[q.id];
-      msg += q.label + '\n';
-      if (a && a.selected) msg += '→ ' + a.selected.join(', ') + (a.other ? ', Outro: ' + a.other : '') + '\n\n';
-      else if (a && a.text) msg += '→ ' + a.text + '\n\n';
-      else msg += '→ (sem resposta)\n\n';
-    });
+window.viewQuestionnaire=async function(uid){
+  try{const d=await db.collection('questionnaires').doc(uid).get();if(!d.exists){alert('Questionário não preenchido.');return;}const data=d.data();
+    let msg='';QUESTIONS.forEach(q=>{const a=data[q.id];msg+=q.label+'\n';if(a&&a.selected)msg+='→ '+a.selected.join(', ')+(a.other?', Outro: '+a.other:'')+'\n\n';else if(a&&a.text)msg+='→ '+a.text+'\n\n';else msg+='→ (sem resposta)\n\n';});
     alert(msg);
-  } catch(e) { alert('Erro: ' + e.message); }
+  }catch(e){alert('Erro: '+e.message);}
 };
 
-function getWeek(d) {
-  const start = new Date(d.getFullYear(), 0, 1);
-  const diff = d - start;
-  const week = Math.ceil((diff / 86400000 + start.getDay() + 1) / 7);
-  return d.getFullYear() + '-W' + String(week).padStart(2,'0');
-}
-
 // ═══ PWA ═══
-let deferredPrompt = null;
-window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; $('installBanner').classList.add('show'); });
-$('installBtn').addEventListener('click', async () => { if(deferredPrompt){deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;$('installBanner').classList.remove('show');} });
-$('installClose').addEventListener('click', () => $('installBanner').classList.remove('show'));
+let deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;$('installBanner').classList.add('show');});
+$('installBtn').addEventListener('click',async()=>{if(deferredPrompt){deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;$('installBanner').classList.remove('show');}});
+$('installClose').addEventListener('click',()=>$('installBanner').classList.remove('show'));
 
-let wakeLock = null;
-async function requestWakeLock() { try { if('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch(e){} }
-document.addEventListener('visibilitychange', () => { if(document.visibilityState==='visible'&&running) requestWakeLock(); });
+let wakeLock=null;
+async function requestWakeLock(){try{if('wakeLock' in navigator)wakeLock=await navigator.wakeLock.request('screen');}catch(e){}}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&running)requestWakeLock();});
 
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
+if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
 </script>
 </body>
 </html>
