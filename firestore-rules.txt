@@ -13,7 +13,7 @@ service cloud.firestore {
     
     // Função auxiliar: verifica se é admin
     function isAdmin() {
-      return request.auth != null && request.auth.token.email == 'SEU_EMAIL_AQUI';
+      return request.auth != null && request.auth.token.email == 'andrei-94@hotmail.com';
     }
     
     // Users: usuário lê/edita só o próprio doc. Admin lê todos.
