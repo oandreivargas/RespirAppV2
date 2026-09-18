@@ -96,6 +96,18 @@ select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
 .admin-section{width:100%;margin-bottom:1.5rem}.admin-section .h2{font-size:1rem;font-weight:600;margin-bottom:.6rem;color:var(--accent)}
 .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
 .stat-box{background:var(--bg-card);border-radius:.75rem;padding:.8rem;text-align:center}.stat-box .n{font-size:1.5rem;font-weight:600;color:var(--accent)}.stat-box .l{font-size:.7rem;color:var(--text-dim);margin-top:.2rem}
+/* HABIT DETAIL */
+.detail-section-title{font-size:1rem;font-weight:600;margin-bottom:.2rem}
+.bar-chart{display:flex;align-items:flex-end;gap:3px;height:150px;padding-bottom:1.5rem}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;min-width:0}
+.bar-val{font-size:.62rem;font-weight:600;margin-bottom:.2rem;min-height:.85rem}
+.bar-track{width:100%;max-width:26px;height:120px;display:flex;flex-direction:column;justify-content:flex-end}
+.bar-fill{border-radius:3px 3px 0 0;min-height:2px;transition:height .3s}
+.bar-label{font-size:.52rem;color:var(--text-dim);margin-top:.3rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;text-align:center}
+.streak-row{display:flex;align-items:center;gap:.4rem;padding:.3rem 0;font-size:.7rem}
+.streak-date{color:var(--text-dim);white-space:nowrap;min-width:70px;text-align:right;font-size:.62rem}
+.streak-date.end{text-align:left}
+.streak-bar{height:20px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:600;color:var(--bg);min-width:24px}
 .consent-text{font-size:.82rem;color:var(--text-dim);line-height:1.7;max-height:50vh;overflow-y:auto;padding:1rem;background:var(--bg2);border-radius:.75rem;margin-bottom:1rem;width:100%}.consent-text strong{color:var(--text)}
 .tabs{display:flex;gap:0;width:100%;margin-bottom:1rem;border-bottom:1px solid rgba(255,255,255,.08)}
 .tab{flex:1;padding:.7rem;font-size:.8rem;text-align:center;color:var(--text-dim);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s}.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
@@ -241,6 +253,12 @@ select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
   <div class="add-habit-btn" id="addHabitBtn">＋ Adicionar hábito</div>
 </div>
 
+<!-- HABIT DETAIL -->
+<div class="screen scroll" id="habitDetailScreen">
+  <div class="top-bar"><button class="back-btn" id="habitDetailBack">‹ Voltar</button><div class="badge" id="habitDetailBadge"></div></div>
+  <div id="habitDetailContent" style="width:100%"></div>
+</div>
+
 <!-- ADD HABIT -->
 <div class="screen scroll" id="addHabitScreen">
   <div class="top-bar"><button class="back-btn" id="addHabitBack">‹ Voltar</button><div class="badge">Novo Hábito</div></div>
@@ -318,7 +336,7 @@ const auth=firebase.auth(),db=firebase.firestore();
 const PROTOCOLS={equilibrio:{name:'4 × 4',subtitle:'Equilíbrio',cycles:7,desc:'4s inspira · 4s expira · 7 ciclos · 56s',phases:[{label:'Inspire',duration:4,scaleFrom:0,scaleTo:1},{label:'Expire',duration:4,scaleFrom:1,scaleTo:0}]},ansiedade:{name:'2 × 4',subtitle:'Anti-ansiedade',cycles:9,desc:'2s inspira · 4s expira · 9 ciclos · 54s',phases:[{label:'Inspire',duration:2,scaleFrom:0,scaleTo:.5},{label:'Expire',duration:4,scaleFrom:.5,scaleTo:0}]},suspiro:{name:'Suspiro',subtitle:'Fisiológico',cycles:8,desc:'2s inspira · 1s suspiro · 4s expira · 8 ciclos · 56s',phases:[{label:'Inspire',duration:2,scaleFrom:0,scaleTo:.65},{label:'Suspiro',duration:1,scaleFrom:.65,scaleTo:1},{label:'Expire',duration:4,scaleFrom:1,scaleTo:0}]}};
 const QUESTIONS=[{id:'q1',type:'multi',label:'Você tem algum tipo dessas situações de saúde?',options:['Problemas de Pressão','Problemas no Coração','Glaucoma ou Pressão nos Olhos','Esquizofrenia','Bipolaridade','Gravidez'],hasOther:true},{id:'q2',type:'text',label:'Qual o seu atual desafio com estresse, ansiedade, hiperatividade ou outro?'},{id:'q3',type:'text',label:'O que você já tentou para resolver esse problema ou desafio?'},{id:'q4',type:'multi',label:'Esse problema ou desafio tem interferido em qual(is) áreas da sua vida?',options:['Financeiro','Relacionamento afetivo','Ambiente profissional','Bem-estar pessoal','Ambientes sociais/amizades']},{id:'q5',type:'text',label:'Se gerenciar melhor seu estresse te ajudasse a melhorar 1 única coisa importante na sua vida, o que seria?'},{id:'q7',type:'multi',label:'Nos últimos 12 meses, você tentou alguma dessas soluções?',options:['Suplementos','Academia ou Outros Esportes','Yoga','Meditação','Remédios','Terapias'],hasOther:true}];
 const WB_PARAMS=[{id:'stress',label:'Nível de Estresse',low:'Nenhum',high:'Extremo'},{id:'sleep',label:'O quão bem você dorme',low:'Muito mal',high:'Muito bem'},{id:'energy',label:'Quanta energia você está agora',low:'Nenhuma',high:'Máxima'},{id:'clarity',label:'Clareza Mental',low:'Muito baixa',high:'Muito alta'}];
-const AUDIO_LEVELS={1:{name:'Nível 1 — Iniciante',audios:[{title:'Suspiro Fisiológico',file:'./N1 - Suspiro Fisiológico - 3 min II.mp3'}]},2:{name:'Nível 2 — Intermediário',audios:[]},3:{name:'Nível 3 — Avançado',audios:[]}};
+const AUDIO_LEVELS={1:{name:'Nível 1 — Iniciante',audios:[]},2:{name:'Nível 2 — Intermediário',audios:[]},3:{name:'Nível 3 — Avançado',audios:[]}};
 const TESTS={bolt:{name:'Bolt Score',instruction:'Após uma expiração normal e tranquila, segure a respiração. Toque em "Iniciar" quando parar de respirar e "Parar" quando sentir a primeira vontade de respirar.'},tell:{name:'TELL Score',instruction:'Após uma inspiração completa, sustente o som "sssss" de forma contínua. Toque em "Iniciar" quando começar e "Parar" quando não conseguir mais.'},till:{name:'TILL Score',instruction:'Após uma inspiração completa, sustente o som "zzzzz" de forma contínua. Toque em "Iniciar" quando começar e "Parar" quando não conseguir mais.'}};
 
 // DEFAULT HABITS
@@ -445,7 +463,7 @@ function renderHabitTable(days){
 
   // Default habits
   DEFAULT_HABITS.forEach(dh=>{
-    h+=`<tr><td><div class="habit-name-cell"><div class="habit-dot" style="background:${dh.color}"></div>${dh.name}</div></td>`;
+    h+=`<tr><td><div class="habit-name-cell" onclick="openHabitDetail('${dh.key}',true)" style="cursor:pointer"><div class="habit-dot" style="background:${dh.color}"></div>${dh.name}</div></td>`;
     days.forEach(day=>{
       const sd=sessionsByDay[day]||{breathe:false,audio:false,test:[]};
       if(dh.key==='breathe'){h+=`<td>${sd.breathe?'<span class="h-check">✓</span>':'<span class="h-cross">✗</span>'}</td>`;}
@@ -460,7 +478,7 @@ function renderHabitTable(days){
 
   // Custom habits
   userHabits.forEach(hab=>{
-    h+=`<tr><td><div class="habit-name-cell"><div class="habit-dot" style="background:${hab.color||'#80cbc4'}"></div>${hab.name}<span onclick="deleteHabit('${hab.id}','${hab.name}')" style="margin-left:auto;color:var(--danger);font-size:.7rem;opacity:.5;cursor:pointer;padding:0 .3rem">✕</span></div></td>`;
+    h+=`<tr><td><div class="habit-name-cell" onclick="openHabitDetail('${hab.id}',false)" style="cursor:pointer"><div class="habit-dot" style="background:${hab.color||'#80cbc4'}"></div>${hab.name}<span onclick="event.stopPropagation();deleteHabit('${hab.id}','${hab.name}')" style="margin-left:auto;color:var(--danger);font-size:.7rem;opacity:.5;cursor:pointer;padding:0 .3rem">✕</span></div></td>`;
     days.forEach(day=>{
       const log=habitLogs[hab.id+'_'+day];
       if(hab.type==='boolean'){
@@ -597,6 +615,184 @@ $('saveHabitBtn').addEventListener('click',async()=>{
   try{await db.collection('habits').add(data);}catch(e){console.error(e);alert('Erro ao salvar.');}
   loadDashboard();
 });
+
+// ═══ HABIT DETAIL ═══
+window.openHabitDetail=async function(key,isDefault){
+  show('habitDetailScreen');
+  $('habitDetailContent').innerHTML='<div class="loader">Carregando...</div>';
+  let habit;
+  if(isDefault) habit=DEFAULT_HABITS.find(h=>h.key===key);
+  else habit=userHabits.find(h=>h.id===key);
+  if(!habit){$('habitDetailContent').innerHTML='<div class="error-msg">Hábito não encontrado.</div>';return;}
+  $('habitDetailBadge').textContent=habit.name;
+
+  let entries=[];
+  if(isDefault){
+    try{
+      const snap=await db.collection('sessions').where('userId','==',currentUser.uid).get();
+      const byDate={};
+      snap.forEach(doc=>{const d=doc.data();const ts=d.startedAt||d.completedAt;if(!ts)return;const dt=ts.toDate?ts.toDate():new Date(ts);const ds=dateStr(dt);if(!byDate[ds])byDate[ds]={breathe:false,audio:false,tests:[]};if(d.type==='breathe')byDate[ds].breathe=true;if(d.type==='audio')byDate[ds].audio=true;if(d.type==='test')byDate[ds].tests.push(d.average||0);});
+      for(const[date,data] of Object.entries(byDate)){
+        if(key==='breathe'&&data.breathe)entries.push({date,completed:true,value:1});
+        else if(key==='audio'&&data.audio)entries.push({date,completed:true,value:1});
+        else if(key==='test'&&data.tests.length>0){const avg=data.tests.reduce((a,b)=>a+b,0)/data.tests.length;entries.push({date,completed:true,value:parseFloat(avg.toFixed(1))});}
+      }
+    }catch(e){console.error(e);}
+  }else{
+    try{
+      const snap=await db.collection('habitLogs').where('userId','==',currentUser.uid).where('habitId','==',key).get();
+      snap.forEach(doc=>{const d=doc.data();if(d.completed)entries.push({date:d.date,completed:true,value:d.value!=null?d.value:null});});
+    }catch(e){console.error(e);}
+  }
+  entries.sort((a,b)=>a.date.localeCompare(b.date));
+  const cSet=new Set(entries.map(e=>e.date));
+  const isMeas=habit.type==='measurable';
+  const clr=habit.color||'#80cbc4';
+
+  const now=new Date();
+  const ym=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+  const pm=new Date(now.getFullYear(),now.getMonth()-1,1);
+  const pym=pm.getFullYear()+'-'+String(pm.getMonth()+1).padStart(2,'0');
+  const daysSoFar=now.getDate();
+  const thisM=entries.filter(e=>e.date.startsWith(ym)).length;
+  const prevM=entries.filter(e=>e.date.startsWith(pym)).length;
+  const dPrev=new Date(pm.getFullYear(),pm.getMonth()+1,0).getDate();
+  const stabM=daysSoFar>0?Math.round(thisM/daysSoFar*100):0;
+  const stabP=dPrev>0?Math.round(prevM/dPrev*100):0;
+  const chg=stabM-stabP;
+
+  let h=`<div class="card no-tap" style="margin-bottom:1.2rem">
+    <div class="detail-section-title" style="color:${clr}">Visão geral</div>
+    <div style="display:flex;align-items:center;gap:1rem;margin-top:.6rem">
+      <svg viewBox="0 0 36 36" width="52" height="52"><path d="M18 2.0845a15.9155 15.9155 0 0 1 0 31.831a15.9155 15.9155 0 0 1 0-31.831" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="3"/><path d="M18 2.0845a15.9155 15.9155 0 0 1 0 31.831a15.9155 15.9155 0 0 1 0-31.831" fill="none" stroke="${clr}" stroke-width="3" stroke-dasharray="${stabM},100" stroke-linecap="round"/></svg>
+      <div style="display:flex;gap:1.2rem;flex:1">
+        <div><div style="font-size:1.05rem;font-weight:600;color:${clr}">${stabM}%</div><div style="font-size:.6rem;color:var(--text-dim)">Estabilidade Mês</div></div>
+        <div><div style="font-size:1.05rem;font-weight:600;color:${chg>=0?'var(--green)':'var(--danger)'}">${chg>=0?'+':''}${chg}%</div><div style="font-size:.6rem;color:var(--text-dim)">Variação</div></div>
+        <div><div style="font-size:1.05rem;font-weight:600;color:${clr}">${entries.length}</div><div style="font-size:.6rem;color:var(--text-dim)">Total</div></div>
+      </div>
+    </div></div>`;
+
+  h+=`<div class="card no-tap" style="margin-bottom:1.2rem">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div class="detail-section-title" style="color:${clr}">Histórico</div>
+      <select class="input" style="width:auto;padding:.3rem .7rem;font-size:.72rem;margin:0" id="detHistPeriod">
+        <option value="week" selected>Semana</option><option value="month">Mês</option><option value="year">Ano</option>
+      </select>
+    </div>
+    <div id="detHistChart" style="margin-top:.8rem"></div>
+  </div>`;
+
+  h+=`<div class="card no-tap" style="margin-bottom:1.2rem">
+    <div class="detail-section-title" style="color:${clr}">Calendário</div>
+    <div id="detCalendar" style="margin-top:.6rem;overflow-x:auto"></div>
+  </div>`;
+
+  h+=`<div class="card no-tap" style="margin-bottom:1.2rem">
+    <div class="detail-section-title" style="color:${clr}">Correntes mais longas</div>
+    <div id="detStreaks" style="margin-top:.6rem"></div>
+  </div>`;
+
+  h+=`<div class="card no-tap" style="margin-bottom:1.5rem">
+    <div class="detail-section-title" style="color:${clr}">Frequência</div>
+    <div id="detFreq" style="margin-top:.6rem;overflow-x:auto"></div>
+  </div>`;
+
+  $('habitDetailContent').innerHTML=h;
+  renderDetHist(entries,clr,isMeas);
+  $('detHistPeriod').addEventListener('change',()=>renderDetHist(entries,clr,isMeas));
+  renderDetCal(cSet,clr);
+  renderDetStreaks(cSet,clr);
+  renderDetFreq(cSet,clr);
+};
+
+$('habitDetailBack').addEventListener('click',()=>loadDashboard());
+
+function renderDetHist(entries,clr,isMeas){
+  const period=$('detHistPeriod').value;
+  const groups=[];
+  const now=new Date();
+  const MN=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  if(period==='week'){
+    for(let i=11;i>=0;i--){const d=new Date(now);d.setDate(d.getDate()-i*7);const dow=d.getDay();const mo=dow===0?-6:1-dow;const mon=new Date(d);mon.setDate(d.getDate()+mo);const k=dateStr(mon);if(!groups.find(g=>g.key===k))groups.push({key:k,label:mon.getDate()+'/'+String(mon.getMonth()+1),count:0});}
+    entries.forEach(e=>{const d=new Date(e.date+'T12:00:00');const dow=d.getDay();const mo=dow===0?-6:1-dow;const mon=new Date(d);mon.setDate(d.getDate()+mo);const k=dateStr(mon);const g=groups.find(x=>x.key===k);if(g)g.count++;});
+  }else if(period==='month'){
+    for(let i=11;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);const k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');groups.push({key:k,label:MN[d.getMonth()],count:0});}
+    entries.forEach(e=>{const k=e.date.slice(0,7);const g=groups.find(x=>x.key===k);if(g)g.count++;});
+  }else{
+    for(let i=4;i>=0;i--){const y=now.getFullYear()-i;groups.push({key:''+y,label:''+y,count:0});}
+    entries.forEach(e=>{const k=e.date.slice(0,4);const g=groups.find(x=>x.key===k);if(g)g.count++;});
+  }
+  const mx=Math.max(...groups.map(g=>g.count),1);
+  let bh='<div class="bar-chart">';
+  groups.forEach(g=>{const pct=mx>0?(g.count/mx)*100:0;bh+=`<div class="bar-col"><div class="bar-val" style="color:${clr}">${g.count>0?g.count:''}</div><div class="bar-track"><div class="bar-fill" style="height:${pct}%;background:${clr}"></div></div><div class="bar-label">${g.label}</div></div>`;});
+  bh+='</div>';
+  $('detHistChart').innerHTML=bh;
+}
+
+function renderDetCal(cSet,clr){
+  const now=new Date();
+  const MN=['jan.','fev.','mar.','abr.','mai.','jun.','jul.','ago.','set.','out.','nov.','dez.'];
+  const DN=['dom.','seg.','ter.','qua.','qui.','sex.','sáb.'];
+  const start=new Date(now.getFullYear(),now.getMonth()-4,1);
+  const d=new Date(start);d.setDate(d.getDate()-d.getDay());
+  const weeks=[];
+  while(d<=now||d.getDay()!==0){
+    const week=[];
+    for(let i=0;i<7;i++){week.push({ds:dateStr(d),day:d.getDate(),m:d.getMonth(),y:d.getFullYear(),ok:d>=start&&d<=now,done:cSet.has(dateStr(d))});d.setDate(d.getDate()+1);}
+    weeks.push(week);
+    if(d>now&&d.getDay()===0)break;
+  }
+  let ch='<div style="display:inline-flex;flex-direction:column;gap:2px">';
+  ch+='<div style="display:flex;gap:2px;height:14px">';
+  let pm=-1;
+  weeks.forEach(w=>{const ref=w[3]||w[0];if(ref.m!==pm){pm=ref.m;ch+=`<div style="width:18px;font-size:.5rem;color:var(--text-dim);white-space:nowrap;overflow:visible">${MN[ref.m]}</div>`;}else ch+='<div style="width:18px"></div>';});
+  ch+='<div style="width:26px"></div></div>';
+  for(let dow=0;dow<7;dow++){
+    ch+='<div style="display:flex;gap:2px;align-items:center">';
+    weeks.forEach(w=>{const c=w[dow];const bg=c.done?clr:'rgba(255,255,255,.05)';const tc=c.done?'var(--bg)':'var(--text-dim)';const op=c.ok?'1':'.2';ch+=`<div style="width:18px;height:18px;border-radius:3px;background:${bg};opacity:${op};display:flex;align-items:center;justify-content:center;font-size:.48rem;color:${tc};flex-shrink:0">${c.ok?c.day:''}</div>`;});
+    ch+=`<div style="font-size:.48rem;color:var(--text-dim);margin-left:.3rem;width:26px;flex-shrink:0">${DN[dow]}</div></div>`;
+  }
+  ch+='</div>';
+  $('detCalendar').innerHTML=ch;
+}
+
+function renderDetStreaks(cSet,clr){
+  const dates=[...cSet].sort();
+  if(dates.length===0){$('detStreaks').innerHTML='<div style="font-size:.8rem;color:var(--text-dim);padding:.5rem 0">Nenhum registro ainda.</div>';return;}
+  const streaks=[];let sS=dates[0],sE=dates[0];
+  for(let i=1;i<dates.length;i++){const prev=new Date(dates[i-1]+'T12:00:00');const curr=new Date(dates[i]+'T12:00:00');if((curr-prev)/(86400000)===1)sE=dates[i];else{streaks.push({s:sS,e:sE,l:Math.round((new Date(sE+'T12:00:00')-new Date(sS+'T12:00:00'))/86400000)+1});sS=dates[i];sE=dates[i];}}
+  streaks.push({s:sS,e:sE,l:Math.round((new Date(sE+'T12:00:00')-new Date(sS+'T12:00:00'))/86400000)+1});
+  streaks.sort((a,b)=>b.l-a.l);
+  const top=streaks.slice(0,10);
+  const mx=Math.max(...top.map(s=>s.l),1);
+  const MN=['jan.','fev.','mar.','abr.','mai.','jun.','jul.','ago.','set.','out.','nov.','dez.'];
+  function fmt(ds){const d=new Date(ds+'T12:00:00');return d.getDate()+' de '+MN[d.getMonth()]+' de '+d.getFullYear();}
+  let sh='';
+  top.forEach(s=>{const w=Math.max((s.l/mx)*100,18);sh+=`<div class="streak-row"><div class="streak-date">${fmt(s.s)}</div><div class="streak-bar" style="width:${w}%;background:${clr}">${s.l}</div><div class="streak-date end">${fmt(s.e)}</div></div>`;});
+  $('detStreaks').innerHTML=sh;
+}
+
+function renderDetFreq(cSet,clr){
+  const now=new Date();
+  const MN=['jan.','fev.','mar.','abr.','mai.','jun.','jul.','ago.','set.','out.','nov.','dez.'];
+  const DN=['dom.','seg.','ter.','qua.','qui.','sex.','sáb.'];
+  const months=[];for(let i=11;i>=0;i--)months.push(new Date(now.getFullYear(),now.getMonth()-i,1));
+  const grid=[];for(let dow=0;dow<7;dow++){grid[dow]=[];for(let mi=0;mi<months.length;mi++)grid[dow][mi]=0;}
+  const dates=[...cSet];
+  dates.forEach(ds=>{const d=new Date(ds+'T12:00:00');const dow=d.getDay();const mKey=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');months.forEach((m,mi)=>{const mk=m.getFullYear()+'-'+String(m.getMonth()+1).padStart(2,'0');if(mKey===mk)grid[dow][mi]++;});});
+  let mx=0;grid.forEach(row=>row.forEach(v=>{if(v>mx)mx=v;}));if(mx===0)mx=1;
+  let fh='<div style="display:inline-flex;flex-direction:column;gap:4px">';
+  fh+='<div style="display:flex;gap:4px;padding-left:0">';
+  months.forEach(m=>{fh+=`<div style="width:24px;text-align:center;font-size:.48rem;color:var(--text-dim)">${MN[m.getMonth()]}</div>`;});
+  fh+='<div style="width:28px"></div></div>';
+  for(let dow=0;dow<7;dow++){
+    fh+='<div style="display:flex;gap:4px;align-items:center">';
+    months.forEach((m,mi)=>{const v=grid[dow][mi];if(v>0){const sz=Math.max(8,Math.round((v/mx)*20));const op=Math.max(.3,v/mx);fh+=`<div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center"><div style="width:${sz}px;height:${sz}px;border-radius:50%;background:${clr};opacity:${op}"></div></div>`;}else fh+=`<div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center"><div style="width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,.08)"></div></div>`;});
+    fh+=`<div style="font-size:.48rem;color:var(--text-dim);width:28px;text-align:left;margin-left:.2rem">${DN[dow]}</div></div>`;
+  }
+  fh+='</div>';
+  $('detFreq').innerHTML=fh;
+}
 
 // ═══ ADMIN ═══
 $('adminLink').addEventListener('click',()=>{show('adminScreen');loadAdmin('overview');});
