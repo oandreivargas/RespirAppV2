@@ -16,60 +16,36 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <style>
-:root{--bg:#0a0f1a;--bg2:#111827;--bg-card:rgba(255,255,255,0.04);--ball-start:#4fc3f7;--ball-end:#1565c0;--glow-dim:rgba(21,101,192,0.12);--text:#e0e6ed;--text-dim:#5a6e85;--accent:#80cbc4;--accent2:#4db6ac;--danger:#ef5350;--warn:#ffa726;--safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px)}
+:root{--bg:#0a0f1a;--bg2:#111827;--bg-card:rgba(255,255,255,0.04);--ball-start:#4fc3f7;--ball-end:#1565c0;--glow-dim:rgba(21,101,192,0.12);--text:#e0e6ed;--text-dim:#5a6e85;--accent:#80cbc4;--accent2:#4db6ac;--danger:#ef5350;--warn:#ffa726;--green:#66bb6a;--safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px)}
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:var(--bg);display:flex;flex-direction:column;align-items:center;min-height:100dvh;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',system-ui,sans-serif;color:var(--text);user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 .screen{display:none;flex-direction:column;align-items:center;width:100%;max-width:440px;padding:calc(var(--safe-top)+1rem) 1.5rem calc(var(--safe-bottom)+1.5rem);min-height:100dvh}
-.screen.active{display:flex}
-.screen.scroll{overflow-y:auto;justify-content:flex-start}
-.screen.center{justify-content:center}
-
+.screen.active{display:flex}.screen.scroll{overflow-y:auto;justify-content:flex-start}.screen.center{justify-content:center}
 .brand{display:flex;flex-direction:column;align-items:center;gap:.3rem;margin-bottom:1.5rem}
 .brand-icon{font-size:2.4rem}.brand-name{font-size:1.4rem;font-weight:600}.brand-sub{font-size:.8rem;color:var(--text-dim);letter-spacing:.06em}
-
 .card{background:var(--bg-card);border:1px solid rgba(255,255,255,.06);border-radius:1rem;padding:1.2rem;width:100%;margin-bottom:.75rem;cursor:pointer;transition:background .2s,border-color .2s}
 .card:active{background:rgba(255,255,255,.08);border-color:rgba(128,203,196,.3)}
 .card.no-tap{cursor:default}.card.no-tap:active{background:var(--bg-card);border-color:rgba(255,255,255,.06)}
-.card .t{font-size:1.05rem;font-weight:500;margin-bottom:.2rem}
-.card .d{font-size:.78rem;color:var(--text-dim);line-height:1.4}
+.card .t{font-size:1.05rem;font-weight:500;margin-bottom:.2rem}.card .d{font-size:.78rem;color:var(--text-dim);line-height:1.4}
 .card-icon{font-size:1.5rem;margin-bottom:.5rem}
-
-.main-card{padding:1.4rem;text-align:center;border:1px solid rgba(128,203,196,.15)}
-.main-card .t{font-size:1.1rem}
-.main-card .d{margin-top:.3rem}
-
+.main-card{padding:1.4rem;text-align:center;border:1px solid rgba(128,203,196,.15)}.main-card .t{font-size:1.1rem}.main-card .d{margin-top:.3rem}
 .btn{width:100%;padding:.9rem;font-size:1rem;font-weight:500;border:none;border-radius:.85rem;cursor:pointer;letter-spacing:.03em;transition:opacity .2s;margin-top:.5rem}
-.btn:active{opacity:.8}
-.btn-p{background:var(--accent);color:var(--bg)}
-.btn-o{background:transparent;border:1px solid rgba(255,255,255,.12);color:var(--text)}
-.btn-s{background:rgba(128,203,196,.15);color:var(--accent);border:none}
-.btn-d{background:var(--danger);color:#fff}
-.btn:disabled{opacity:.4;pointer-events:none}
-
-.input{width:100%;padding:.85rem 1rem;font-size:.95rem;background:var(--bg2);border:1px solid rgba(255,255,255,.1);border-radius:.75rem;color:var(--text);outline:none;margin-bottom:.75rem}
-.input:focus{border-color:var(--accent)}
-.input::placeholder{color:var(--text-dim)}
+.btn:active{opacity:.8}.btn-p{background:var(--accent);color:var(--bg)}.btn-o{background:transparent;border:1px solid rgba(255,255,255,.12);color:var(--text)}.btn-s{background:rgba(128,203,196,.15);color:var(--accent);border:none}.btn-d{background:var(--danger);color:#fff}.btn:disabled{opacity:.4;pointer-events:none}
+.input{width:100%;padding:.85rem 1rem;font-size:.95rem;background:var(--bg2);border:1px solid rgba(255,255,255,.1);border-radius:.75rem;color:var(--text);outline:none;margin-bottom:.75rem}.input:focus{border-color:var(--accent)}.input::placeholder{color:var(--text-dim)}
 textarea.input{min-height:80px;resize:vertical;font-family:inherit}
-
+select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%235a6e85' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 1rem center}
 .label{font-size:.85rem;color:var(--text-dim);margin-bottom:.4rem;display:block}
 .section-title{font-size:1.15rem;font-weight:500;margin:1.5rem 0 .8rem;width:100%;text-align:left}
 .step-indicator{font-size:.75rem;color:var(--text-dim);margin-bottom:1rem}
-
 .chips{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:.75rem;width:100%}
-.chip{padding:.55rem .9rem;font-size:.85rem;border:1px solid rgba(255,255,255,.1);border-radius:2rem;cursor:pointer;transition:all .2s;color:var(--text-dim)}
-.chip.sel{background:rgba(128,203,196,.2);border-color:var(--accent);color:var(--accent)}
-
-.scale-row{display:flex;flex-direction:column;gap:.5rem;width:100%;margin-bottom:1.2rem}
-.scale-label{font-size:.9rem;font-weight:400}
-.scale-dots{display:flex;gap:.6rem;align-items:center}
+.chip{padding:.55rem .9rem;font-size:.85rem;border:1px solid rgba(255,255,255,.1);border-radius:2rem;cursor:pointer;transition:all .2s;color:var(--text-dim)}.chip.sel{background:rgba(128,203,196,.2);border-color:var(--accent);color:var(--accent)}
+.scale-row{display:flex;flex-direction:column;gap:.5rem;width:100%;margin-bottom:1.2rem}.scale-label{font-size:.9rem}.scale-dots{display:flex;gap:.6rem;align-items:center}
 .scale-dot{width:38px;height:38px;border-radius:50%;border:2px solid rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;font-size:.8rem;color:var(--text-dim);cursor:pointer;transition:all .2s}
 .scale-dot.sel{border-color:var(--accent);background:rgba(128,203,196,.25);color:var(--accent);font-weight:600}
 .scale-anchors{display:flex;justify-content:space-between;font-size:.65rem;color:var(--text-dim);margin-top:-.2rem}
-
 .top-bar{display:flex;justify-content:space-between;align-items:center;width:100%;margin-bottom:1rem}
 .back-btn{background:none;border:none;color:var(--text-dim);font-size:.9rem;cursor:pointer;padding:.5rem}
 .badge{font-size:.78rem;color:var(--text-dim);background:var(--bg-card);padding:.35rem .8rem;border-radius:1rem}
-
 .exercise-center{display:flex;flex-direction:column;align-items:center;gap:1.8rem;flex:1;justify-content:center}
 .phase-text{font-size:1.4rem;font-weight:300;letter-spacing:.12em;min-height:2rem;text-align:center}
 .ball-container{position:relative;width:260px;height:260px;display:flex;align-items:center;justify-content:center}
@@ -79,53 +55,54 @@ textarea.input{min-height:80px;resize:vertical;font-family:inherit}
 .progress-track{width:100%;height:3px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden}
 .progress-fill{height:100%;width:0%;background:var(--accent);border-radius:2px}
 .cycle-label{font-size:.8rem;color:var(--text-dim);margin-top:.5rem;text-align:center}
-
 .done-check{width:64px;height:64px;border-radius:50%;border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:1.6rem;color:var(--accent);margin-bottom:1rem}
 .compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;width:100%;margin:1rem 0}
 .compare-col{text-align:center;padding:.8rem;background:var(--bg-card);border-radius:.75rem}
 .compare-col .h{font-size:.7rem;color:var(--text-dim);margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.05em}
 .compare-col .v{font-size:1.3rem;font-weight:600;color:var(--accent)}
 .compare-row-label{font-size:.8rem;color:var(--text-dim);margin-top:.8rem;margin-bottom:.3rem;width:100%;text-align:left}
-
-/* Chronometer */
-.chrono-display{font-size:4rem;font-weight:200;font-variant-numeric:tabular-nums;color:var(--text);text-align:center;margin:2rem 0}
+.chrono-display{font-size:4rem;font-weight:200;font-variant-numeric:tabular-nums;text-align:center;margin:2rem 0}
 .chrono-cycle{font-size:.9rem;color:var(--text-dim);text-align:center;margin-bottom:1rem}
 .chrono-instruction{font-size:.9rem;color:var(--text-dim);text-align:center;line-height:1.6;margin-bottom:2rem;padding:1rem;background:var(--bg-card);border-radius:.75rem}
-.chrono-results{width:100%}
-.chrono-result-row{display:flex;justify-content:space-between;padding:.6rem 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:.9rem}
-.chrono-avg{font-size:1.5rem;font-weight:600;color:var(--accent);text-align:center;margin:1rem 0}
-.chrono-avg-label{font-size:.8rem;color:var(--text-dim);text-align:center}
-
-/* Audio levels */
-.level-card{text-align:center;padding:1.5rem}
-.level-card .t{font-size:1.1rem}
+.chrono-results{width:100%}.chrono-result-row{display:flex;justify-content:space-between;padding:.6rem 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:.9rem}
+.chrono-avg{font-size:1.5rem;font-weight:600;color:var(--accent);text-align:center;margin:1rem 0}.chrono-avg-label{font-size:.8rem;color:var(--text-dim);text-align:center}
+.level-card{text-align:center;padding:1.5rem}.level-card .t{font-size:1.1rem}
 .level-card .badge-level{display:inline-block;font-size:.7rem;padding:.2rem .6rem;border-radius:1rem;margin-bottom:.5rem}
-.badge-l1{background:rgba(128,203,196,.2);color:var(--accent)}
-.badge-l2{background:rgba(255,167,38,.2);color:var(--warn)}
-.badge-l3{background:rgba(239,83,80,.2);color:var(--danger)}
+.badge-l1{background:rgba(128,203,196,.2);color:var(--accent)}.badge-l2{background:rgba(255,167,38,.2);color:var(--warn)}.badge-l3{background:rgba(239,83,80,.2);color:var(--danger)}
 .coming-soon{font-size:.85rem;color:var(--text-dim);text-align:center;padding:2rem;font-style:italic}
 
+/* HABITS DASHBOARD */
+.habit-grid{width:100%;overflow-x:auto;margin-bottom:1rem}
+.habit-table{width:100%;border-collapse:collapse;font-size:.8rem;min-width:340px}
+.habit-table th{padding:.5rem .3rem;color:var(--text-dim);font-weight:400;text-align:center;font-size:.7rem;text-transform:uppercase}
+.habit-table th:first-child{text-align:left;font-size:.8rem;font-weight:500;text-transform:none;color:var(--text)}
+.habit-table td{padding:.6rem .3rem;text-align:center;border-top:1px solid rgba(255,255,255,.04)}
+.habit-table td:first-child{text-align:left;color:var(--text);font-weight:400;font-size:.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px}
+.habit-name-cell{display:flex;align-items:center;gap:.4rem}
+.habit-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.h-check{color:var(--accent);font-size:1rem;cursor:pointer}.h-cross{color:rgba(239,83,80,.5);font-size:.9rem;cursor:pointer}
+.h-val{font-size:.8rem;font-weight:500;cursor:pointer}
+.h-val.good{color:var(--green)}.h-val.low{color:var(--text-dim)}
+.add-habit-btn{display:flex;align-items:center;justify-content:center;gap:.4rem;width:100%;padding:.8rem;background:var(--bg-card);border:1px dashed rgba(255,255,255,.1);border-radius:.75rem;color:var(--text-dim);font-size:.85rem;cursor:pointer;margin-top:.5rem}
+.add-habit-btn:active{background:rgba(255,255,255,.06)}
+
+/* Habit type selector */
+.type-cards{display:flex;gap:.75rem;width:100%;margin-bottom:1rem}
+.type-card{flex:1;padding:1.2rem;background:var(--bg-card);border:1px solid rgba(255,255,255,.06);border-radius:1rem;text-align:center;cursor:pointer;transition:all .2s}
+.type-card.sel{border-color:var(--accent);background:rgba(128,203,196,.1)}
+.type-card .t{font-size:.95rem;font-weight:500;margin-bottom:.3rem}.type-card .d{font-size:.72rem;color:var(--text-dim);line-height:1.4}
+
 /* Admin */
-.admin-section{width:100%;margin-bottom:1.5rem}
-.admin-section .h2{font-size:1rem;font-weight:600;margin-bottom:.6rem;color:var(--accent)}
+.admin-section{width:100%;margin-bottom:1.5rem}.admin-section .h2{font-size:1rem;font-weight:600;margin-bottom:.6rem;color:var(--accent)}
 .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
-.stat-box{background:var(--bg-card);border-radius:.75rem;padding:.8rem;text-align:center}
-.stat-box .n{font-size:1.5rem;font-weight:600;color:var(--accent)}
-.stat-box .l{font-size:.7rem;color:var(--text-dim);margin-top:.2rem}
-
-.consent-text{font-size:.82rem;color:var(--text-dim);line-height:1.7;max-height:50vh;overflow-y:auto;padding:1rem;background:var(--bg2);border-radius:.75rem;margin-bottom:1rem;width:100%}
-.consent-text strong{color:var(--text)}
-
+.stat-box{background:var(--bg-card);border-radius:.75rem;padding:.8rem;text-align:center}.stat-box .n{font-size:1.5rem;font-weight:600;color:var(--accent)}.stat-box .l{font-size:.7rem;color:var(--text-dim);margin-top:.2rem}
+.consent-text{font-size:.82rem;color:var(--text-dim);line-height:1.7;max-height:50vh;overflow-y:auto;padding:1rem;background:var(--bg2);border-radius:.75rem;margin-bottom:1rem;width:100%}.consent-text strong{color:var(--text)}
 .tabs{display:flex;gap:0;width:100%;margin-bottom:1rem;border-bottom:1px solid rgba(255,255,255,.08)}
-.tab{flex:1;padding:.7rem;font-size:.8rem;text-align:center;color:var(--text-dim);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s}
-.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
-
+.tab{flex:1;padding:.7rem;font-size:.8rem;text-align:center;color:var(--text-dim);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s}.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
 .loader{color:var(--text-dim);font-size:.9rem;text-align:center;padding:2rem}
 .error-msg{color:var(--danger);font-size:.82rem;margin-bottom:.5rem;text-align:center;min-height:1.2rem}
 .link{color:var(--accent);cursor:pointer;font-size:.85rem;text-align:center;margin-top:.8rem}
-
-.install-banner{display:none;position:fixed;bottom:calc(var(--safe-bottom) + 1rem);left:1rem;right:1rem;background:#1a2332;border:1px solid rgba(128,203,196,.2);border-radius:1rem;padding:1rem;z-index:100;align-items:center;justify-content:space-between;gap:.8rem}
-.install-banner.show{display:flex}
+.install-banner{display:none;position:fixed;bottom:calc(var(--safe-bottom) + 1rem);left:1rem;right:1rem;background:#1a2332;border:1px solid rgba(128,203,196,.2);border-radius:1rem;padding:1rem;z-index:100;align-items:center;justify-content:space-between;gap:.8rem}.install-banner.show{display:flex}
 </style>
 </head>
 <body>
@@ -148,29 +125,16 @@ textarea.input{min-height:80px;resize:vertical;font-family:inherit}
 <!-- CONSENT -->
 <div class="screen scroll" id="consentScreen">
   <div class="brand"><div class="brand-icon">🔒</div><div class="brand-name">Privacidade</div></div>
-  <div class="consent-text">
-    <strong>Termo de Consentimento e Política de Privacidade — Respira App</strong><br><br>
-    Em conformidade com a Lei Geral de Proteção de Dados (LGPD — Lei nº 13.709/2018), informamos:<br><br>
-    <strong>1. Dados coletados:</strong> Nome, e-mail, WhatsApp, respostas ao questionário de saúde e bem-estar, e dados de uso do aplicativo (protocolos utilizados, frequência, duração).<br><br>
-    <strong>2. Finalidade:</strong> Os dados são coletados para personalizar sua experiência, acompanhar seu progresso e permitir contato relacionado ao serviço.<br><br>
-    <strong>3. Armazenamento:</strong> Seus dados são armazenados de forma segura no Google Firebase, com acesso restrito ao administrador do aplicativo.<br><br>
-    <strong>4. Compartilhamento:</strong> Seus dados NÃO são compartilhados com terceiros, exceto quando exigido por lei.<br><br>
-    <strong>5. Seus direitos:</strong> Você pode a qualquer momento solicitar acesso, correção ou exclusão dos seus dados, entrando em contato pelo e-mail indicado no app.<br><br>
-    <strong>6. Revogação:</strong> Você pode revogar este consentimento a qualquer momento, o que implicará na exclusão da sua conta e dados.<br><br>
-    Ao continuar, você declara que leu, entendeu e concorda com os termos acima.
-  </div>
+  <div class="consent-text"><strong>Termo de Consentimento e Política de Privacidade — Respira App</strong><br><br>Em conformidade com a Lei Geral de Proteção de Dados (LGPD — Lei nº 13.709/2018), informamos:<br><br><strong>1. Dados coletados:</strong> Nome, e-mail, WhatsApp, respostas ao questionário de saúde e bem-estar, e dados de uso do aplicativo.<br><br><strong>2. Finalidade:</strong> Personalizar sua experiência, acompanhar seu progresso e permitir contato relacionado ao serviço.<br><br><strong>3. Armazenamento:</strong> Dados armazenados de forma segura no Google Firebase, com acesso restrito ao administrador.<br><br><strong>4. Compartilhamento:</strong> Seus dados NÃO são compartilhados com terceiros, exceto quando exigido por lei.<br><br><strong>5. Seus direitos:</strong> Solicite acesso, correção ou exclusão dos seus dados a qualquer momento.<br><br><strong>6. Revogação:</strong> Revogue este consentimento a qualquer momento, implicando na exclusão da conta e dados.<br><br>Ao continuar, você declara que leu, entendeu e concorda com os termos acima.</div>
   <button class="btn btn-p" id="consentBtn">Li e concordo</button>
   <button class="btn btn-o" id="consentDecline" style="margin-top:.5rem">Não concordo</button>
 </div>
 
 <!-- QUESTIONNAIRE -->
 <div class="screen scroll" id="questionnaireScreen">
-  <div class="step-indicator" id="qStep">Pergunta 1 de 6</div>
+  <div class="step-indicator" id="qStep"></div>
   <div id="qContainer" style="width:100%"></div>
-  <div style="display:flex;gap:.5rem;width:100%;margin-top:1rem">
-    <button class="btn btn-o" id="qBack" style="flex:1">Voltar</button>
-    <button class="btn btn-p" id="qNext" style="flex:2">Próxima</button>
-  </div>
+  <div style="display:flex;gap:.5rem;width:100%;margin-top:1rem"><button class="btn btn-o" id="qBack" style="flex:1">Voltar</button><button class="btn btn-p" id="qNext" style="flex:2">Próxima</button></div>
 </div>
 
 <!-- HOME -->
@@ -179,7 +143,8 @@ textarea.input{min-height:80px;resize:vertical;font-family:inherit}
   <div class="card main-card" id="btnRespireAgora"><div class="card-icon">🌬️</div><div class="t">Respire Agora</div><div class="d">Protocolos guiados de respiração</div></div>
   <div class="card main-card" id="btnProtocolosAudio"><div class="card-icon">🎧</div><div class="t">Protocolos Respiratórios</div><div class="d">Sessões guiadas com áudio</div></div>
   <div class="card main-card" id="btnTreinos"><div class="card-icon">⏱️</div><div class="t">Treinos e Testes de Respiração</div><div class="d">Bolt Score · TELL Score · TILL Score</div></div>
-  <button class="btn btn-o" id="logoutBtn" style="margin-top:2rem;font-size:.82rem">Sair da conta</button>
+  <div class="card main-card" id="btnDashboard"><div class="card-icon">📊</div><div class="t">Meu Progresso</div><div class="d">Acompanhe seus hábitos e evolução</div></div>
+  <button class="btn btn-o" id="logoutBtn" style="margin-top:1.5rem;font-size:.82rem">Sair da conta</button>
   <div class="link" id="adminLink" style="display:none;margin-top:.5rem">Painel Admin</div>
 </div>
 
@@ -190,7 +155,7 @@ textarea.input{min-height:80px;resize:vertical;font-family:inherit}
   <div id="protocolList" style="width:100%"></div>
 </div>
 
-<!-- PROTOCOLOS COM ÁUDIO -->
+<!-- AUDIO -->
 <div class="screen scroll" id="audioScreen">
   <div class="top-bar"><button class="back-btn" id="audioBack">‹ Voltar</button><div class="badge">Protocolos com Áudio</div></div>
   <div class="section-title">Escolha o nível</div>
@@ -199,54 +164,40 @@ textarea.input{min-height:80px;resize:vertical;font-family:inherit}
   <div class="card level-card" data-level="3"><div class="badge-level badge-l3">NÍVEL 3</div><div class="t">Avançado</div><div class="d">Técnicas de alta performance</div></div>
 </div>
 
-<!-- ÁUDIOS DO NÍVEL -->
 <div class="screen scroll" id="audioLevelScreen">
-  <div class="top-bar"><button class="back-btn" id="audioLevelBack">‹ Voltar</button><div class="badge" id="audioLevelBadge">Nível 1</div></div>
+  <div class="top-bar"><button class="back-btn" id="audioLevelBack">‹ Voltar</button><div class="badge" id="audioLevelBadge"></div></div>
   <div id="audioLevelContent" style="width:100%"></div>
 </div>
 
-<!-- AUDIO PLAYER -->
 <div class="screen center" id="audioPlayerScreen">
   <div class="top-bar"><button class="back-btn" id="audioPlayerBack">‹ Voltar</button><div class="badge" id="audioPlayerBadge"></div></div>
-  <div class="exercise-center">
-    <div class="card-icon" style="font-size:3rem">🎧</div>
-    <div class="section-title" style="text-align:center" id="audioPlayerTitle"></div>
-    <div id="audioPlayerContainer" style="width:100%"></div>
-  </div>
+  <div class="exercise-center"><div class="card-icon" style="font-size:3rem">🎧</div><div class="section-title" style="text-align:center" id="audioPlayerTitle"></div><div id="audioPlayerContainer" style="width:100%"></div></div>
 </div>
 
-<!-- TESTES DE RESPIRAÇÃO -->
+<!-- TESTES -->
 <div class="screen scroll" id="testsScreen">
   <div class="top-bar"><button class="back-btn" id="testsBack">‹ Voltar</button><div class="badge">Testes Respiratórios</div></div>
   <div class="section-title">Escolha o teste</div>
-  <div class="card" data-test="bolt"><div class="t">⏱️ Bolt Score</div><div class="d">Meça seu tempo de pausa confortável após expiração normal. Indicador de tolerância ao CO₂.</div></div>
-  <div class="card" data-test="tell"><div class="t">🔊 TELL Score</div><div class="d">Sustente o som "sssss" o máximo que puder após inspiração completa. Mede controle expiratório.</div></div>
-  <div class="card" data-test="till"><div class="t">🔔 TILL Score</div><div class="d">Sustente o som "zzzzz" o máximo que puder após inspiração completa. Mede ressonância e controle.</div></div>
+  <div class="card" data-test="bolt"><div class="t">⏱️ Bolt Score</div><div class="d">Tempo de pausa confortável após expiração normal. Indicador de tolerância ao CO₂.</div></div>
+  <div class="card" data-test="tell"><div class="t">🔊 TELL Score</div><div class="d">Sustente o som "sssss" após inspiração completa. Mede controle expiratório.</div></div>
+  <div class="card" data-test="till"><div class="t">🔔 TILL Score</div><div class="d">Sustente o som "zzzzz" após inspiração completa. Mede ressonância e controle.</div></div>
 </div>
 
-<!-- CRONÔMETRO -->
 <div class="screen center" id="chronoScreen">
   <div class="top-bar"><button class="back-btn" id="chronoBack">‹ Voltar</button><div class="badge" id="chronoBadge"></div></div>
-  <div class="exercise-center">
-    <div class="chrono-instruction" id="chronoInstruction"></div>
-    <div class="chrono-cycle" id="chronoCycle"></div>
-    <div class="chrono-display" id="chronoDisplay">0.0</div>
-    <button class="btn btn-p" id="chronoBtn" style="max-width:280px">Iniciar</button>
-  </div>
+  <div class="exercise-center"><div class="chrono-instruction" id="chronoInstruction"></div><div class="chrono-cycle" id="chronoCycle"></div><div class="chrono-display" id="chronoDisplay">0.0</div><button class="btn btn-p" id="chronoBtn" style="max-width:280px">Iniciar</button></div>
 </div>
 
-<!-- RESULTADO DO TESTE -->
 <div class="screen center" id="chronoResultScreen">
   <div class="done-check">⏱️</div>
   <div class="section-title" style="text-align:center" id="chronoResultTitle"></div>
   <div class="chrono-results" id="chronoResults"></div>
-  <div class="chrono-avg-label">Média</div>
-  <div class="chrono-avg" id="chronoAvg"></div>
+  <div class="chrono-avg-label">Média</div><div class="chrono-avg" id="chronoAvg"></div>
   <button class="btn btn-p" id="chronoResultHome">Voltar ao início</button>
   <button class="btn btn-o" id="chronoResultRepeat">Refazer teste</button>
 </div>
 
-<!-- WELLBEING BEFORE -->
+<!-- WELLBEING -->
 <div class="screen scroll" id="wbBeforeScreen">
   <div class="top-bar"><button class="back-btn" id="wbBeforeBack">‹ Voltar</button><div class="badge">Antes</div></div>
   <div class="section-title">Como você está agora?</div>
@@ -254,21 +205,12 @@ textarea.input{min-height:80px;resize:vertical;font-family:inherit}
   <button class="btn btn-p" id="wbBeforeNext">Iniciar protocolo</button>
 </div>
 
-<!-- EXERCISE -->
 <div class="screen center" id="exerciseScreen">
   <div class="top-bar"><button class="back-btn" id="exBack">‹ Cancelar</button><div class="badge" id="exBadge"></div></div>
-  <div class="exercise-center">
-    <div class="phase-text" id="phaseText"></div>
-    <div class="ball-container"><div class="guide-ring"></div><div class="breath-ball" id="ball"></div></div>
-    <div class="second-count" id="secondCount"></div>
-  </div>
-  <div style="width:100%">
-    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
-    <div class="cycle-label" id="cycleLabel"></div>
-  </div>
+  <div class="exercise-center"><div class="phase-text" id="phaseText"></div><div class="ball-container"><div class="guide-ring"></div><div class="breath-ball" id="ball"></div></div><div class="second-count" id="secondCount"></div></div>
+  <div style="width:100%"><div class="progress-track"><div class="progress-fill" id="progressFill"></div></div><div class="cycle-label" id="cycleLabel"></div></div>
 </div>
 
-<!-- REPEAT -->
 <div class="screen center" id="repeatScreen">
   <div class="done-check">🫁</div>
   <div class="section-title" style="text-align:center">Protocolo concluído</div>
@@ -277,7 +219,6 @@ textarea.input{min-height:80px;resize:vertical;font-family:inherit}
   <button class="btn btn-o" id="repeatNo">Finalizar</button>
 </div>
 
-<!-- WELLBEING AFTER -->
 <div class="screen scroll" id="wbAfterScreen">
   <div class="badge" style="margin-bottom:1rem">Depois</div>
   <div class="section-title">Como você está agora?</div>
@@ -285,12 +226,53 @@ textarea.input{min-height:80px;resize:vertical;font-family:inherit}
   <button class="btn btn-p" id="wbAfterNext">Ver resultado</button>
 </div>
 
-<!-- DONE -->
 <div class="screen center" id="doneScreen">
   <div class="done-check">✓</div>
   <div class="section-title" style="text-align:center">Prática concluída</div>
   <div id="compareResult" style="width:100%"></div>
   <button class="btn btn-p" id="doneHome" style="margin-top:1.5rem">Voltar ao início</button>
+</div>
+
+<!-- USER DASHBOARD -->
+<div class="screen scroll" id="dashboardScreen">
+  <div class="top-bar"><button class="back-btn" id="dashboardBack">‹ Voltar</button><div class="badge">Meu Progresso</div></div>
+  <div class="section-title" style="margin-top:.5rem">Hábitos</div>
+  <div class="habit-grid"><div id="habitTableWrap"></div></div>
+  <div class="add-habit-btn" id="addHabitBtn">＋ Adicionar hábito</div>
+</div>
+
+<!-- ADD HABIT -->
+<div class="screen scroll" id="addHabitScreen">
+  <div class="top-bar"><button class="back-btn" id="addHabitBack">‹ Voltar</button><div class="badge">Novo Hábito</div></div>
+  <div class="section-title">Tipo de hábito</div>
+  <div class="type-cards">
+    <div class="type-card sel" data-htype="boolean" id="typeBoolean"><div class="t">Sim ou Não</div><div class="d">Ex.: Você meditou hoje?</div></div>
+    <div class="type-card" data-htype="measurable" id="typeMeasurable"><div class="t">Mensurável</div><div class="d">Ex.: Quantos km correu?</div></div>
+  </div>
+  <div class="label">Nome</div><input class="input" id="habitName" placeholder="Ex.: Exercício">
+  <div class="label">Questão</div><input class="input" id="habitQuestion" placeholder="Ex.: Você se exercitou hoje?">
+  <div id="measurableFields" style="display:none">
+    <div class="label">Unidade</div><input class="input" id="habitUnit" placeholder="Ex.: km, páginas, minutos">
+    <div class="label">Alvo</div><input class="input" id="habitTarget" placeholder="Ex.: 15" type="number">
+    <div class="label">Tipo de meta</div>
+    <select class="input" id="habitTargetType"><option value="atleast">Pelo menos</option><option value="atmost">No máximo</option><option value="exact">Exatamente</option></select>
+  </div>
+  <div class="label">Frequência</div>
+  <select class="input" id="habitFrequency"><option value="daily">Todo dia</option><option value="weekdays">Dias de semana</option><option value="weekends">Fins de semana</option></select>
+  <div class="label">Anotações (opcional)</div><textarea class="input" id="habitNotes" placeholder="Observações..." style="min-height:50px"></textarea>
+  <button class="btn btn-p" id="saveHabitBtn">Salvar hábito</button>
+</div>
+
+<!-- LOG MEASURABLE -->
+<div class="screen center" id="logMeasurableScreen">
+  <div class="top-bar"><button class="back-btn" id="logMeasBack">‹ Voltar</button><div class="badge">Registrar</div></div>
+  <div class="exercise-center">
+    <div class="section-title" style="text-align:center" id="logMeasTitle"></div>
+    <div class="label" style="text-align:center" id="logMeasQuestion"></div>
+    <input class="input" id="logMeasValue" type="number" placeholder="0" style="text-align:center;font-size:2rem;max-width:200px">
+    <div style="font-size:.85rem;color:var(--text-dim)" id="logMeasUnit"></div>
+    <button class="btn btn-p" id="logMeasSave" style="max-width:280px">Salvar</button>
+  </div>
 </div>
 
 <!-- ADMIN -->
@@ -308,316 +290,226 @@ textarea.input{min-height:80px;resize:vertical;font-family:inherit}
 </div>
 
 <script>
-// ═══ CONFIG ═══
-const ADMIN_EMAIL = 'andrei-94@hotmail.com';
+const ADMIN_EMAIL='andrei-94@hotmail.com';
+firebase.initializeApp({apiKey:"AIzaSyC5Fa-qRDTLyVbC_N-y3lP7o4NSJqTcewc",authDomain:"respirapp-58d2b.firebaseapp.com",projectId:"respirapp-58d2b",storageBucket:"respirapp-58d2b.firebasestorage.app",messagingSenderId:"565648433343",appId:"1:565648433343:web:1939a62510bc3af509660a"});
+const auth=firebase.auth(),db=firebase.firestore();
 
-firebase.initializeApp({
-  apiKey:"AIzaSyC5Fa-qRDTLyVbC_N-y3lP7o4NSJqTcewc",
-  authDomain:"respirapp-58d2b.firebaseapp.com",
-  projectId:"respirapp-58d2b",
-  storageBucket:"respirapp-58d2b.firebasestorage.app",
-  messagingSenderId:"565648433343",
-  appId:"1:565648433343:web:1939a62510bc3af509660a"
-});
-const auth=firebase.auth(), db=firebase.firestore();
+const PROTOCOLS={equilibrio:{name:'4 × 4',subtitle:'Equilíbrio',cycles:7,desc:'4s inspira · 4s expira · 7 ciclos · 56s',phases:[{label:'Inspire',duration:4,scaleFrom:0,scaleTo:1},{label:'Expire',duration:4,scaleFrom:1,scaleTo:0}]},ansiedade:{name:'2 × 4',subtitle:'Anti-ansiedade',cycles:9,desc:'2s inspira · 4s expira · 9 ciclos · 54s',phases:[{label:'Inspire',duration:2,scaleFrom:0,scaleTo:.5},{label:'Expire',duration:4,scaleFrom:.5,scaleTo:0}]},suspiro:{name:'Suspiro',subtitle:'Fisiológico',cycles:8,desc:'2s inspira · 1s suspiro · 4s expira · 8 ciclos · 56s',phases:[{label:'Inspire',duration:2,scaleFrom:0,scaleTo:.65},{label:'Suspiro',duration:1,scaleFrom:.65,scaleTo:1},{label:'Expire',duration:4,scaleFrom:1,scaleTo:0}]}};
+const QUESTIONS=[{id:'q1',type:'multi',label:'Você tem algum tipo dessas situações de saúde?',options:['Problemas de Pressão','Problemas no Coração','Glaucoma ou Pressão nos Olhos','Esquizofrenia','Bipolaridade','Gravidez'],hasOther:true},{id:'q2',type:'text',label:'Qual o seu atual desafio com estresse, ansiedade, hiperatividade ou outro?'},{id:'q3',type:'text',label:'O que você já tentou para resolver esse problema ou desafio?'},{id:'q4',type:'multi',label:'Esse problema ou desafio tem interferido em qual(is) áreas da sua vida?',options:['Financeiro','Relacionamento afetivo','Ambiente profissional','Bem-estar pessoal','Ambientes sociais/amizades']},{id:'q5',type:'text',label:'Se gerenciar melhor seu estresse te ajudasse a melhorar 1 única coisa importante na sua vida, o que seria?'},{id:'q7',type:'multi',label:'Nos últimos 12 meses, você tentou alguma dessas soluções?',options:['Suplementos','Academia ou Outros Esportes','Yoga','Meditação','Remédios','Terapias'],hasOther:true}];
+const WB_PARAMS=[{id:'stress',label:'Nível de Estresse',low:'Nenhum',high:'Extremo'},{id:'sleep',label:'O quão bem você dorme',low:'Muito mal',high:'Muito bem'},{id:'energy',label:'Quanta energia você está agora',low:'Nenhuma',high:'Máxima'},{id:'clarity',label:'Clareza Mental',low:'Muito baixa',high:'Muito alta'}];
+const AUDIO_LEVELS={1:{name:'Nível 1 — Iniciante',audios:[]},2:{name:'Nível 2 — Intermediário',audios:[]},3:{name:'Nível 3 — Avançado',audios:[]}};
+const TESTS={bolt:{name:'Bolt Score',instruction:'Após uma expiração normal e tranquila, segure a respiração. Toque em "Iniciar" quando parar de respirar e "Parar" quando sentir a primeira vontade de respirar.'},tell:{name:'TELL Score',instruction:'Após uma inspiração completa, sustente o som "sssss" de forma contínua. Toque em "Iniciar" quando começar e "Parar" quando não conseguir mais.'},till:{name:'TILL Score',instruction:'Após uma inspiração completa, sustente o som "zzzzz" de forma contínua. Toque em "Iniciar" quando começar e "Parar" quando não conseguir mais.'}};
 
-// ═══ PROTOCOLS ═══
-const PROTOCOLS={
-  equilibrio:{name:'4 × 4',subtitle:'Equilíbrio',cycles:7,desc:'4s inspira · 4s expira · 7 ciclos · 56s',
-    phases:[{label:'Inspire',duration:4,scaleFrom:0,scaleTo:1},{label:'Expire',duration:4,scaleFrom:1,scaleTo:0}]},
-  ansiedade:{name:'2 × 4',subtitle:'Anti-ansiedade',cycles:9,desc:'2s inspira · 4s expira · 9 ciclos · 54s',
-    phases:[{label:'Inspire',duration:2,scaleFrom:0,scaleTo:.5},{label:'Expire',duration:4,scaleFrom:.5,scaleTo:0}]},
-  suspiro:{name:'Suspiro',subtitle:'Fisiológico',cycles:8,desc:'2s inspira · 1s suspiro · 4s expira · 8 ciclos · 56s',
-    phases:[{label:'Inspire',duration:2,scaleFrom:0,scaleTo:.65},{label:'Suspiro',duration:1,scaleFrom:.65,scaleTo:1},{label:'Expire',duration:4,scaleFrom:1,scaleTo:0}]}
-};
+// DEFAULT HABITS
+const DEFAULT_HABITS=[{key:'breathe',name:'Respire Agora',type:'boolean',color:'#4fc3f7',isDefault:true},{key:'audio',name:'Protocolos com Áudio',type:'boolean',color:'#ffa726',isDefault:true},{key:'test',name:'Testes Respiratórios',type:'measurable',unit:'seg',color:'#66bb6a',isDefault:true}];
 
-// ═══ QUESTIONNAIRE ═══
-const QUESTIONS=[
-  {id:'q1',type:'multi',label:'Você tem algum tipo dessas situações de saúde?',options:['Problemas de Pressão','Problemas no Coração','Glaucoma ou Pressão nos Olhos','Esquizofrenia','Bipolaridade','Gravidez'],hasOther:true},
-  {id:'q2',type:'text',label:'Qual o seu atual desafio com estresse, ansiedade, hiperatividade ou outro?'},
-  {id:'q3',type:'text',label:'O que você já tentou para resolver esse problema ou desafio?'},
-  {id:'q4',type:'multi',label:'Esse problema ou desafio tem interferido em qual(is) áreas da sua vida?',options:['Financeiro','Relacionamento afetivo','Ambiente profissional','Bem-estar pessoal','Ambientes sociais/amizades']},
-  {id:'q5',type:'text',label:'Se gerenciar melhor seu estresse te ajudasse a melhorar 1 única coisa importante na sua vida, o que seria?'},
-  {id:'q7',type:'multi',label:'Nos últimos 12 meses, você tentou alguma dessas soluções?',options:['Suplementos','Academia ou Outros Esportes','Yoga','Meditação','Remédios','Terapias'],hasOther:true}
-];
-
-const WB_PARAMS=[
-  {id:'stress',label:'Nível de Estresse',low:'Nenhum',high:'Extremo'},
-  {id:'sleep',label:'O quão bem você dorme',low:'Muito mal',high:'Muito bem'},
-  {id:'energy',label:'Quanta energia você está agora',low:'Nenhuma',high:'Máxima'},
-  {id:'clarity',label:'Clareza Mental',low:'Muito baixa',high:'Muito alta'}
-];
-
-// ═══ AUDIO PROTOCOLS (placeholder — adicionar MP3s aqui) ═══
-const AUDIO_LEVELS={
-  1:{name:'Nível 1 — Iniciante', audios:[]},
-  2:{name:'Nível 2 — Intermediário', audios:[]},
-  3:{name:'Nível 3 — Avançado', audios:[]}
-};
-// Formato para adicionar áudios:
-// { title: 'Nome do Protocolo', file: './audios/protocolo1.mp3' }
-
-// ═══ TESTS ═══
-const TESTS={
-  bolt:{name:'Bolt Score',instruction:'Após uma expiração normal e tranquila, segure a respiração. Toque em "Iniciar" quando parar de respirar e "Parar" quando sentir a primeira vontade de respirar. Não force — o objetivo é medir o ponto de conforto.'},
-  tell:{name:'TELL Score',instruction:'Após uma inspiração completa, sustente o som "sssss" de forma contínua e uniforme. Toque em "Iniciar" quando começar o som e "Parar" quando não conseguir mais manter.'},
-  till:{name:'TILL Score',instruction:'Após uma inspiração completa, sustente o som "zzzzz" de forma contínua e uniforme. Toque em "Iniciar" quando começar o som e "Parar" quando não conseguir mais manter.'}
-};
-
-// ═══ STATE ═══
-let currentUser=null, currentProtocolKey=null, sessionData={}, totalCyclesCompleted=0;
-let running=false, animFrame=null, qIndex=0, qAnswers={};
-let chronoInterval=null, chronoStart=0, chronoCycleNum=0, chronoTimes=[], currentTestKey=null;
-let currentAudioLevel=null;
+let currentUser=null,currentProtocolKey=null,sessionData={},totalCyclesCompleted=0;
+let running=false,animFrame=null,qIndex=0,qAnswers={};
+let chronoInterval=null,chronoStart=0,chronoCycleNum=0,chronoTimes=[],currentTestKey=null;
+let currentAudioLevel=null,userHabits=[],habitLogs={},sessionsByDay={};
+let logMeasHabitId=null,logMeasDate=null;
 
 const $=id=>document.getElementById(id);
 const screens=document.querySelectorAll('.screen');
 function show(id){screens.forEach(s=>s.classList.remove('active'));$(id).classList.add('active');$(id).scrollTop=0;}
+function todayStr(){return new Date().toISOString().slice(0,10);}
+function dateStr(d){return d.toISOString().slice(0,10);}
+function getDayLabel(ds){const d=new Date(ds+'T12:00:00');const days=['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];return days[d.getDay()]+'.';} 
+function getDayNum(ds){return ds.slice(8,10);}
 
 // ═══ AUTH ═══
 let isLogin=false;
-$('authToggle').addEventListener('click',()=>{
-  isLogin=!isLogin;
-  $('authTitle').textContent=isLogin?'Entrar':'Criar conta';
-  $('authBtn').textContent=isLogin?'Entrar':'Criar conta';
-  $('authToggle').textContent=isLogin?'Não tenho conta → Criar':'Já tenho conta → Entrar';
-  $('authName').style.display=isLogin?'none':'';
-  $('authWhatsapp').style.display=isLogin?'none':'';
-  $('authError').textContent='';
-});
-
-$('authBtn').addEventListener('click',async()=>{
-  const email=$('authEmail').value.trim(),pass=$('authPass').value,name=$('authName').value.trim(),whatsapp=$('authWhatsapp').value.trim();
-  $('authError').textContent='';
-  if(!email||!pass){$('authError').textContent='Preencha e-mail e senha.';return;}
-  if(!isLogin&&(!name||!whatsapp)){$('authError').textContent='Preencha todos os campos.';return;}
-  if(pass.length<6){$('authError').textContent='Senha precisa ter no mínimo 6 caracteres.';return;}
-  $('authBtn').disabled=true;
-  try{
-    if(isLogin){await auth.signInWithEmailAndPassword(email,pass);}
-    else{const c=await auth.createUserWithEmailAndPassword(email,pass);await db.collection('users').doc(c.user.uid).set({name,email,whatsapp,createdAt:firebase.firestore.FieldValue.serverTimestamp(),consentAccepted:false,questionnaireCompleted:false});}
-  }catch(e){const m={'auth/email-already-in-use':'E-mail já cadastrado.','auth/invalid-email':'E-mail inválido.','auth/user-not-found':'Usuário não encontrado.','auth/wrong-password':'Senha incorreta.','auth/invalid-credential':'E-mail ou senha incorretos.'};$('authError').textContent=m[e.code]||e.message;}
-  $('authBtn').disabled=false;
-});
-
+$('authToggle').addEventListener('click',()=>{isLogin=!isLogin;$('authTitle').textContent=isLogin?'Entrar':'Criar conta';$('authBtn').textContent=isLogin?'Entrar':'Criar conta';$('authToggle').textContent=isLogin?'Não tenho conta → Criar':'Já tenho conta → Entrar';$('authName').style.display=isLogin?'none':'';$('authWhatsapp').style.display=isLogin?'none':'';$('authError').textContent='';});
+$('authBtn').addEventListener('click',async()=>{const email=$('authEmail').value.trim(),pass=$('authPass').value,name=$('authName').value.trim(),wpp=$('authWhatsapp').value.trim();$('authError').textContent='';if(!email||!pass){$('authError').textContent='Preencha e-mail e senha.';return;}if(!isLogin&&(!name||!wpp)){$('authError').textContent='Preencha todos os campos.';return;}if(pass.length<6){$('authError').textContent='Senha mínima: 6 caracteres.';return;}$('authBtn').disabled=true;try{if(isLogin)await auth.signInWithEmailAndPassword(email,pass);else{const c=await auth.createUserWithEmailAndPassword(email,pass);await db.collection('users').doc(c.user.uid).set({name,email,whatsapp:wpp,createdAt:firebase.firestore.FieldValue.serverTimestamp(),consentAccepted:false,questionnaireCompleted:false});}}catch(e){const m={'auth/email-already-in-use':'E-mail já cadastrado.','auth/invalid-email':'E-mail inválido.','auth/user-not-found':'Usuário não encontrado.','auth/wrong-password':'Senha incorreta.','auth/invalid-credential':'E-mail ou senha incorretos.'};$('authError').textContent=m[e.code]||e.message;}$('authBtn').disabled=false;});
 $('logoutBtn').addEventListener('click',()=>auth.signOut());
-
-auth.onAuthStateChanged(async user=>{
-  if(!user){show('authScreen');currentUser=null;return;}
-  currentUser=user;
-  try{
-    const doc=await db.collection('users').doc(user.uid).get();
-    if(!doc.exists){show('authScreen');return;}
-    const data=doc.data();
-    if(!data.consentAccepted){show('consentScreen');return;}
-    if(!data.questionnaireCompleted){qIndex=0;renderQuestion();show('questionnaireScreen');return;}
-    showHome();
-  }catch(e){console.error(e);show('authScreen');}
-});
+auth.onAuthStateChanged(async user=>{if(!user){show('authScreen');currentUser=null;return;}currentUser=user;try{const doc=await db.collection('users').doc(user.uid).get();if(!doc.exists){show('authScreen');return;}const d=doc.data();if(!d.consentAccepted){show('consentScreen');return;}if(!d.questionnaireCompleted){qIndex=0;renderQuestion();show('questionnaireScreen');return;}showHome();}catch(e){console.error(e);show('authScreen');}});
 
 // ═══ CONSENT ═══
 $('consentBtn').addEventListener('click',async()=>{await db.collection('users').doc(currentUser.uid).update({consentAccepted:true,consentAt:firebase.firestore.FieldValue.serverTimestamp()});qIndex=0;renderQuestion();show('questionnaireScreen');});
 $('consentDecline').addEventListener('click',()=>auth.signOut());
 
 // ═══ QUESTIONNAIRE ═══
-function renderQuestion(){
-  const q=QUESTIONS[qIndex];$('qStep').textContent=`Pergunta ${qIndex+1} de ${QUESTIONS.length}`;
-  $('qBack').style.visibility=qIndex===0?'hidden':'visible';
-  $('qNext').textContent=qIndex===QUESTIONS.length-1?'Finalizar':'Próxima';
-  let h=`<div class="section-title" style="font-size:1rem">${q.label}</div>`;
-  const prev=qAnswers[q.id]||{};
-  if(q.type==='multi'){h+='<div class="chips">';q.options.forEach(o=>{const s=(prev.selected||[]).includes(o);h+=`<div class="chip ${s?'sel':''}" data-val="${o}">${o}</div>`;});h+='</div>';if(q.hasOther)h+=`<input class="input" id="qOther" placeholder="Outro (especifique)" value="${prev.other||''}">`;}
-  else h+=`<textarea class="input" id="qText" placeholder="Escreva sua resposta...">${prev.text||''}</textarea>`;
-  $('qContainer').innerHTML=h;
-  $('qContainer').querySelectorAll('.chip').forEach(c=>c.addEventListener('click',()=>c.classList.toggle('sel')));
-}
-function saveCurrentAnswer(){const q=QUESTIONS[qIndex];if(q.type==='multi'){const s=[...$('qContainer').querySelectorAll('.chip.sel')].map(c=>c.dataset.val);const o=q.hasOther&&$('qOther')?$('qOther').value.trim():'';qAnswers[q.id]={selected:s,other:o};}else{qAnswers[q.id]={text:$('qText')?$('qText').value.trim():''};}}
+function renderQuestion(){const q=QUESTIONS[qIndex];$('qStep').textContent=`Pergunta ${qIndex+1} de ${QUESTIONS.length}`;$('qBack').style.visibility=qIndex===0?'hidden':'visible';$('qNext').textContent=qIndex===QUESTIONS.length-1?'Finalizar':'Próxima';let h=`<div class="section-title" style="font-size:1rem">${q.label}</div>`;const prev=qAnswers[q.id]||{};if(q.type==='multi'){h+='<div class="chips">';q.options.forEach(o=>{const s=(prev.selected||[]).includes(o);h+=`<div class="chip ${s?'sel':''}" data-val="${o}">${o}</div>`;});h+='</div>';if(q.hasOther)h+=`<input class="input" id="qOther" placeholder="Outro (especifique)" value="${prev.other||''}">`;}else h+=`<textarea class="input" id="qText" placeholder="Escreva sua resposta...">${prev.text||''}</textarea>`;$('qContainer').innerHTML=h;$('qContainer').querySelectorAll('.chip').forEach(c=>c.addEventListener('click',()=>c.classList.toggle('sel')));}
+function saveCurrentAnswer(){const q=QUESTIONS[qIndex];if(q.type==='multi'){const s=[...$('qContainer').querySelectorAll('.chip.sel')].map(c=>c.dataset.val);const o=q.hasOther&&$('qOther')?$('qOther').value.trim():'';qAnswers[q.id]={selected:s,other:o};}else qAnswers[q.id]={text:$('qText')?$('qText').value.trim():''};}
 $('qNext').addEventListener('click',async()=>{saveCurrentAnswer();if(qIndex<QUESTIONS.length-1){qIndex++;renderQuestion();}else{await db.collection('questionnaires').doc(currentUser.uid).set({...qAnswers,submittedAt:firebase.firestore.FieldValue.serverTimestamp()});await db.collection('users').doc(currentUser.uid).update({questionnaireCompleted:true});showHome();}});
 $('qBack').addEventListener('click',()=>{if(qIndex>0){saveCurrentAnswer();qIndex--;renderQuestion();}});
 
 // ═══ HOME ═══
-function showHome(){
-  $('adminLink').style.display=(currentUser&&currentUser.email===ADMIN_EMAIL)?'':'none';
-  show('homeScreen');
-}
+function showHome(){$('adminLink').style.display=(currentUser&&currentUser.email===ADMIN_EMAIL)?'':'none';show('homeScreen');}
 
-// Navigation: Home → Sub-screens
-$('btnRespireAgora').addEventListener('click',()=>{
-  let h='';for(const[k,p]of Object.entries(PROTOCOLS))h+=`<div class="card" data-key="${k}"><div class="t">${p.name} — ${p.subtitle}</div><div class="d">${p.desc}</div></div>`;
-  $('protocolList').innerHTML=h;
-  $('protocolList').querySelectorAll('.card').forEach(c=>c.addEventListener('click',()=>{currentProtocolKey=c.dataset.key;startSession();}));
-  show('breatheNowScreen');
-});
+$('btnRespireAgora').addEventListener('click',()=>{let h='';for(const[k,p]of Object.entries(PROTOCOLS))h+=`<div class="card" data-key="${k}"><div class="t">${p.name} — ${p.subtitle}</div><div class="d">${p.desc}</div></div>`;$('protocolList').innerHTML=h;$('protocolList').querySelectorAll('.card').forEach(c=>c.addEventListener('click',()=>{currentProtocolKey=c.dataset.key;startSession();}));show('breatheNowScreen');});
 $('breatheNowBack').addEventListener('click',()=>showHome());
-
 $('btnProtocolosAudio').addEventListener('click',()=>show('audioScreen'));
 $('audioBack').addEventListener('click',()=>showHome());
-
 $('btnTreinos').addEventListener('click',()=>show('testsScreen'));
 $('testsBack').addEventListener('click',()=>showHome());
+$('btnDashboard').addEventListener('click',()=>loadDashboard());
+$('dashboardBack').addEventListener('click',()=>showHome());
 
-// ═══ AUDIO PROTOCOLS ═══
-document.querySelectorAll('.level-card').forEach(c=>c.addEventListener('click',()=>{
-  currentAudioLevel=parseInt(c.dataset.level);
-  const lvl=AUDIO_LEVELS[currentAudioLevel];
-  $('audioLevelBadge').textContent=lvl.name;
-  if(lvl.audios.length===0){
-    $('audioLevelContent').innerHTML='<div class="coming-soon">Os áudios deste nível serão adicionados em breve.</div><div style="text-align:center;margin-top:1rem;font-size:.8rem;color:var(--text-dim)">Para adicionar áudios, edite a variável AUDIO_LEVELS no código e coloque os arquivos .mp3 na pasta do repositório.</div>';
-  }else{
-    let h='';lvl.audios.forEach((a,i)=>{h+=`<div class="card" data-audio-idx="${i}"><div class="t">🎵 ${a.title}</div></div>`;});
-    $('audioLevelContent').innerHTML=h;
-    $('audioLevelContent').querySelectorAll('.card').forEach(c=>c.addEventListener('click',()=>{
-      const idx=parseInt(c.dataset.audioIdx);const a=lvl.audios[idx];
-      $('audioPlayerBadge').textContent=lvl.name;
-      $('audioPlayerTitle').textContent=a.title;
-      $('audioPlayerContainer').innerHTML=`<audio controls style="width:100%;margin-top:1rem;filter:invert(.85)" src="${a.file}" id="activeAudio"></audio>`;
-      const audioEl=$('activeAudio');
-      audioEl.addEventListener('ended',async()=>{
-        try{await db.collection('sessions').add({userId:currentUser.uid,type:'audio',level:currentAudioLevel,audioTitle:a.title,completedAt:firebase.firestore.FieldValue.serverTimestamp()});}catch(e){}
-      });
-      show('audioPlayerScreen');
-    }));
-  }
-  show('audioLevelScreen');
-}));
+// ═══ AUDIO ═══
+document.querySelectorAll('.level-card').forEach(c=>c.addEventListener('click',()=>{currentAudioLevel=parseInt(c.dataset.level);const lvl=AUDIO_LEVELS[currentAudioLevel];$('audioLevelBadge').textContent=lvl.name;if(lvl.audios.length===0){$('audioLevelContent').innerHTML='<div class="coming-soon">Os áudios deste nível serão adicionados em breve.</div>';}else{let h='';lvl.audios.forEach((a,i)=>{h+=`<div class="card" data-audio-idx="${i}"><div class="t">🎵 ${a.title}</div></div>`;});$('audioLevelContent').innerHTML=h;$('audioLevelContent').querySelectorAll('.card').forEach(c=>c.addEventListener('click',()=>{const idx=parseInt(c.dataset.audioIdx);const a=lvl.audios[idx];$('audioPlayerBadge').textContent=lvl.name;$('audioPlayerTitle').textContent=a.title;$('audioPlayerContainer').innerHTML=`<audio controls style="width:100%;margin-top:1rem;filter:invert(.85)" src="${a.file}" id="activeAudio"></audio>`;$('activeAudio').addEventListener('ended',async()=>{try{await db.collection('sessions').add({userId:currentUser.uid,type:'audio',level:currentAudioLevel,audioTitle:a.title,completedAt:firebase.firestore.FieldValue.serverTimestamp()});}catch(e){}});show('audioPlayerScreen');}));}show('audioLevelScreen');}));
 $('audioLevelBack').addEventListener('click',()=>show('audioScreen'));
 $('audioPlayerBack').addEventListener('click',()=>{const a=$('activeAudio');if(a)a.pause();show('audioLevelScreen');});
 
-// ═══ TESTS / CHRONOMETER ═══
-document.querySelectorAll('[data-test]').forEach(c=>c.addEventListener('click',()=>{
-  currentTestKey=c.dataset.test;
-  const t=TESTS[currentTestKey];
-  $('chronoBadge').textContent=t.name;
-  $('chronoInstruction').textContent=t.instruction;
-  chronoCycleNum=0;chronoTimes=[];
-  updateChronoUI();
-  show('chronoScreen');
-}));
+// ═══ TESTS ═══
+document.querySelectorAll('[data-test]').forEach(c=>c.addEventListener('click',()=>{currentTestKey=c.dataset.test;const t=TESTS[currentTestKey];$('chronoBadge').textContent=t.name;$('chronoInstruction').textContent=t.instruction;chronoCycleNum=0;chronoTimes=[];updateChronoUI();show('chronoScreen');}));
 $('testsBack').addEventListener('click',()=>showHome());
 $('chronoBack').addEventListener('click',()=>{stopChrono();show('testsScreen');});
-
-function updateChronoUI(){
-  $('chronoCycle').textContent=`Tentativa ${chronoCycleNum+1} de 3`;
-  $('chronoDisplay').textContent='0.0';
-  $('chronoBtn').textContent='Iniciar';
-  $('chronoBtn').className='btn btn-p';
-  $('chronoBtn').onclick=startChrono;
-}
-
-function startChrono(){
-  chronoStart=performance.now();
-  $('chronoBtn').textContent='Parar';
-  $('chronoBtn').className='btn btn-d';
-  $('chronoBtn').onclick=stopChronoCycle;
-  if(navigator.vibrate)navigator.vibrate(30);
-  chronoInterval=setInterval(()=>{
-    const elapsed=(performance.now()-chronoStart)/1000;
-    $('chronoDisplay').textContent=elapsed.toFixed(1);
-  },100);
-}
-
-function stopChronoCycle(){
-  clearInterval(chronoInterval);
-  const elapsed=(performance.now()-chronoStart)/1000;
-  chronoTimes.push(parseFloat(elapsed.toFixed(1)));
-  if(navigator.vibrate)navigator.vibrate([30,50,30]);
-  chronoCycleNum++;
-  if(chronoCycleNum<3){
-    $('chronoDisplay').textContent=elapsed.toFixed(1);
-    $('chronoBtn').textContent=`Próxima (${chronoCycleNum+1}/3)`;
-    $('chronoBtn').className='btn btn-p';
-    $('chronoBtn').onclick=()=>{updateChronoUI();};
-    $('chronoCycle').textContent=`✓ ${elapsed.toFixed(1)}s — ${3-chronoCycleNum} restante(s)`;
-  }else{
-    showChronoResult();
-  }
-}
-
+function updateChronoUI(){$('chronoCycle').textContent=`Tentativa ${chronoCycleNum+1} de 3`;$('chronoDisplay').textContent='0.0';$('chronoBtn').textContent='Iniciar';$('chronoBtn').className='btn btn-p';$('chronoBtn').onclick=startChrono;}
+function startChrono(){chronoStart=performance.now();$('chronoBtn').textContent='Parar';$('chronoBtn').className='btn btn-d';$('chronoBtn').onclick=stopChronoCycle;if(navigator.vibrate)navigator.vibrate(30);chronoInterval=setInterval(()=>{$('chronoDisplay').textContent=((performance.now()-chronoStart)/1000).toFixed(1);},100);}
+function stopChronoCycle(){clearInterval(chronoInterval);const el=parseFloat(((performance.now()-chronoStart)/1000).toFixed(1));chronoTimes.push(el);if(navigator.vibrate)navigator.vibrate([30,50,30]);chronoCycleNum++;if(chronoCycleNum<3){$('chronoDisplay').textContent=el.toFixed(1);$('chronoBtn').textContent=`Próxima (${chronoCycleNum+1}/3)`;$('chronoBtn').className='btn btn-p';$('chronoBtn').onclick=()=>updateChronoUI();$('chronoCycle').textContent=`✓ ${el.toFixed(1)}s — ${3-chronoCycleNum} restante(s)`;}else showChronoResult();}
 function stopChrono(){clearInterval(chronoInterval);}
-
-async function showChronoResult(){
-  const t=TESTS[currentTestKey];
-  const avg=parseFloat((chronoTimes.reduce((a,b)=>a+b,0)/3).toFixed(1));
-  $('chronoResultTitle').textContent=t.name;
-  let h='';chronoTimes.forEach((v,i)=>{h+=`<div class="chrono-result-row"><span>Tentativa ${i+1}</span><span>${v}s</span></div>`;});
-  $('chronoResults').innerHTML=h;
-  $('chronoAvg').textContent=avg+'s';
-
-  // Save to Firestore
-  try{await db.collection('sessions').add({userId:currentUser.uid,type:'test',testName:currentTestKey,testLabel:t.name,times:chronoTimes,average:avg,completedAt:firebase.firestore.FieldValue.serverTimestamp()});}catch(e){console.error(e);}
-
-  show('chronoResultScreen');
-}
-
+async function showChronoResult(){const t=TESTS[currentTestKey];const avg=parseFloat((chronoTimes.reduce((a,b)=>a+b,0)/3).toFixed(1));$('chronoResultTitle').textContent=t.name;let h='';chronoTimes.forEach((v,i)=>{h+=`<div class="chrono-result-row"><span>Tentativa ${i+1}</span><span>${v}s</span></div>`;});$('chronoResults').innerHTML=h;$('chronoAvg').textContent=avg+'s';try{await db.collection('sessions').add({userId:currentUser.uid,type:'test',testName:currentTestKey,testLabel:t.name,times:chronoTimes,average:avg,completedAt:firebase.firestore.FieldValue.serverTimestamp()});}catch(e){}show('chronoResultScreen');}
 $('chronoResultHome').addEventListener('click',()=>showHome());
 $('chronoResultRepeat').addEventListener('click',()=>{chronoCycleNum=0;chronoTimes=[];updateChronoUI();show('chronoScreen');});
 
 // ═══ WELLBEING ═══
-function renderWellbeing(cid){
-  let h='';WB_PARAMS.forEach(p=>{h+=`<div class="scale-row"><div class="scale-label">${p.label}</div><div class="scale-dots" data-param="${p.id}">`;for(let i=0;i<=5;i++)h+=`<div class="scale-dot" data-val="${i}">${i}</div>`;h+=`</div><div class="scale-anchors"><span>${p.low}</span><span>${p.high}</span></div></div>`;});
-  $(cid).innerHTML=h;
-  $(cid).querySelectorAll('.scale-dot').forEach(d=>d.addEventListener('click',()=>{d.parentElement.querySelectorAll('.scale-dot').forEach(x=>x.classList.remove('sel'));d.classList.add('sel');}));
-}
+function renderWellbeing(cid){let h='';WB_PARAMS.forEach(p=>{h+=`<div class="scale-row"><div class="scale-label">${p.label}</div><div class="scale-dots" data-param="${p.id}">`;for(let i=0;i<=5;i++)h+=`<div class="scale-dot" data-val="${i}">${i}</div>`;h+=`</div><div class="scale-anchors"><span>${p.low}</span><span>${p.high}</span></div></div>`;});$(cid).innerHTML=h;$(cid).querySelectorAll('.scale-dot').forEach(d=>d.addEventListener('click',()=>{d.parentElement.querySelectorAll('.scale-dot').forEach(x=>x.classList.remove('sel'));d.classList.add('sel');}));}
 function collectWellbeing(cid){const r={};let ok=true;$(cid).querySelectorAll('.scale-dots').forEach(row=>{const s=row.querySelector('.scale-dot.sel');if(s)r[row.dataset.param]=parseInt(s.dataset.val);else ok=false;});return ok?r:null;}
 
-// ═══ SESSION (Respire Agora) ═══
+// ═══ SESSION ═══
 function startSession(){totalCyclesCompleted=0;sessionData={protocol:currentProtocolKey,startedAt:new Date()};renderWellbeing('wbBeforeFields');show('wbBeforeScreen');}
 $('wbBeforeBack').addEventListener('click',()=>show('breatheNowScreen'));
 $('wbBeforeNext').addEventListener('click',()=>{const wb=collectWellbeing('wbBeforeFields');if(!wb){alert('Preencha todos os campos.');return;}sessionData.wellbeingBefore=wb;startExercise();});
 
-// ═══ EXERCISE ═══
 const MIN_SCALE=1,MAX_SCALE=3.8;
 function easeInOutSine(t){return-(Math.cos(Math.PI*t)-1)/2;}
 function lerp(a,b,t){return a+(b-a)*t;}
-
-function startExercise(){
-  show('exerciseScreen');const p=PROTOCOLS[currentProtocolKey];
-  $('exBadge').textContent=p.name+' · '+p.subtitle;$('phaseText').textContent='';$('secondCount').textContent='';$('progressFill').style.width='0%';$('cycleLabel').textContent='';$('ball').style.transform='scale(1)';
-  if(navigator.vibrate)navigator.vibrate(30);requestWakeLock();running=true;
-  const cycleDur=p.phases.reduce((s,ph)=>s+ph.duration,0)*1000;const totalDur=p.cycles*cycleDur;const startTime=performance.now();
-  const bounds=[];let cum=0;for(const ph of p.phases){bounds.push({...ph,startMs:cum,endMs:cum+ph.duration*1000});cum+=ph.duration*1000;}
-  let lastLabel='';
-  function tick(now){
-    if(!running)return;const elapsed=now-startTime;if(elapsed>=totalDur){endExercise(p);return;}
-    const ce=elapsed%cycleDur;let ap=bounds[0];for(const b of bounds){if(ce>=b.startMs&&ce<b.endMs){ap=b;break;}}
-    const prog=(ce-ap.startMs)/(ap.endMs-ap.startMs);const eased=easeInOutSine(prog);const ns=lerp(ap.scaleFrom,ap.scaleTo,eased);const scale=lerp(MIN_SCALE,MAX_SCALE,ns);
-    $('ball').style.transform='scale('+scale+')';$('ball').style.boxShadow='0 0 '+lerp(20,70,ns)+'px rgba(79,195,247,'+lerp(.12,.4,ns)+')';
-    $('phaseText').textContent=ap.label;$('phaseText').style.opacity=ap.label==='Expire'?'.65':'1';
-    if(ap.label!==lastLabel){if(navigator.vibrate)navigator.vibrate(15);lastLabel=ap.label;}
-    $('secondCount').textContent=Math.ceil((ap.endMs-ce)/1000);
-    $('cycleLabel').textContent='Ciclo '+(Math.floor(elapsed/cycleDur)+1)+' de '+p.cycles;
-    $('progressFill').style.width=((elapsed/totalDur)*100)+'%';
-    animFrame=requestAnimationFrame(tick);
-  }
-  animFrame=requestAnimationFrame(tick);
-}
-
+function startExercise(){show('exerciseScreen');const p=PROTOCOLS[currentProtocolKey];$('exBadge').textContent=p.name+' · '+p.subtitle;$('phaseText').textContent='';$('secondCount').textContent='';$('progressFill').style.width='0%';$('cycleLabel').textContent='';$('ball').style.transform='scale(1)';if(navigator.vibrate)navigator.vibrate(30);requestWakeLock();running=true;const cycleDur=p.phases.reduce((s,ph)=>s+ph.duration,0)*1000;const totalDur=p.cycles*cycleDur;const startTime=performance.now();const bounds=[];let cum=0;for(const ph of p.phases){bounds.push({...ph,startMs:cum,endMs:cum+ph.duration*1000});cum+=ph.duration*1000;}let lastLabel='';function tick(now){if(!running)return;const elapsed=now-startTime;if(elapsed>=totalDur){endExercise(p);return;}const ce=elapsed%cycleDur;let ap=bounds[0];for(const b of bounds){if(ce>=b.startMs&&ce<b.endMs){ap=b;break;}}const prog=(ce-ap.startMs)/(ap.endMs-ap.startMs);const eased=easeInOutSine(prog);const ns=lerp(ap.scaleFrom,ap.scaleTo,eased);const scale=lerp(MIN_SCALE,MAX_SCALE,ns);$('ball').style.transform='scale('+scale+')';$('ball').style.boxShadow='0 0 '+lerp(20,70,ns)+'px rgba(79,195,247,'+lerp(.12,.4,ns)+')';$('phaseText').textContent=ap.label;$('phaseText').style.opacity=ap.label==='Expire'?'.65':'1';if(ap.label!==lastLabel){if(navigator.vibrate)navigator.vibrate(15);lastLabel=ap.label;}$('secondCount').textContent=Math.ceil((ap.endMs-ce)/1000);$('cycleLabel').textContent='Ciclo '+(Math.floor(elapsed/cycleDur)+1)+' de '+p.cycles;$('progressFill').style.width=((elapsed/totalDur)*100)+'%';animFrame=requestAnimationFrame(tick);}animFrame=requestAnimationFrame(tick);}
 $('exBack').addEventListener('click',()=>{running=false;if(animFrame)cancelAnimationFrame(animFrame);show('breatheNowScreen');});
-
 function endExercise(p){running=false;totalCyclesCompleted+=p.cycles;$('repeatInfo').textContent=`${p.name} · ${p.subtitle} — ${totalCyclesCompleted} ciclo(s)`;if(navigator.vibrate)navigator.vibrate([30,80,30]);show('repeatScreen');}
-
 $('repeatYes').addEventListener('click',()=>startExercise());
 $('repeatNo').addEventListener('click',()=>{renderWellbeing('wbAfterFields');show('wbAfterScreen');});
+$('wbAfterNext').addEventListener('click',async()=>{const wb=collectWellbeing('wbAfterFields');if(!wb){alert('Preencha todos os campos.');return;}sessionData.wellbeingAfter=wb;sessionData.endedAt=new Date();sessionData.totalCycles=totalCyclesCompleted;sessionData.userId=currentUser.uid;sessionData.type='breathe';sessionData.protocolName=PROTOCOLS[currentProtocolKey].name+' '+PROTOCOLS[currentProtocolKey].subtitle;try{await db.collection('sessions').add(sessionData);}catch(e){}showComparison(sessionData.wellbeingBefore,wb);});
+function showComparison(before,after){const labels={stress:'Estresse',sleep:'Sono',energy:'Energia',clarity:'Clareza'};let h='<div class="compare-grid"><div class="compare-col"><div class="h">Antes</div></div><div class="compare-col"><div class="h">Depois</div></div></div>';for(const key of Object.keys(labels)){const diff=after[key]-before[key];const arrow=diff>0?' ↑':diff<0?' ↓':' =';const color=key==='stress'?(diff<0?'var(--accent)':diff>0?'var(--danger)':'var(--text-dim)'):(diff>0?'var(--accent)':diff<0?'var(--danger)':'var(--text-dim)');h+=`<div class="compare-row-label">${labels[key]}</div><div class="compare-grid"><div class="compare-col"><div class="v">${before[key]}</div></div><div class="compare-col"><div class="v" style="color:${color}">${after[key]}${arrow}</div></div></div>`;}$('compareResult').innerHTML=h;show('doneScreen');}
+$('doneHome').addEventListener('click',()=>showHome());
 
-$('wbAfterNext').addEventListener('click',async()=>{
-  const wb=collectWellbeing('wbAfterFields');if(!wb){alert('Preencha todos os campos.');return;}
-  sessionData.wellbeingAfter=wb;sessionData.endedAt=new Date();sessionData.totalCycles=totalCyclesCompleted;sessionData.userId=currentUser.uid;sessionData.type='breathe';
-  sessionData.protocolName=PROTOCOLS[currentProtocolKey].name+' '+PROTOCOLS[currentProtocolKey].subtitle;
-  try{await db.collection('sessions').add(sessionData);}catch(e){console.error(e);}
-  showComparison(sessionData.wellbeingBefore,wb);
+// ═══ USER DASHBOARD ═══
+async function loadDashboard(){
+  show('dashboardScreen');
+  $('habitTableWrap').innerHTML='<div class="loader">Carregando...</div>';
+
+  // Get last 5 days
+  const days=[];for(let i=0;i<5;i++){const d=new Date();d.setDate(d.getDate()-i);days.push(dateStr(d));}
+
+  // Load sessions for this user (last 7 days)
+  const weekAgo=new Date();weekAgo.setDate(weekAgo.getDate()-7);
+  sessionsByDay={};
+  try{
+    const snap=await db.collection('sessions').where('userId','==',currentUser.uid).get();
+    snap.forEach(doc=>{const d=doc.data();const ts=d.startedAt||d.completedAt;if(!ts)return;const dt=ts.toDate?ts.toDate():new Date(ts);const ds=dateStr(dt);if(!sessionsByDay[ds])sessionsByDay[ds]={breathe:false,audio:false,test:[]};if(d.type==='breathe')sessionsByDay[ds].breathe=true;if(d.type==='audio')sessionsByDay[ds].audio=true;if(d.type==='test')sessionsByDay[ds].test.push(d.average||0);});
+  }catch(e){console.error(e);}
+
+  // Load custom habits
+  userHabits=[];
+  try{
+    const snap=await db.collection('habits').where('userId','==',currentUser.uid).orderBy('createdAt').get();
+    snap.forEach(doc=>userHabits.push({id:doc.id,...doc.data()}));
+  }catch(e){console.error(e);}
+
+  // Load habit logs
+  habitLogs={};
+  try{
+    const snap=await db.collection('habitLogs').where('userId','==',currentUser.uid).get();
+    snap.forEach(doc=>{const d=doc.data();habitLogs[d.habitId+'_'+d.date]=d;});
+  }catch(e){console.error(e);}
+
+  renderHabitTable(days);
+}
+
+function renderHabitTable(days){
+  let h='<table class="habit-table"><thead><tr><th></th>';
+  days.forEach(d=>{h+=`<th>${getDayLabel(d)}<br>${getDayNum(d)}</th>`;});
+  h+='</tr></thead><tbody>';
+
+  // Default habits
+  DEFAULT_HABITS.forEach(dh=>{
+    h+=`<tr><td><div class="habit-name-cell"><div class="habit-dot" style="background:${dh.color}"></div>${dh.name}</div></td>`;
+    days.forEach(day=>{
+      const sd=sessionsByDay[day]||{breathe:false,audio:false,test:[]};
+      if(dh.key==='breathe'){h+=`<td>${sd.breathe?'<span class="h-check">✓</span>':'<span class="h-cross">✗</span>'}</td>`;}
+      else if(dh.key==='audio'){h+=`<td>${sd.audio?'<span class="h-check">✓</span>':'<span class="h-cross">✗</span>'}</td>`;}
+      else if(dh.key==='test'){
+        if(sd.test.length>0){const avg=parseFloat((sd.test.reduce((a,b)=>a+b,0)/sd.test.length).toFixed(0));const cls=avg>=25?'good':'low';h+=`<td><span class="h-val ${cls}">${avg}s</span></td>`;}
+        else h+=`<td><span class="h-cross">✗</span></td>`;
+      }
+    });
+    h+='</tr>';
+  });
+
+  // Custom habits
+  userHabits.forEach(hab=>{
+    h+=`<tr><td><div class="habit-name-cell"><div class="habit-dot" style="background:${hab.color||'#80cbc4'}"></div>${hab.name}</div></td>`;
+    days.forEach(day=>{
+      const log=habitLogs[hab.id+'_'+day];
+      const isToday=day===todayStr();
+      if(hab.type==='boolean'){
+        if(log&&log.completed)h+=`<td><span class="h-check" ${isToday?`onclick="toggleHabitLog('${hab.id}','${day}',true)"`:''}">✓</span></td>`;
+        else h+=`<td><span class="h-cross" ${isToday?`onclick="toggleHabitLog('${hab.id}','${day}',false)"`:''}">✗</span></td>`;
+      }else{
+        if(log&&log.value!=null){const cls=hab.target&&log.value>=hab.target?'good':'low';h+=`<td><span class="h-val ${cls}" ${isToday?`onclick="openLogMeasurable('${hab.id}','${day}')"`:''}>${log.value}${hab.unit||''}</span></td>`;}
+        else h+=`<td><span class="h-cross" ${isToday?`onclick="openLogMeasurable('${hab.id}','${day}')"`:''}">＋</span></td>`;
+      }
+    });
+    h+='</tr>';
+  });
+
+  h+='</tbody></table>';
+  $('habitTableWrap').innerHTML=h;
+}
+
+window.toggleHabitLog=async function(habitId,date,currentState){
+  const key=habitId+'_'+date;
+  try{
+    if(currentState){
+      // Toggle off
+      const snap=await db.collection('habitLogs').where('userId','==',currentUser.uid).where('habitId','==',habitId).where('date','==',date).get();
+      snap.forEach(doc=>doc.ref.delete());
+      delete habitLogs[key];
+    }else{
+      await db.collection('habitLogs').add({userId:currentUser.uid,habitId,date,completed:true,timestamp:firebase.firestore.FieldValue.serverTimestamp()});
+      habitLogs[key]={completed:true};
+    }
+    const days=[];for(let i=0;i<5;i++){const d=new Date();d.setDate(d.getDate()-i);days.push(dateStr(d));}
+    renderHabitTable(days);
+  }catch(e){console.error(e);}
+};
+
+window.openLogMeasurable=function(habitId,date){
+  logMeasHabitId=habitId;logMeasDate=date;
+  const hab=userHabits.find(h=>h.id===habitId);
+  $('logMeasTitle').textContent=hab?hab.name:'';
+  $('logMeasQuestion').textContent=hab?hab.question:'';
+  $('logMeasUnit').textContent=hab?(hab.unit||''):'';
+  $('logMeasValue').value='';
+  show('logMeasurableScreen');
+};
+$('logMeasBack').addEventListener('click',()=>loadDashboard());
+$('logMeasSave').addEventListener('click',async()=>{
+  const val=parseFloat($('logMeasValue').value);if(isNaN(val)){alert('Informe um valor.');return;}
+  try{
+    const snap=await db.collection('habitLogs').where('userId','==',currentUser.uid).where('habitId','==',logMeasHabitId).where('date','==',logMeasDate).get();
+    if(!snap.empty)snap.forEach(doc=>doc.ref.update({value:val}));
+    else await db.collection('habitLogs').add({userId:currentUser.uid,habitId:logMeasHabitId,date:logMeasDate,value:val,completed:true,timestamp:firebase.firestore.FieldValue.serverTimestamp()});
+  }catch(e){console.error(e);}
+  loadDashboard();
 });
 
-function showComparison(before,after){
-  const labels={stress:'Estresse',sleep:'Sono',energy:'Energia',clarity:'Clareza'};
-  let h='<div class="compare-grid"><div class="compare-col"><div class="h">Antes</div></div><div class="compare-col"><div class="h">Depois</div></div></div>';
-  for(const key of Object.keys(labels)){
-    const diff=after[key]-before[key];const arrow=diff>0?' ↑':diff<0?' ↓':' =';
-    const color=key==='stress'?(diff<0?'var(--accent)':diff>0?'var(--danger)':'var(--text-dim)'):(diff>0?'var(--accent)':diff<0?'var(--danger)':'var(--text-dim)');
-    h+=`<div class="compare-row-label">${labels[key]}</div><div class="compare-grid"><div class="compare-col"><div class="v">${before[key]}</div></div><div class="compare-col"><div class="v" style="color:${color}">${after[key]}${arrow}</div></div></div>`;
-  }
-  $('compareResult').innerHTML=h;show('doneScreen');
-}
-$('doneHome').addEventListener('click',()=>showHome());
+// ═══ ADD HABIT ═══
+let newHabitType='boolean';
+$('addHabitBtn').addEventListener('click',()=>{newHabitType='boolean';$('typeBoolean').classList.add('sel');$('typeMeasurable').classList.remove('sel');$('measurableFields').style.display='none';$('habitName').value='';$('habitQuestion').value='';$('habitUnit').value='';$('habitTarget').value='';$('habitNotes').value='';show('addHabitScreen');});
+$('addHabitBack').addEventListener('click',()=>loadDashboard());
+
+$('typeBoolean').addEventListener('click',()=>{newHabitType='boolean';$('typeBoolean').classList.add('sel');$('typeMeasurable').classList.remove('sel');$('measurableFields').style.display='none';});
+$('typeMeasurable').addEventListener('click',()=>{newHabitType='measurable';$('typeMeasurable').classList.add('sel');$('typeBoolean').classList.remove('sel');$('measurableFields').style.display='';});
+
+$('saveHabitBtn').addEventListener('click',async()=>{
+  const name=$('habitName').value.trim();if(!name){alert('Informe o nome do hábito.');return;}
+  const data={userId:currentUser.uid,name,type:newHabitType,question:$('habitQuestion').value.trim(),frequency:$('habitFrequency').value,notes:$('habitNotes').value.trim(),color:'#80cbc4',isDefault:false,createdAt:firebase.firestore.FieldValue.serverTimestamp()};
+  if(newHabitType==='measurable'){data.unit=$('habitUnit').value.trim();data.target=parseFloat($('habitTarget').value)||0;data.targetType=$('habitTargetType').value;}
+  try{await db.collection('habits').add(data);}catch(e){console.error(e);alert('Erro ao salvar.');}
+  loadDashboard();
+});
 
 // ═══ ADMIN ═══
 $('adminLink').addEventListener('click',()=>{show('adminScreen');loadAdmin('overview');});
@@ -628,74 +520,44 @@ async function loadAdmin(tab){
   $('adminContent').innerHTML='<div class="loader">Carregando...</div>';
   try{
     if(tab==='overview'){
-      const usersSnap=await db.collection('users').get();const sessSnap=await db.collection('sessions').orderBy('startedAt','desc').get();
-      const totalUsers=usersSnap.size;let breatheSess=0,audioSess=0,testSess=0;
-      const protoCounts={};const dailyMap={};const monthlyMap={};
-      sessSnap.forEach(doc=>{const d=doc.data();
-        if(d.type==='breathe'){breatheSess++;const pn=d.protocol||'unknown';protoCounts[pn]=(protoCounts[pn]||0)+1;}
-        else if(d.type==='audio')audioSess++;
-        else if(d.type==='test')testSess++;
-        const ts=d.startedAt||d.completedAt;if(ts){const dt=ts.toDate?ts.toDate():new Date(ts);const day=dt.toISOString().slice(0,10);const month=dt.toISOString().slice(0,7);dailyMap[day]=(dailyMap[day]||0)+1;monthlyMap[month]=(monthlyMap[month]||0)+1;}
-      });
-      const totalSessions=breatheSess+audioSess+testSess;
+      const usersSnap=await db.collection('users').get();const sessSnap=await db.collection('sessions').get();
+      let breathe=0,audio=0,test=0;const protoCounts={};
+      sessSnap.forEach(doc=>{const d=doc.data();if(d.type==='breathe'){breathe++;protoCounts[d.protocol]=(protoCounts[d.protocol]||0)+1;}else if(d.type==='audio')audio++;else if(d.type==='test')test++;});
       let h='<div class="admin-section"><div class="h2">Resumo Geral</div><div class="stat-grid">';
-      h+=`<div class="stat-box"><div class="n">${totalUsers}</div><div class="l">Usuários</div></div>`;
-      h+=`<div class="stat-box"><div class="n">${totalSessions}</div><div class="l">Sessões totais</div></div>`;
-      h+=`<div class="stat-box"><div class="n">${breatheSess}</div><div class="l">Respire Agora</div></div>`;
-      h+=`<div class="stat-box"><div class="n">${audioSess}</div><div class="l">Com Áudio</div></div>`;
-      h+=`<div class="stat-box"><div class="n">${testSess}</div><div class="l">Testes</div></div>`;
-      const avgD=Object.keys(dailyMap).length?(totalSessions/Object.keys(dailyMap).length).toFixed(1):0;
-      h+=`<div class="stat-box"><div class="n">${avgD}</div><div class="l">Média/dia</div></div>`;
+      h+=`<div class="stat-box"><div class="n">${usersSnap.size}</div><div class="l">Usuários</div></div>`;
+      h+=`<div class="stat-box"><div class="n">${breathe+audio+test}</div><div class="l">Sessões totais</div></div>`;
+      h+=`<div class="stat-box"><div class="n">${breathe}</div><div class="l">Respire Agora</div></div>`;
+      h+=`<div class="stat-box"><div class="n">${audio}</div><div class="l">Com Áudio</div></div>`;
+      h+=`<div class="stat-box"><div class="n">${test}</div><div class="l">Testes</div></div>`;
       h+='</div></div>';
-      if(Object.keys(protoCounts).length){
-        h+='<div class="admin-section"><div class="h2">Protocolos mais usados</div>';
-        Object.entries(protoCounts).sort((a,b)=>b[1]-a[1]).forEach(([k,v])=>{const p=PROTOCOLS[k];const name=p?p.name+' '+p.subtitle:k;h+=`<div style="display:flex;justify-content:space-between;padding:.4rem 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:.85rem"><span>${name}</span><span style="color:var(--accent)">${v}</span></div>`;});
-        h+='</div>';
-      }
+      if(Object.keys(protoCounts).length){h+='<div class="admin-section"><div class="h2">Protocolos mais usados</div>';Object.entries(protoCounts).sort((a,b)=>b[1]-a[1]).forEach(([k,v])=>{const p=PROTOCOLS[k];const name=p?p.name+' '+p.subtitle:k;h+=`<div style="display:flex;justify-content:space-between;padding:.4rem 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:.85rem"><span>${name}</span><span style="color:var(--accent)">${v}</span></div>`;});h+='</div>';}
       $('adminContent').innerHTML=h;
-
     }else if(tab==='users'){
-      const snap=await db.collection('users').orderBy('createdAt','desc').get();
-      let h='';snap.forEach(doc=>{const u=doc.data();const dt=u.createdAt?(u.createdAt.toDate?u.createdAt.toDate().toLocaleDateString('pt-BR'):''):'';
-        h+=`<div class="card no-tap"><div class="t">${u.name||'Sem nome'}</div><div class="d">${u.email||''}<br>${u.whatsapp||''}</div><div class="d" style="margin-top:.3rem">Cadastro: ${dt}</div><button class="btn btn-s" style="margin-top:.5rem;font-size:.75rem;padding:.4rem" onclick="viewQuestionnaire('${doc.id}')">Ver respostas</button></div>`;
-      });
+      const snap=await db.collection('users').get();let h='';snap.forEach(doc=>{const u=doc.data();const dt=u.createdAt?(u.createdAt.toDate?u.createdAt.toDate().toLocaleDateString('pt-BR'):''):'';h+=`<div class="card no-tap"><div class="t">${u.name||''}</div><div class="d">${u.email||''}<br>${u.whatsapp||''}<br>Cadastro: ${dt}</div><button class="btn btn-s" style="margin-top:.5rem;font-size:.75rem;padding:.4rem" onclick="viewQuestionnaire('${doc.id}')">Ver respostas</button></div>`;});
       $('adminContent').innerHTML=h||'<div class="loader">Nenhum usuário.</div>';
-
     }else if(tab==='sessions'){
-      const snap=await db.collection('sessions').orderBy(firebase.firestore.FieldPath.documentId(),'desc').limit(50).get();
-      let h='';for(const doc of snap.docs){const s=doc.data();const userName=await getUserName(s.userId);
-        const ts=s.startedAt||s.completedAt;const dt=ts?(ts.toDate?ts.toDate().toLocaleString('pt-BR'):''):'';
+      const snap=await db.collection('sessions').limit(50).get();let h='';for(const doc of snap.docs){const s=doc.data();const userName=await getUserName(s.userId);const ts=s.startedAt||s.completedAt;const dt=ts?(ts.toDate?ts.toDate().toLocaleString('pt-BR'):''):'';
         h+='<div class="card no-tap">';h+=`<div class="t">${userName}</div>`;
         if(s.type==='breathe')h+=`<div class="d">🌬️ ${s.protocolName||s.protocol} · ${s.totalCycles||0} ciclos · ${dt}</div>`;
         else if(s.type==='audio')h+=`<div class="d">🎧 ${s.audioTitle||''} · Nível ${s.level||''} · ${dt}</div>`;
         else if(s.type==='test')h+=`<div class="d">⏱️ ${s.testLabel||s.testName} · Média: ${s.average||0}s · ${dt}</div>`;
-        h+='</div>';
-      }
+        else h+=`<div class="d">${dt}</div>`;h+='</div>';}
       $('adminContent').innerHTML=h||'<div class="loader">Nenhuma sessão.</div>';
     }
   }catch(e){$('adminContent').innerHTML='<div class="error-msg">Erro: '+e.message+'</div>';}
 }
 
 const userNameCache={};
-async function getUserName(uid){if(userNameCache[uid])return userNameCache[uid];try{const d=await db.collection('users').doc(uid).get();const n=d.exists?d.data().name:'Desconhecido';userNameCache[uid]=n;return n;}catch(e){return'Desconhecido';}}
-
-window.viewQuestionnaire=async function(uid){
-  try{const d=await db.collection('questionnaires').doc(uid).get();if(!d.exists){alert('Questionário não preenchido.');return;}const data=d.data();
-    let msg='';QUESTIONS.forEach(q=>{const a=data[q.id];msg+=q.label+'\n';if(a&&a.selected)msg+='→ '+a.selected.join(', ')+(a.other?', Outro: '+a.other:'')+'\n\n';else if(a&&a.text)msg+='→ '+a.text+'\n\n';else msg+='→ (sem resposta)\n\n';});
-    alert(msg);
-  }catch(e){alert('Erro: '+e.message);}
-};
+async function getUserName(uid){if(!uid)return'Desconhecido';if(userNameCache[uid])return userNameCache[uid];try{const d=await db.collection('users').doc(uid).get();const n=d.exists?d.data().name:'Desconhecido';userNameCache[uid]=n;return n;}catch(e){return'Desconhecido';}}
+window.viewQuestionnaire=async function(uid){try{const d=await db.collection('questionnaires').doc(uid).get();if(!d.exists){alert('Questionário não preenchido.');return;}const data=d.data();let msg='';QUESTIONS.forEach(q=>{const a=data[q.id];msg+=q.label+'\n';if(a&&a.selected)msg+='→ '+a.selected.join(', ')+(a.other?', Outro: '+a.other:'')+'\n\n';else if(a&&a.text)msg+='→ '+a.text+'\n\n';else msg+='→ (sem resposta)\n\n';});alert(msg);}catch(e){alert('Erro: '+e.message);}};
 
 // ═══ PWA ═══
 let deferredPrompt=null;
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;$('installBanner').classList.add('show');});
 $('installBtn').addEventListener('click',async()=>{if(deferredPrompt){deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;$('installBanner').classList.remove('show');}});
 $('installClose').addEventListener('click',()=>$('installBanner').classList.remove('show'));
-
-let wakeLock=null;
-async function requestWakeLock(){try{if('wakeLock' in navigator)wakeLock=await navigator.wakeLock.request('screen');}catch(e){}}
+let wakeLock=null;async function requestWakeLock(){try{if('wakeLock' in navigator)wakeLock=await navigator.wakeLock.request('screen');}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&running)requestWakeLock();});
-
 if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
 </script>
 </body>
