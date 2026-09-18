@@ -251,14 +251,35 @@ select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
   </div>
   <div class="label">Nome</div><input class="input" id="habitName" placeholder="Ex.: Exercício">
   <div class="label">Questão</div><input class="input" id="habitQuestion" placeholder="Ex.: Você se exercitou hoje?">
+  <div class="label">Cor</div>
+  <div class="chips" id="colorPicker" style="margin-bottom:1rem">
+    <div class="chip sel" data-color="#4fc3f7" style="border-color:#4fc3f7"><span style="color:#4fc3f7">● </span>Azul</div>
+    <div class="chip" data-color="#ffa726" style="border-color:transparent"><span style="color:#ffa726">● </span>Laranja</div>
+    <div class="chip" data-color="#66bb6a" style="border-color:transparent"><span style="color:#66bb6a">● </span>Verde</div>
+    <div class="chip" data-color="#ef5350" style="border-color:transparent"><span style="color:#ef5350">● </span>Vermelho</div>
+    <div class="chip" data-color="#ab47bc" style="border-color:transparent"><span style="color:#ab47bc">● </span>Roxo</div>
+    <div class="chip" data-color="#ffee58" style="border-color:transparent"><span style="color:#ffee58">● </span>Amarelo</div>
+  </div>
   <div id="measurableFields" style="display:none">
     <div class="label">Unidade</div><input class="input" id="habitUnit" placeholder="Ex.: km, páginas, minutos">
-    <div class="label">Alvo</div><input class="input" id="habitTarget" placeholder="Ex.: 15" type="number">
-    <div class="label">Tipo de meta</div>
-    <select class="input" id="habitTargetType"><option value="atleast">Pelo menos</option><option value="atmost">No máximo</option><option value="exact">Exatamente</option></select>
+    <div style="display:flex;gap:.75rem">
+      <div style="flex:1"><div class="label">Alvo</div><input class="input" id="habitTarget" placeholder="Ex.: 15" type="number"></div>
+      <div style="flex:1"><div class="label">Tipo de meta</div><select class="input" id="habitTargetType"><option value="atleast">Pelo menos</option><option value="atmost">No máximo</option><option value="exact">Exatamente</option></select></div>
+    </div>
   </div>
   <div class="label">Frequência</div>
-  <select class="input" id="habitFrequency"><option value="daily">Todo dia</option><option value="weekdays">Dias de semana</option><option value="weekends">Fins de semana</option></select>
+  <div id="freqBoolean">
+    <div class="card no-tap" style="padding:.8rem;margin-bottom:.5rem" id="freqOptions">
+      <label style="display:flex;align-items:center;gap:.6rem;padding:.4rem 0;cursor:pointer"><input type="radio" name="freqB" value="daily" checked style="accent-color:var(--accent)"> Todo dia</label>
+      <label style="display:flex;align-items:center;gap:.6rem;padding:.4rem 0;cursor:pointer"><input type="radio" name="freqB" value="every_n" style="accent-color:var(--accent)"> A cada <input class="input" id="freqEveryN" type="number" value="3" style="width:50px;padding:.3rem;margin:0 .3rem;text-align:center;display:inline-block"> dias</label>
+      <label style="display:flex;align-items:center;gap:.6rem;padding:.4rem 0;cursor:pointer"><input type="radio" name="freqB" value="per_week" style="accent-color:var(--accent)"><input class="input" id="freqPerWeek" type="number" value="3" style="width:50px;padding:.3rem;margin:0 .3rem;text-align:center;display:inline-block"> vezes por semana</label>
+      <label style="display:flex;align-items:center;gap:.6rem;padding:.4rem 0;cursor:pointer"><input type="radio" name="freqB" value="per_month" style="accent-color:var(--accent)"><input class="input" id="freqPerMonth" type="number" value="10" style="width:50px;padding:.3rem;margin:0 .3rem;text-align:center;display:inline-block"> vezes por mês</label>
+      <label style="display:flex;align-items:center;gap:.6rem;padding:.4rem 0;cursor:pointer"><input type="radio" name="freqB" value="custom" style="accent-color:var(--accent)"><input class="input" id="freqCustomTimes" type="number" value="3" style="width:50px;padding:.3rem;margin:0 .3rem;text-align:center;display:inline-block"> vezes em <input class="input" id="freqCustomDays" type="number" value="14" style="width:50px;padding:.3rem;margin:0 .3rem;text-align:center;display:inline-block"> dias</label>
+    </div>
+  </div>
+  <div id="freqMeasurable" style="display:none">
+    <select class="input" id="freqMeasSelect"><option value="daily">Todo dia</option><option value="weekly">Toda semana</option><option value="monthly">Todo mês</option></select>
+  </div>
   <div class="label">Anotações (opcional)</div><textarea class="input" id="habitNotes" placeholder="Observações..." style="min-height:50px"></textarea>
   <button class="btn btn-p" id="saveHabitBtn">Salvar hábito</button>
 </div>
@@ -527,15 +548,51 @@ window.deleteHabit=async function(habitId,name){
 
 // ═══ ADD HABIT ═══
 let newHabitType='boolean';
-$('addHabitBtn').addEventListener('click',()=>{newHabitType='boolean';$('typeBoolean').classList.add('sel');$('typeMeasurable').classList.remove('sel');$('measurableFields').style.display='none';$('habitName').value='';$('habitQuestion').value='';$('habitUnit').value='';$('habitTarget').value='';$('habitNotes').value='';show('addHabitScreen');});
+let selectedColor='#4fc3f7';
+
+$('addHabitBtn').addEventListener('click',()=>{
+  newHabitType='boolean';selectedColor='#4fc3f7';
+  $('typeBoolean').classList.add('sel');$('typeMeasurable').classList.remove('sel');
+  $('measurableFields').style.display='none';$('freqBoolean').style.display='';$('freqMeasurable').style.display='none';
+  $('habitName').value='';$('habitQuestion').value='';$('habitUnit').value='';$('habitTarget').value='';$('habitNotes').value='';
+  // Reset color picker
+  document.querySelectorAll('#colorPicker .chip').forEach(c=>{c.classList.remove('sel');c.style.borderColor='transparent';});
+  document.querySelector('#colorPicker .chip[data-color="#4fc3f7"]').classList.add('sel');
+  document.querySelector('#colorPicker .chip[data-color="#4fc3f7"]').style.borderColor='#4fc3f7';
+  // Reset frequency
+  document.querySelector('input[name="freqB"][value="daily"]').checked=true;
+  show('addHabitScreen');
+});
 $('addHabitBack').addEventListener('click',()=>loadDashboard());
 
-$('typeBoolean').addEventListener('click',()=>{newHabitType='boolean';$('typeBoolean').classList.add('sel');$('typeMeasurable').classList.remove('sel');$('measurableFields').style.display='none';});
-$('typeMeasurable').addEventListener('click',()=>{newHabitType='measurable';$('typeMeasurable').classList.add('sel');$('typeBoolean').classList.remove('sel');$('measurableFields').style.display='';});
+// Color picker
+document.querySelectorAll('#colorPicker .chip').forEach(c=>c.addEventListener('click',()=>{
+  document.querySelectorAll('#colorPicker .chip').forEach(x=>{x.classList.remove('sel');x.style.borderColor='transparent';});
+  c.classList.add('sel');c.style.borderColor=c.dataset.color;
+  selectedColor=c.dataset.color;
+}));
+
+// Type toggle
+$('typeBoolean').addEventListener('click',()=>{newHabitType='boolean';$('typeBoolean').classList.add('sel');$('typeMeasurable').classList.remove('sel');$('measurableFields').style.display='none';$('freqBoolean').style.display='';$('freqMeasurable').style.display='none';});
+$('typeMeasurable').addEventListener('click',()=>{newHabitType='measurable';$('typeMeasurable').classList.add('sel');$('typeBoolean').classList.remove('sel');$('measurableFields').style.display='';$('freqBoolean').style.display='none';$('freqMeasurable').style.display='';});
+
+function getFrequencyData(){
+  if(newHabitType==='measurable')return{frequency:$('freqMeasSelect').value};
+  const sel=document.querySelector('input[name="freqB"]:checked');
+  if(!sel)return{frequency:'daily'};
+  const v=sel.value;
+  if(v==='daily')return{frequency:'daily'};
+  if(v==='every_n')return{frequency:'every_n',freqEveryN:parseInt($('freqEveryN').value)||3};
+  if(v==='per_week')return{frequency:'per_week',freqPerWeek:parseInt($('freqPerWeek').value)||3};
+  if(v==='per_month')return{frequency:'per_month',freqPerMonth:parseInt($('freqPerMonth').value)||10};
+  if(v==='custom')return{frequency:'custom',freqCustomTimes:parseInt($('freqCustomTimes').value)||3,freqCustomDays:parseInt($('freqCustomDays').value)||14};
+  return{frequency:'daily'};
+}
 
 $('saveHabitBtn').addEventListener('click',async()=>{
   const name=$('habitName').value.trim();if(!name){alert('Informe o nome do hábito.');return;}
-  const data={userId:currentUser.uid,name,type:newHabitType,question:$('habitQuestion').value.trim(),frequency:$('habitFrequency').value,notes:$('habitNotes').value.trim(),color:'#80cbc4',isDefault:false,createdAt:firebase.firestore.FieldValue.serverTimestamp()};
+  const freqData=getFrequencyData();
+  const data={userId:currentUser.uid,name,type:newHabitType,question:$('habitQuestion').value.trim(),...freqData,notes:$('habitNotes').value.trim(),color:selectedColor,isDefault:false,createdAt:firebase.firestore.FieldValue.serverTimestamp()};
   if(newHabitType==='measurable'){data.unit=$('habitUnit').value.trim();data.target=parseFloat($('habitTarget').value)||0;data.targetType=$('habitTargetType').value;}
   try{await db.collection('habits').add(data);}catch(e){console.error(e);alert('Erro ao salvar.');}
   loadDashboard();
