@@ -439,7 +439,7 @@ function renderHabitTable(days){
 
   // Custom habits
   userHabits.forEach(hab=>{
-    h+=`<tr><td><div class="habit-name-cell"><div class="habit-dot" style="background:${hab.color||'#80cbc4'}"></div>${hab.name}</div></td>`;
+    h+=`<tr><td><div class="habit-name-cell"><div class="habit-dot" style="background:${hab.color||'#80cbc4'}"></div>${hab.name}<span onclick="deleteHabit('${hab.id}','${hab.name}')" style="margin-left:auto;color:var(--danger);font-size:.7rem;opacity:.5;cursor:pointer;padding:0 .3rem">✕</span></div></td>`;
     days.forEach(day=>{
       const log=habitLogs[hab.id+'_'+day];
       if(hab.type==='boolean'){
@@ -514,6 +514,16 @@ $('logMeasSave').addEventListener('click',async()=>{
   }catch(e){console.error(e);}
   loadDashboard();
 });
+
+window.deleteHabit=async function(habitId,name){
+  if(!confirm('Excluir o hábito "'+name+'"? Os registros também serão apagados.')){return;}
+  try{
+    await db.collection('habits').doc(habitId).delete();
+    const logs=await db.collection('habitLogs').where('userId','==',currentUser.uid).where('habitId','==',habitId).get();
+    logs.forEach(doc=>doc.ref.delete());
+  }catch(e){console.error(e);}
+  loadDashboard();
+};
 
 // ═══ ADD HABIT ═══
 let newHabitType='boolean';
