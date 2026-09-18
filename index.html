@@ -403,7 +403,7 @@ async function loadDashboard(){
   // Load custom habits
   userHabits=[];
   try{
-    const snap=await db.collection('habits').where('userId','==',currentUser.uid).orderBy('createdAt').get();
+    const snap=await db.collection('habits').where('userId','==',currentUser.uid).get();
     snap.forEach(doc=>userHabits.push({id:doc.id,...doc.data()}));
   }catch(e){console.error(e);}
 
@@ -442,13 +442,12 @@ function renderHabitTable(days){
     h+=`<tr><td><div class="habit-name-cell"><div class="habit-dot" style="background:${hab.color||'#80cbc4'}"></div>${hab.name}</div></td>`;
     days.forEach(day=>{
       const log=habitLogs[hab.id+'_'+day];
-      const isToday=day===todayStr();
       if(hab.type==='boolean'){
-        if(log&&log.completed)h+=`<td><span class="h-check" ${isToday?`onclick="toggleHabitLog('${hab.id}','${day}',true)"`:''}">✓</span></td>`;
-        else h+=`<td><span class="h-cross" ${isToday?`onclick="toggleHabitLog('${hab.id}','${day}',false)"`:''}">✗</span></td>`;
+        if(log&&log.completed)h+=`<td><span class="h-check" onclick="toggleHabitLog('${hab.id}','${day}',true)">✓</span></td>`;
+        else h+=`<td><span class="h-cross" onclick="toggleHabitLog('${hab.id}','${day}',false)">✗</span></td>`;
       }else{
-        if(log&&log.value!=null){const cls=hab.target&&log.value>=hab.target?'good':'low';h+=`<td><span class="h-val ${cls}" ${isToday?`onclick="openLogMeasurable('${hab.id}','${day}')"`:''}>${log.value}${hab.unit||''}</span></td>`;}
-        else h+=`<td><span class="h-cross" ${isToday?`onclick="openLogMeasurable('${hab.id}','${day}')"`:''}">＋</span></td>`;
+        if(log&&log.value!=null){const cls=hab.target&&log.value>=hab.target?'good':'low';h+=`<td><span class="h-val ${cls}" onclick="showInlineInput('${hab.id}','${day}',this)">${log.value}<br><span style="font-size:.6rem">${hab.unit||''}</span></span></td>`;}
+        else h+=`<td><span class="h-cross" onclick="showInlineInput('${hab.id}','${day}',this)">0</span></td>`;
       }
     });
     h+='</tr>';
@@ -475,15 +474,36 @@ window.toggleHabitLog=async function(habitId,date,currentState){
   }catch(e){console.error(e);}
 };
 
-window.openLogMeasurable=function(habitId,date){
-  logMeasHabitId=habitId;logMeasDate=date;
+window.showInlineInput=function(habitId,date,el){
+  // Close any existing inline inputs
+  document.querySelectorAll('.inline-input-wrap').forEach(w=>w.remove());
+  const td=el.closest('td');
   const hab=userHabits.find(h=>h.id===habitId);
-  $('logMeasTitle').textContent=hab?hab.name:'';
-  $('logMeasQuestion').textContent=hab?hab.question:'';
-  $('logMeasUnit').textContent=hab?(hab.unit||''):'';
-  $('logMeasValue').value='';
-  show('logMeasurableScreen');
+  const log=habitLogs[habitId+'_'+date];
+  const currentVal=log&&log.value!=null?log.value:'';
+  const wrap=document.createElement('div');
+  wrap.className='inline-input-wrap';
+  wrap.style.cssText='display:flex;align-items:center;gap:.3rem;justify-content:center;margin-top:.3rem';
+  wrap.innerHTML=`<input type="number" value="${currentVal}" style="width:50px;padding:.3rem;text-align:center;background:var(--bg2);border:1px solid var(--accent);border-radius:.4rem;color:var(--text);font-size:.85rem" id="inlineVal_${habitId}_${date}"><button onclick="saveInlineVal('${habitId}','${date}')" style="padding:.2rem .5rem;background:var(--accent);color:var(--bg);border:none;border-radius:.4rem;font-size:.7rem;font-weight:600;cursor:pointer">OK</button>`;
+  td.appendChild(wrap);
+  const inp=document.getElementById('inlineVal_'+habitId+'_'+date);
+  inp.focus();inp.select();
 };
+
+window.saveInlineVal=async function(habitId,date){
+  const inp=document.getElementById('inlineVal_'+habitId+'_'+date);
+  const val=parseFloat(inp.value);if(isNaN(val)){return;}
+  try{
+    const snap=await db.collection('habitLogs').where('userId','==',currentUser.uid).where('habitId','==',habitId).where('date','==',date).get();
+    if(!snap.empty)snap.forEach(doc=>doc.ref.update({value:val,completed:true}));
+    else await db.collection('habitLogs').add({userId:currentUser.uid,habitId,date,value:val,completed:true,timestamp:firebase.firestore.FieldValue.serverTimestamp()});
+    habitLogs[habitId+'_'+date]={value:val,completed:true};
+  }catch(e){console.error(e);}
+  const days=[];for(let i=0;i<5;i++){const d=new Date();d.setDate(d.getDate()-i);days.push(dateStr(d));}
+  renderHabitTable(days);
+};
+
+// Keep logMeasurable screen for backward compat
 $('logMeasBack').addEventListener('click',()=>loadDashboard());
 $('logMeasSave').addEventListener('click',async()=>{
   const val=parseFloat($('logMeasValue').value);if(isNaN(val)){alert('Informe um valor.');return;}
