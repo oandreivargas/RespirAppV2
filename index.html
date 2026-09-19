@@ -86,9 +86,9 @@ select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
 .habit-table .h-day{text-align:center}
 .habit-name-cell{display:flex;align-items:center;gap:.4rem}
 .habit-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-.h-check{color:var(--accent);font-size:1rem;cursor:pointer}.h-cross{color:rgba(239,83,80,.5);font-size:.9rem;cursor:pointer}
+.h-check{font-size:1rem;cursor:pointer}.h-cross{color:rgba(255,255,255,.2);font-size:.9rem;cursor:pointer}
 .h-val{font-size:.8rem;font-weight:500;cursor:pointer}
-.h-val.good{color:var(--green)}.h-val.low{color:var(--text-dim)}
+.h-val.good{}.h-val.low{color:var(--text-dim)}
 .add-habit-btn{display:flex;align-items:center;justify-content:center;gap:.4rem;width:100%;padding:.8rem;background:var(--bg-card);border:1px dashed rgba(255,255,255,.1);border-radius:.75rem;color:var(--text-dim);font-size:.85rem;cursor:pointer;margin-top:.5rem}
 .add-habit-btn:active{background:rgba(255,255,255,.06)}
 
@@ -392,7 +392,7 @@ let running=false,animFrame=null,qIndex=0,qAnswers={};
 let chronoInterval=null,chronoStart=0,chronoCycleNum=0,chronoTimes=[],currentTestKey=null;
 let currentAudioLevel=null,userHabits=[],habitLogs={},sessionsByDay={};
 let logMeasHabitId=null,logMeasDate=null;
-let detailHabitKey=null,detailIsDefault=false,detailIsMeas=false,detailClr='#80cbc4',detailEntries=[],detailCSet=new Set();
+let detailHabitKey=null,detailIsDefault=false,detailIsMeas=false,detailClr='#80cbc4',detailEntries=[],detailCSet=new Set(),detailHabit=null;
 let calEditMode=false,calMeasDate=null;
 
 const $=id=>document.getElementById(id);
@@ -400,8 +400,10 @@ const screens=document.querySelectorAll('.screen');
 function show(id){screens.forEach(s=>s.classList.remove('active'));$(id).classList.add('active');$(id).scrollTop=0;}
 function todayStr(){return new Date().toISOString().slice(0,10);}
 function dateStr(d){return d.toISOString().slice(0,10);}
-function getDayLabel(ds){const d=new Date(ds+'T12:00:00');const days=['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];return days[d.getDay()]+'.';} 
+function getDayLabel(ds){const d=new Date(ds+'T12:00:00');const days=['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];return days[d.getDay()]+'.';}
 function getDayNum(ds){return ds.slice(8,10);}
+function getISOWeekKey(d){const t=new Date(d);t.setHours(12,0,0,0);const day=t.getDay()||7;t.setDate(t.getDate()+4-day);const yearStart=new Date(t.getFullYear(),0,1);const wn=Math.ceil(((t-yearStart)/86400000+1)/7);return t.getFullYear()+'W'+String(wn).padStart(2,'0');}
+function getWeekStartFromKey(wk){const y=parseInt(wk.slice(0,4));const w=parseInt(wk.slice(5));const jan4=new Date(y,0,4,12,0,0);const dow=jan4.getDay()||7;const mon=new Date(jan4);mon.setDate(jan4.getDate()-(dow-1)+(w-1)*7);return mon;}
 
 // ═══ AUTH ═══
 let isLogin=false;
@@ -512,30 +514,66 @@ function renderHabitTable(days){
   days.forEach(d=>{h+=`<th class="h-day" style="min-width:${dayW}px;width:${dayW}px">${getDayLabel(d)}<br>${getDayNum(d)}</th>`;});
   h+='</tr></thead><tbody>';
   DEFAULT_HABITS.forEach(dh=>{
-    h+=`<tr><td class="h-name" style="min-width:150px"><div class="habit-name-cell" onclick="openHabitDetail('${dh.key}',true)" style="cursor:pointer"><div class="habit-dot" style="background:${dh.color}"></div>${dh.name}</div></td>`;
+    h+=`<tr><td class="h-name" style="min-width:150px"><div class="habit-name-cell" onclick="openHabitDetail('${dh.key}',true)" style="cursor:pointer;color:${dh.color}"><div class="habit-dot" style="background:${dh.color}"></div>${dh.name}</div></td>`;
     days.forEach(day=>{
       const sd=sessionsByDay[day]||{breathe:false,audio:false,test:[]};
-      if(dh.key==='breathe'){h+=`<td class="h-day">${sd.breathe?'<span class="h-check">✓</span>':'<span class="h-cross">✗</span>'}</td>`;}
-      else if(dh.key==='audio'){h+=`<td class="h-day">${sd.audio?'<span class="h-check">✓</span>':'<span class="h-cross">✗</span>'}</td>`;}
+      if(dh.key==='breathe'){h+=`<td class="h-day">${sd.breathe?`<span class="h-check" style="color:${dh.color}">✓</span>`:'<span class="h-cross">✗</span>'}</td>`;}
+      else if(dh.key==='audio'){h+=`<td class="h-day">${sd.audio?`<span class="h-check" style="color:${dh.color}">✓</span>`:'<span class="h-cross">✗</span>'}</td>`;}
       else if(dh.key==='test'){
-        if(sd.test.length>0){const avg=parseFloat((sd.test.reduce((a,b)=>a+b,0)/sd.test.length).toFixed(0));const cls=avg>=25?'good':'low';h+=`<td class="h-day"><span class="h-val ${cls}">${avg}s</span></td>`;}
+        if(sd.test.length>0){const avg=parseFloat((sd.test.reduce((a,b)=>a+b,0)/sd.test.length).toFixed(0));const cls=avg>=25?'good':'low';h+=`<td class="h-day"><span class="h-val ${cls}" style="${cls==='good'?'color:'+dh.color:''}">${avg}s</span></td>`;}
         else h+=`<td class="h-day"><span class="h-cross">✗</span></td>`;
       }
     });
     h+='</tr>';
   });
   userHabits.forEach(hab=>{
-    h+=`<tr><td class="h-name" style="min-width:150px"><div class="habit-name-cell" onclick="openHabitDetail('${hab.id}',false)" style="cursor:pointer"><div class="habit-dot" style="background:${hab.color||'#80cbc4'}"></div>${hab.name}<span onclick="event.stopPropagation();deleteHabit('${hab.id}','${hab.name}')" style="margin-left:auto;color:var(--danger);font-size:.7rem;opacity:.5;cursor:pointer;padding:0 .3rem">✕</span></div></td>`;
+    const hc=hab.color||'#80cbc4';
+    h+=`<tr><td class="h-name" style="min-width:150px"><div class="habit-name-cell" onclick="openHabitDetail('${hab.id}',false)" style="cursor:pointer;color:${hc}"><div class="habit-dot" style="background:${hc}"></div>${hab.name}<span onclick="event.stopPropagation();deleteHabit('${hab.id}','${hab.name}')" style="margin-left:auto;color:var(--danger);font-size:.7rem;opacity:.5;cursor:pointer;padding:0 .3rem">✕</span></div></td>`;
+    // Check weekly goal for boolean habits with per_week frequency
+    let weekGoalMet=false;
+    if(hab.type==='boolean'&&hab.frequency==='per_week'&&hab.freqPerWeek){
+      // Find which ISO week each day belongs to, count completions per week
+      const weekMap={};
+      days.forEach(day=>{
+        const dt=new Date(day+'T12:00:00');
+        const wk=getISOWeekKey(dt);
+        if(!weekMap[wk])weekMap[wk]={count:0,days:[]};
+        weekMap[wk].days.push(day);
+        const log=habitLogs[hab.id+'_'+day];
+        if(log&&log.completed)weekMap[wk].count++;
+      });
+      // Also count completions from days not in visible range but in same weeks
+      for(const wk of Object.keys(weekMap)){
+        const wkStart=getWeekStartFromKey(wk);
+        for(let i=0;i<7;i++){
+          const d=new Date(wkStart);d.setDate(d.getDate()+i);
+          const ds=dateStr(d);
+          if(!weekMap[wk].days.includes(ds)){
+            const log=habitLogs[hab.id+'_'+ds];
+            if(log&&log.completed)weekMap[wk].count++;
+          }
+        }
+      }
+      // Store week goal status
+      hab._weekGoalMap=weekMap;
+    }
     days.forEach(day=>{
       const log=habitLogs[hab.id+'_'+day];
       if(hab.type==='boolean'){
-        if(log&&log.completed)h+=`<td class="h-day"><span class="h-check" onclick="toggleHabitLog('${hab.id}','${day}',true)">✓</span></td>`;
-        else h+=`<td class="h-day"><span class="h-cross" onclick="toggleHabitLog('${hab.id}','${day}',false)">✗</span></td>`;
+        let goalHighlight='';
+        if(hab._weekGoalMap){
+          const dt=new Date(day+'T12:00:00');
+          const wk=getISOWeekKey(dt);
+          if(hab._weekGoalMap[wk]&&hab._weekGoalMap[wk].count>=hab.freqPerWeek)goalHighlight=`border:1.5px solid ${hc};border-radius:4px;`;
+        }
+        if(log&&log.completed)h+=`<td class="h-day" style="${goalHighlight}"><span class="h-check" style="color:${hc}" onclick="toggleHabitLog('${hab.id}','${day}',true)">✓</span></td>`;
+        else h+=`<td class="h-day" style="${goalHighlight}"><span class="h-cross" onclick="toggleHabitLog('${hab.id}','${day}',false)">✗</span></td>`;
       }else{
-        if(log&&log.value!=null){const cls=hab.target&&log.value>=hab.target?'good':'low';h+=`<td class="h-day"><span class="h-val ${cls}" onclick="showInlineInput('${hab.id}','${day}',this)">${log.value}<br><span style="font-size:.6rem">${hab.unit||''}</span></span></td>`;}
+        if(log&&log.value!=null){const cls=hab.target&&log.value>=hab.target?'good':'low';h+=`<td class="h-day"><span class="h-val ${cls}" style="${cls==='good'?'color:'+hc:''}" onclick="showInlineInput('${hab.id}','${day}',this)">${log.value}<br><span style="font-size:.6rem">${hab.unit||''}</span></span></td>`;}
         else h+=`<td class="h-day"><span class="h-cross" onclick="showInlineInput('${hab.id}','${day}',this)">0</span></td>`;
       }
     });
+    delete hab._weekGoalMap;
     h+='</tr>';
   });
   h+='</tbody></table>';
@@ -732,7 +770,13 @@ window.openHabitDetail=async function(key,isDefault){
   const stabYPrev=dayOfYear>0?Math.round(prevYEntries/dayOfYear*100):0;
   const chgY=prevYEntries>0?(stabYCur-stabYPrev):stabAll;
 
-  let h='';
+  // Frequency label
+  let freqLabel='Todo dia';
+  if(habit.frequency==='every_n')freqLabel='A cada '+(habit.freqEveryN||3)+' dias';
+  else if(habit.frequency==='per_week')freqLabel=(habit.freqPerWeek||3)+' vezes por semana';
+  else if(habit.frequency==='per_month')freqLabel=(habit.freqPerMonth||10)+' vezes por mês';
+  else if(habit.frequency==='custom')freqLabel=(habit.freqCustomTimes||3)+' vezes em '+(habit.freqCustomDays||14)+' dias';
+  let h=`<div style="font-size:.78rem;color:var(--text-dim);margin-bottom:1rem;display:flex;align-items:center;gap:.8rem"><span>📅 ${freqLabel}</span></div>`;
   if(isMeas){
     // ═══ ALVO section for measurable habits ═══
     const target=habit.target||0;
@@ -828,12 +872,12 @@ window.openHabitDetail=async function(key,isDefault){
 
   $('habitDetailContent').innerHTML=h;
   // Store detail context for calendar edit
-  detailHabitKey=key;detailIsDefault=isDefault;detailIsMeas=isMeas;detailClr=clr;detailEntries=entries;detailCSet=cSet;calEditMode=false;
+  detailHabitKey=key;detailIsDefault=isDefault;detailIsMeas=isMeas;detailClr=clr;detailEntries=entries;detailCSet=cSet;detailHabit=habit;calEditMode=false;
   renderDetStability(entries,clr);
   $('detStabPeriod').addEventListener('change',()=>renderDetStability(entries,clr));
   renderDetHist(entries,clr,isMeas);
   $('detHistPeriod').addEventListener('change',()=>renderDetHist(entries,clr,isMeas));
-  renderDetCal(cSet,clr,isMeas);
+  renderDetCal(cSet,clr,isMeas,habit);
   renderDetStreaks(cSet,clr);
   renderDetFreq(cSet,clr);
 };
@@ -892,7 +936,7 @@ function renderDetHist(entries,clr,isMeas){
   if(histScroll)histScroll.scrollLeft=histScroll.scrollWidth;
 }
 
-function renderDetCal(cSet,clr,isMeas){
+function renderDetCal(cSet,clr,isMeas,habit){
   const now=new Date();
   const MN=['jan.','fev.','mar.','abr.','mai.','jun.','jul.','ago.','set.','out.','nov.','dez.'];
   const DN=['dom.','seg.','ter.','qua.','qui.','sex.','sáb.'];
@@ -905,6 +949,17 @@ function renderDetCal(cSet,clr,isMeas){
     weeks.push(week);
     if(d>now&&d.getDay()===0)break;
   }
+  // Check weekly goal per week (for per_week frequency boolean habits)
+  const hasWeekGoal=habit&&habit.type==='boolean'&&habit.frequency==='per_week'&&habit.freqPerWeek;
+  const weekGoalN=hasWeekGoal?habit.freqPerWeek:0;
+  const weekGoalMap={};
+  if(hasWeekGoal){
+    weeks.forEach(w=>{
+      const wk=getISOWeekKey(new Date(w[3].ds+'T12:00:00'));
+      const cnt=w.filter(c=>c.ok&&c.done).length;
+      weekGoalMap[wk]=cnt>=weekGoalN;
+    });
+  }
   const isEdit=calEditMode;
   let ch='<div style="display:inline-flex;flex-direction:column;gap:2px">';
   ch+='<div style="display:flex;gap:2px;height:14px">';
@@ -913,7 +968,16 @@ function renderDetCal(cSet,clr,isMeas){
   ch+='<div style="width:26px"></div></div>';
   for(let dow=0;dow<7;dow++){
     ch+='<div style="display:flex;gap:2px;align-items:center">';
-    weeks.forEach(w=>{const c=w[dow];const bg=c.done?clr:'rgba(255,255,255,.05)';const tc=c.done?'var(--bg)':'var(--text-dim)';const op=c.ok?'1':'.2';
+    weeks.forEach(w=>{
+      const c=w[dow];
+      const wk=getISOWeekKey(new Date(w[3].ds+'T12:00:00'));
+      const goalMet=hasWeekGoal&&weekGoalMap[wk];
+      // If week goal is met: done days = full color, undone days = faded color
+      let bg,tc;
+      if(c.done){bg=clr;tc='var(--bg)';}
+      else if(goalMet&&c.ok){bg=clr+'30';tc='var(--text-dim)';}
+      else{bg='rgba(255,255,255,.05)';tc='var(--text-dim)';}
+      const op=c.ok?'1':'.2';
       const editCls=isEdit&&c.ok?' cal-cell-edit':'';
       const editClick=isEdit&&c.ok?` onclick="calCellClick('${c.ds}')"`:'' ;
       ch+=`<div class="${editCls}" ${editClick} style="width:18px;height:18px;border-radius:3px;background:${bg};opacity:${op};display:flex;align-items:center;justify-content:center;font-size:.48rem;color:${tc};flex-shrink:0${isEdit&&c.ok?';outline:1px solid rgba(255,255,255,.15)':''}">${c.ok?c.day:''}</div>`;
@@ -923,9 +987,8 @@ function renderDetCal(cSet,clr,isMeas){
   ch+='</div>';
   if(!detailIsDefault) ch+=`<button class="cal-edit-btn ${isEdit?'active':''}" id="calEditBtn">${isEdit?'CONCLUIR':'EDITAR'}</button>`;
   $('detCalendar').innerHTML=ch;
-  // Scroll to the right (most recent week)
   $('detCalendar').scrollLeft=$('detCalendar').scrollWidth;
-  if($('calEditBtn')) $('calEditBtn').addEventListener('click',()=>{calEditMode=!calEditMode;renderDetCal(detailCSet,detailClr,detailIsMeas);});
+  if($('calEditBtn')) $('calEditBtn').addEventListener('click',()=>{calEditMode=!calEditMode;renderDetCal(detailCSet,detailClr,detailIsMeas,detailHabit);});
 }
 
 function renderDetStreaks(cSet,clr){
@@ -1060,7 +1123,7 @@ window.calCellClick=async function(ds){
         detailEntries.push({date:ds,completed:true,value:1});
         detailEntries.sort((a,b)=>a.date.localeCompare(b.date));
       }
-      renderDetCal(detailCSet,detailClr,detailIsMeas);
+      renderDetCal(detailCSet,detailClr,detailIsMeas,detailHabit);
       renderDetStability(detailEntries,detailClr);
       renderDetHist(detailEntries,detailClr,detailIsMeas);
       renderDetStreaks(detailCSet,detailClr);
@@ -1081,7 +1144,7 @@ $('calMeasSave').addEventListener('click',async()=>{
     if(existing)existing.value=val;
     else{detailEntries.push({date:calMeasDate,completed:true,value:val});detailEntries.sort((a,b)=>a.date.localeCompare(b.date));}
     detailCSet.add(calMeasDate);
-    renderDetCal(detailCSet,detailClr,detailIsMeas);
+    renderDetCal(detailCSet,detailClr,detailIsMeas,detailHabit);
     renderDetStability(detailEntries,detailClr);
     renderDetHist(detailEntries,detailClr,detailIsMeas);
     renderDetStreaks(detailCSet,detailClr);
