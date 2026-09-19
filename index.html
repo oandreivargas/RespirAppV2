@@ -874,31 +874,34 @@ function renderDetStability(entries,clr){
   const MN=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
   const points=[];
 
-  // Cumulative stability: at each data point, total_done_so_far / total_days_so_far * 100
-  // "so far" = from the first ever entry date to the data point's date
+  // Cumulative stability: at each data point, entries_in_range / days_in_range * 100
+  // Range starts at leftmost chart point so days without activity count in the denominator
   const sorted=[...entries].sort((a,b)=>a.date.localeCompare(b.date));
-  const firstDate=sorted.length>0?sorted[0].date:dateStr(now);
-  const firstD=new Date(firstDate+'T12:00:00');
 
-  function cumPct(upTo){
-    // upTo is a Date; count entries with date <= upTo, days from firstD to upTo
+  function cumPct(rangeStartDate,upTo){
+    const fromStr=dateStr(rangeStartDate);
     const upToStr=dateStr(upTo);
-    const totalDone=sorted.filter(e=>e.date<=upToStr).length;
-    const totalDays=Math.max(1,Math.round((upTo-firstD)/86400000)+1);
+    const totalDone=sorted.filter(e=>e.date>=fromStr&&e.date<=upToStr).length;
+    const totalDays=Math.max(1,Math.round((upTo-rangeStartDate)/86400000)+1);
     return Math.min(100,Math.round(totalDone/totalDays*100));
   }
 
   if(period==='day'){
     const n=Math.min(30,Math.max(7,sorted.length||7));
-    for(let i=n-1;i>=0;i--){const d=new Date(now);d.setDate(d.getDate()-i);points.push({label:d.getDate()+(i===n-1?'\n'+MN[d.getMonth()]+'.':''),value:cumPct(d)});}
+    const rangeStart=new Date(now);rangeStart.setDate(rangeStart.getDate()-(n-1));rangeStart.setHours(12,0,0,0);
+    for(let i=n-1;i>=0;i--){const d=new Date(now);d.setDate(d.getDate()-i);d.setHours(12,0,0,0);points.push({label:d.getDate()+(i===n-1?'\n'+MN[d.getMonth()]+'.':''),value:cumPct(rangeStart,d)});}
   }else if(period==='week'){
-    for(let i=11;i>=0;i--){const wEnd=new Date(now);wEnd.setDate(wEnd.getDate()-i*7);const capEnd=wEnd>now?now:wEnd;points.push({label:capEnd.getDate()+'/'+String(capEnd.getMonth()+1),value:cumPct(capEnd)});}
+    const rangeStart=new Date(now);rangeStart.setDate(rangeStart.getDate()-11*7);rangeStart.setHours(12,0,0,0);
+    for(let i=11;i>=0;i--){const wEnd=new Date(now);wEnd.setDate(wEnd.getDate()-i*7);wEnd.setHours(12,0,0,0);const capEnd=wEnd>now?now:wEnd;points.push({label:capEnd.getDate()+'/'+String(capEnd.getMonth()+1),value:cumPct(rangeStart,capEnd)});}
   }else if(period==='month'){
-    for(let i=11;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i+1,0);const capEnd=d>now?now:d;points.push({label:MN[capEnd.getMonth()],value:cumPct(capEnd)});}
+    const rangeStart=new Date(now.getFullYear(),now.getMonth()-11,1);rangeStart.setHours(12,0,0,0);
+    for(let i=11;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i+1,0);d.setHours(12,0,0,0);const capEnd=d>now?now:d;points.push({label:MN[capEnd.getMonth()],value:cumPct(rangeStart,capEnd)});}
   }else if(period==='quarter'){
-    for(let i=7;i>=0;i--){const qStart=new Date(now.getFullYear(),now.getMonth()-i*3,1);const q=Math.floor(qStart.getMonth()/3);const qEndDate=new Date(qStart.getFullYear(),q*3+3,0);const k=qStart.getFullYear()+'Q'+(q+1);if(points.find(p=>p.key===k))continue;const capEnd=qEndDate>now?now:qEndDate;points.push({key:k,label:'T'+(q+1)+'/'+String(qStart.getFullYear()).slice(2),value:cumPct(capEnd)});}
+    const rangeStart=new Date(now.getFullYear(),now.getMonth()-7*3,1);rangeStart.setHours(12,0,0,0);
+    for(let i=7;i>=0;i--){const qStart=new Date(now.getFullYear(),now.getMonth()-i*3,1);const q=Math.floor(qStart.getMonth()/3);const qEndDate=new Date(qStart.getFullYear(),q*3+3,0);qEndDate.setHours(12,0,0,0);const k=qStart.getFullYear()+'Q'+(q+1);if(points.find(p=>p.key===k))continue;const capEnd=qEndDate>now?now:qEndDate;points.push({key:k,label:'T'+(q+1)+'/'+String(qStart.getFullYear()).slice(2),value:cumPct(rangeStart,capEnd)});}
   }else{
-    for(let i=4;i>=0;i--){const y=now.getFullYear()-i;const yEnd=new Date(y,11,31);const capEnd=yEnd>now?now:yEnd;points.push({label:''+y,value:cumPct(capEnd)});}
+    const rangeStart=new Date(now.getFullYear()-4,0,1);rangeStart.setHours(12,0,0,0);
+    for(let i=4;i>=0;i--){const y=now.getFullYear()-i;const yEnd=new Date(y,11,31);yEnd.setHours(12,0,0,0);const capEnd=yEnd>now?now:yEnd;points.push({label:''+y,value:cumPct(rangeStart,capEnd)});}
   }
 
   if(points.length<2){$('detStabChart').innerHTML='<div style="font-size:.8rem;color:var(--text-dim);padding:.5rem 0">Dados insuficientes.</div>';return;}
