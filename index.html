@@ -105,7 +105,7 @@ select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
 /* HABIT DETAIL */
 .detail-section-title{font-size:1rem;font-weight:600;margin-bottom:.2rem}
 .bar-wrap{position:relative}
-.bar-chart{display:flex;align-items:flex-end;gap:3px;height:150px;padding-bottom:1.5rem}
+.bar-chart{display:flex;align-items:flex-end;gap:3px;height:180px;padding-bottom:1.5rem}
 .bar-col{flex:1;display:flex;flex-direction:column;align-items:center;min-width:0}
 .bar-val{font-size:.62rem;font-weight:600;margin-bottom:.2rem;min-height:.85rem}
 .bar-track{width:100%;max-width:26px;height:120px;display:flex;flex-direction:column;justify-content:flex-end}
@@ -851,7 +851,7 @@ function renderDetHist(entries,clr,isMeas){
   const mx=Math.max(...groups.map(g=>g.val),1);
   const colW=period==='day'?28:30;
   const chartW=Math.max(groups.length*colW,280);
-  let bh='<div style="overflow-x:auto;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.15) transparent"><div class="bar-wrap" style="min-width:'+chartW+'px"><div class="bar-chart">';
+  let bh='<div style="overflow-x:auto;overflow-y:visible;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.15) transparent"><div class="bar-wrap" style="min-width:'+chartW+'px"><div class="bar-chart">';
   groups.forEach(g=>{
     const pct=mx>0?(g.val/mx)*100:0;
     const displayVal=g.val>0?g.val:'';
