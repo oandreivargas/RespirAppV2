@@ -830,7 +830,7 @@ function renderDetHist(entries,clr,isMeas){
   const MN=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
   const DN=['dom','seg','ter','qua','qui','sex','sáb'];
   if(period==='day'){
-    for(let i=29;i>=0;i--){const d=new Date(now);d.setDate(d.getDate()-i);const k=dateStr(d);groups.push({key:k,label:DN[d.getDay()]+' '+d.getDate()+'/'+String(d.getMonth()+1),val:0});}
+    for(let i=29;i>=0;i--){const d=new Date(now);d.setDate(d.getDate()-i);const k=dateStr(d);const m=d.getMonth();groups.push({key:k,label:''+d.getDate(),month:m,val:0});}
     entries.forEach(e=>{const g=groups.find(x=>x.key===e.date);if(g)g.val+=(isMeas&&e.value?e.value:1);});
   }else if(period==='week'){
     for(let i=25;i>=0;i--){const d=new Date(now);d.setDate(d.getDate()-i*7);const dow=d.getDay();const mo=dow===0?-6:1-dow;const mon=new Date(d);mon.setDate(d.getDate()+mo);const k=dateStr(mon);if(!groups.find(g=>g.key===k))groups.push({key:k,label:mon.getDate()+'/'+String(mon.getMonth()+1),val:0});}
@@ -846,8 +846,22 @@ function renderDetHist(entries,clr,isMeas){
     entries.forEach(e=>{const k=e.date.slice(0,4);const g=groups.find(x=>x.key===k);if(g)g.val+=(isMeas&&e.value?e.value:1);});
   }
   const mx=Math.max(...groups.map(g=>g.val),1);
-  let bh='<div style="overflow-x:auto;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.1) transparent"><div class="bar-chart" style="min-width:'+Math.max(groups.length*30,280)+'px">';
-  groups.forEach(g=>{const pct=mx>0?(g.val/mx)*100:0;const displayVal=isMeas?(g.val>0?g.val:''):(g.val>0?g.val:'');bh+=`<div class="bar-col"><div class="bar-val" style="color:${clr}">${displayVal}</div><div class="bar-track"><div class="bar-fill" style="height:${pct}%;background:${clr}"></div></div><div class="bar-label">${g.label}</div></div>`;});
+  const colW=period==='day'?28:30;
+  let bh='<div style="overflow-x:auto;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.15) transparent"><div class="bar-chart" style="min-width:'+Math.max(groups.length*colW,280)+'px">';
+  let prevMonth=-1;
+  groups.forEach((g,i)=>{
+    const pct=mx>0?(g.val/mx)*100:0;
+    const displayVal=g.val>0?g.val:'';
+    let labelHtml='';
+    if(period==='day'){
+      // Show month+year reference when month changes
+      if(g.month!==prevMonth){prevMonth=g.month;labelHtml=`<div class="bar-label" style="font-size:.55rem">${MN[g.month]}.<br>${new Date(g.key+'T12:00:00').getFullYear()}</div><div class="bar-label">${g.label}</div>`;}
+      else labelHtml=`<div class="bar-label">${g.label}</div>`;
+    }else{
+      labelHtml=`<div class="bar-label">${g.label}</div>`;
+    }
+    bh+=`<div class="bar-col"><div class="bar-val" style="color:${clr}">${displayVal}</div><div class="bar-track"><div class="bar-fill" style="height:${pct}%;background:${clr}"></div></div>${labelHtml}</div>`;
+  });
   bh+='</div></div>';
   $('detHistChart').innerHTML=bh;
   const histScroll=$('detHistChart').firstElementChild;
@@ -915,7 +929,7 @@ function renderDetFreq(cSet,clr){
   const dates=[...cSet];
   dates.forEach(ds=>{const d=new Date(ds+'T12:00:00');const dow=d.getDay();const mKey=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');months.forEach((m,mi)=>{const mk=m.getFullYear()+'-'+String(m.getMonth()+1).padStart(2,'0');if(mKey===mk)grid[dow][mi]++;});});
   let mx=0;grid.forEach(row=>row.forEach(v=>{if(v>mx)mx=v;}));if(mx===0)mx=1;
-  let fh='<div style="display:inline-flex;flex-direction:column;gap:4px">';
+  let fh='<div style="overflow-x:auto;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.15) transparent"><div style="display:inline-flex;flex-direction:column;gap:4px">';
   fh+='<div style="display:flex;gap:4px;padding-left:0">';
   months.forEach(m=>{fh+=`<div style="width:24px;text-align:center;font-size:.48rem;color:var(--text-dim)">${MN[m.getMonth()]}</div>`;});
   fh+='<div style="width:28px"></div></div>';
@@ -924,8 +938,11 @@ function renderDetFreq(cSet,clr){
     months.forEach((m,mi)=>{const v=grid[dow][mi];if(v>0){const sz=Math.max(8,Math.round((v/mx)*20));const op=Math.max(.3,v/mx);fh+=`<div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center"><div style="width:${sz}px;height:${sz}px;border-radius:50%;background:${clr};opacity:${op}"></div></div>`;}else fh+=`<div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center"><div style="width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,.08)"></div></div>`;});
     fh+=`<div style="font-size:.48rem;color:var(--text-dim);width:28px;text-align:left;margin-left:.2rem">${DN[dow]}</div></div>`;
   }
-  fh+='</div>';
+  fh+='</div></div>';
   $('detFreq').innerHTML=fh;
+  // Scroll to right (most recent)
+  const freqScroll=$('detFreq').firstElementChild;
+  if(freqScroll)freqScroll.scrollLeft=freqScroll.scrollWidth;
 }
 
 // ═══ STABILITY LINE CHART ═══
@@ -973,19 +990,25 @@ function renderDetStability(entries,clr){
   const n=points.length;
   const stepX=cw/(n-1||1);
 
-  let svg=`<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto">`;
+  const svgW=Math.max(W,PL+PR+n*28);
+  const cw2=svgW-PL-PR;
+  const stepX2=cw2/(n-1||1);
+  let svg=`<div style="overflow-x:auto;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.15) transparent"><svg viewBox="0 0 ${svgW} ${H}" style="width:${svgW}px;height:auto;min-width:100%">`;
   // Grid lines & Y labels
-  for(let p=0;p<=100;p+=20){const y=PT+ch-ch*(p/100);svg+=`<line x1="${PL}" y1="${y}" x2="${W-PR}" y2="${y}" class="stab-grid-line"/>`;svg+=`<text x="${PL-4}" y="${y+3}" text-anchor="end" class="stab-axis-label">${p}%</text>`;}
+  for(let p=0;p<=100;p+=20){const y=PT+ch-ch*(p/100);svg+=`<line x1="${PL}" y1="${y}" x2="${svgW-PR}" y2="${y}" class="stab-grid-line"/>`;svg+=`<text x="${PL-4}" y="${y+3}" text-anchor="end" class="stab-axis-label">${p}%</text>`;}
   // X labels
-  points.forEach((p,i)=>{const x=PL+i*stepX;const lines=p.label.split('\n');lines.forEach((ln,li)=>{svg+=`<text x="${x}" y="${H-PB+12+li*10}" text-anchor="middle" class="stab-axis-label">${ln}</text>`;});});
+  points.forEach((p,i)=>{const x=PL+i*stepX2;const lines=p.label.split('\n');lines.forEach((ln,li)=>{svg+=`<text x="${x}" y="${H-PB+12+li*10}" text-anchor="middle" class="stab-axis-label">${ln}</text>`;});});
   // Line
   let pathD='';
-  points.forEach((p,i)=>{const x=PL+i*stepX;const y=PT+ch-ch*(p.value/100);pathD+=(i===0?'M':'L')+x.toFixed(1)+','+y.toFixed(1);});
+  points.forEach((p,i)=>{const x=PL+i*stepX2;const y=PT+ch-ch*(p.value/100);pathD+=(i===0?'M':'L')+x.toFixed(1)+','+y.toFixed(1);});
   svg+=`<path d="${pathD}" class="stab-line" stroke="${clr}"/>`;
   // Dots
-  points.forEach((p,i)=>{const x=PL+i*stepX;const y=PT+ch-ch*(p.value/100);svg+=`<circle cx="${x}" cy="${y}" r="3.5" fill="${clr}" class="stab-dot"/>`;});
-  svg+='</svg>';
+  points.forEach((p,i)=>{const x=PL+i*stepX2;const y=PT+ch-ch*(p.value/100);svg+=`<circle cx="${x}" cy="${y}" r="3.5" fill="${clr}" class="stab-dot"/>`;});
+  svg+='</svg></div>';
   $('detStabChart').innerHTML=svg;
+  // Scroll to the right (most recent)
+  const stabScroll=$('detStabChart').firstElementChild;
+  if(stabScroll)stabScroll.scrollLeft=stabScroll.scrollWidth;
 }
 
 // ═══ CALENDAR EDIT FUNCTIONS ═══
