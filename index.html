@@ -104,12 +104,15 @@ select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
 .stat-box{background:var(--bg-card);border-radius:.75rem;padding:.8rem;text-align:center}.stat-box .n{font-size:1.5rem;font-weight:600;color:var(--accent)}.stat-box .l{font-size:.7rem;color:var(--text-dim);margin-top:.2rem}
 /* HABIT DETAIL */
 .detail-section-title{font-size:1rem;font-weight:600;margin-bottom:.2rem}
+.bar-wrap{position:relative}
 .bar-chart{display:flex;align-items:flex-end;gap:3px;height:150px;padding-bottom:1.5rem}
 .bar-col{flex:1;display:flex;flex-direction:column;align-items:center;min-width:0}
 .bar-val{font-size:.62rem;font-weight:600;margin-bottom:.2rem;min-height:.85rem}
 .bar-track{width:100%;max-width:26px;height:120px;display:flex;flex-direction:column;justify-content:flex-end}
 .bar-fill{border-radius:3px 3px 0 0;min-height:2px;transition:height .3s}
 .bar-label{font-size:.52rem;color:var(--text-dim);margin-top:.3rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;text-align:center}
+.bar-month-refs{display:flex;gap:3px;margin-top:.1rem}
+.bar-month-ref{font-size:.5rem;color:var(--text-dim);text-align:left;white-space:nowrap;opacity:.7}
 .streak-row{display:flex;align-items:center;gap:.4rem;padding:.3rem 0;font-size:.7rem}
 .streak-date{color:var(--text-dim);white-space:nowrap;min-width:70px;text-align:right;font-size:.62rem}
 .streak-date.end{text-align:left}
@@ -847,21 +850,28 @@ function renderDetHist(entries,clr,isMeas){
   }
   const mx=Math.max(...groups.map(g=>g.val),1);
   const colW=period==='day'?28:30;
-  let bh='<div style="overflow-x:auto;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.15) transparent"><div class="bar-chart" style="min-width:'+Math.max(groups.length*colW,280)+'px">';
-  let prevMonth=-1;
-  groups.forEach((g,i)=>{
+  const chartW=Math.max(groups.length*colW,280);
+  let bh='<div style="overflow-x:auto;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.15) transparent"><div class="bar-wrap" style="min-width:'+chartW+'px"><div class="bar-chart">';
+  groups.forEach(g=>{
     const pct=mx>0?(g.val/mx)*100:0;
     const displayVal=g.val>0?g.val:'';
-    let labelHtml='';
-    if(period==='day'){
-      // Show month+year reference when month changes
-      if(g.month!==prevMonth){prevMonth=g.month;labelHtml=`<div class="bar-label" style="font-size:.55rem">${MN[g.month]}.<br>${new Date(g.key+'T12:00:00').getFullYear()}</div><div class="bar-label">${g.label}</div>`;}
-      else labelHtml=`<div class="bar-label">${g.label}</div>`;
-    }else{
-      labelHtml=`<div class="bar-label">${g.label}</div>`;
-    }
-    bh+=`<div class="bar-col"><div class="bar-val" style="color:${clr}">${displayVal}</div><div class="bar-track"><div class="bar-fill" style="height:${pct}%;background:${clr}"></div></div>${labelHtml}</div>`;
+    bh+=`<div class="bar-col"><div class="bar-val" style="color:${clr}">${displayVal}</div><div class="bar-track"><div class="bar-fill" style="height:${pct}%;background:${clr}"></div></div><div class="bar-label">${g.label}</div></div>`;
   });
+  bh+='</div>';
+  // Month reference row for "day" period
+  if(period==='day'){
+    bh+='<div class="bar-month-refs">';
+    let prevMonth=-1;
+    groups.forEach(g=>{
+      if(g.month!==prevMonth){
+        prevMonth=g.month;
+        bh+=`<div class="bar-month-ref" style="flex:1;min-width:0">${MN[g.month]}.<br>${new Date(g.key+'T12:00:00').getFullYear()}</div>`;
+      }else{
+        bh+=`<div style="flex:1;min-width:0"></div>`;
+      }
+    });
+    bh+='</div>';
+  }
   bh+='</div></div>';
   $('detHistChart').innerHTML=bh;
   const histScroll=$('detHistChart').firstElementChild;
