@@ -396,6 +396,7 @@ let currentAudioLevel=null,userHabits=[],habitLogs={},sessionsByDay={};
 let logMeasHabitId=null,logMeasDate=null;
 let detailHabitKey=null,detailIsDefault=false,detailIsMeas=false,detailClr='#80cbc4',detailEntries=[],detailCSet=new Set(),detailHabit=null;
 let calEditMode=false,calMeasDate=null;
+let adminViewUid=null,adminViewUserName=null;
 
 const $=id=>document.getElementById(id);
 const screens=document.querySelectorAll('.screen');
@@ -1370,6 +1371,7 @@ async function getUserName(uid){if(!uid)return'Desconhecido';if(userNameCache[ui
 window.viewQuestionnaire=async function(uid){try{const d=await db.collection('questionnaires').doc(uid).get();if(!d.exists){alert('Questionário não preenchido.');return;}const data=d.data();let msg='';QUESTIONS.forEach(q=>{const a=data[q.id];msg+=q.label+'\n';if(a&&a.selected)msg+='→ '+a.selected.join(', ')+(a.other?', Outro: '+a.other:'')+'\n\n';else if(a&&a.text)msg+='→ '+a.text+'\n\n';else msg+='→ (sem resposta)\n\n';});alert(msg);}catch(e){alert('Erro: '+e.message);}};
 
 window.viewUserProgress=async function(uid,userName){
+  adminViewUid=uid;adminViewUserName=userName;
   $('adminContent').innerHTML='<div class="loader">Carregando progresso...</div>';
   try{
     // Back button
@@ -1400,7 +1402,7 @@ window.viewUserProgress=async function(uid,userName){
 
     // Default habits
     DEFAULT_HABITS.forEach(dh=>{
-      h+=`<tr><td class="h-name" style="min-width:150px"><div class="habit-name-cell" style="color:${dh.color}"><div class="habit-dot" style="background:${dh.color}"></div>${dh.name}</div></td>`;
+      h+=`<tr style="cursor:pointer" onclick="adminHabitDetail('${dh.key}',true)"><td class="h-name" style="min-width:150px"><div class="habit-name-cell" style="color:${dh.color}"><div class="habit-dot" style="background:${dh.color}"></div>${dh.name}</div></td>`;
       days.forEach(day=>{
         const sd=sByDay[day]||{breathe:false,audio:false,test:[]};
         if(dh.key==='breathe'){h+=`<td class="h-day">${sd.breathe?`<span class="h-check" style="color:${dh.color}">✓</span>`:'<span class="h-cross">✗</span>'}</td>`;}
@@ -1416,7 +1418,7 @@ window.viewUserProgress=async function(uid,userName){
     // Custom habits
     uHabits.forEach(hab=>{
       const hc=hab.color||'#80cbc4';
-      h+=`<tr><td class="h-name" style="min-width:150px"><div class="habit-name-cell" style="color:${hc}"><div class="habit-dot" style="background:${hc}"></div>${hab.name}</div></td>`;
+      h+=`<tr style="cursor:pointer" onclick="adminHabitDetail('${hab.id}',false)"><td class="h-name" style="min-width:150px"><div class="habit-name-cell" style="color:${hc}"><div class="habit-dot" style="background:${hc}"></div>${hab.name}</div></td>`;
       const goalCheck=buildGoalChecker(hab,uLogs);
       days.forEach(day=>{
         const log=uLogs[hab.id+'_'+day];
@@ -1460,6 +1462,109 @@ window.viewUserProgress=async function(uid,userName){
     }
 
     $('adminContent').innerHTML=h;
+  }catch(e){$('adminContent').innerHTML=`<div class="error-msg">Erro: ${e.message}</div>`;}
+};
+
+window.adminHabitDetail=async function(key,isDefault){
+  const uid=adminViewUid,userName=adminViewUserName;
+  $('adminContent').innerHTML='<div class="loader">Carregando detalhes...</div>';
+  try{
+    let habit;
+    if(isDefault) habit=DEFAULT_HABITS.find(h=>h.key===key);
+    else{
+      const hDoc=await db.collection('habits').doc(key).get();
+      if(!hDoc.exists){$('adminContent').innerHTML='<div class="error-msg">Hábito não encontrado.</div>';return;}
+      habit={id:hDoc.id,...hDoc.data()};
+    }
+    if(!habit){$('adminContent').innerHTML='<div class="error-msg">Hábito não encontrado.</div>';return;}
+
+    let entries=[];
+    if(isDefault){
+      const snap=await db.collection('sessions').where('userId','==',uid).get();
+      const byDate={};
+      snap.forEach(doc=>{const d=doc.data();const ts=d.startedAt||d.completedAt;if(!ts)return;const dt=ts.toDate?ts.toDate():new Date(ts);const ds=dateStr(dt);if(!byDate[ds])byDate[ds]={breathe:false,audio:false,tests:[]};if(d.type==='breathe')byDate[ds].breathe=true;if(d.type==='audio')byDate[ds].audio=true;if(d.type==='test')byDate[ds].tests.push(d.average||0);});
+      for(const[date,data] of Object.entries(byDate)){
+        if(key==='breathe'&&data.breathe)entries.push({date,completed:true,value:1});
+        else if(key==='audio'&&data.audio)entries.push({date,completed:true,value:1});
+        else if(key==='test'&&data.tests.length>0){const avg=data.tests.reduce((a,b)=>a+b,0)/data.tests.length;entries.push({date,completed:true,value:parseFloat(avg.toFixed(1))});}
+      }
+      try{const mSnap=await db.collection('habitLogs').where('userId','==',uid).where('habitId','==',key).get();const existDates=new Set(entries.map(e=>e.date));mSnap.forEach(doc=>{const d=doc.data();if(d.completed&&!existDates.has(d.date))entries.push({date:d.date,completed:true,value:d.value!=null?d.value:1});});}catch(e){}
+    }else{
+      const snap=await db.collection('habitLogs').where('userId','==',uid).where('habitId','==',key).get();
+      snap.forEach(doc=>{const d=doc.data();if(d.completed)entries.push({date:d.date,completed:true,value:d.value!=null?d.value:null});});
+    }
+    entries.sort((a,b)=>a.date.localeCompare(b.date));
+    const cSet=new Set(entries.map(e=>e.date));
+    const isMeas=habit.type==='measurable';
+    const clr=habit.color||'#80cbc4';
+
+    const now=new Date();
+    const ym=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+    const pm=new Date(now.getFullYear(),now.getMonth()-1,1);
+    const pym=pm.getFullYear()+'-'+String(pm.getMonth()+1).padStart(2,'0');
+    const daysSoFar=now.getDate();
+    const thisM=entries.filter(e=>e.date.startsWith(ym)).length;
+    const prevM=entries.filter(e=>e.date.startsWith(pym)).length;
+    const dPrev=new Date(pm.getFullYear(),pm.getMonth()+1,0).getDate();
+    const stabM=daysSoFar>0?Math.round(thisM/daysSoFar*100):0;
+    const stabP=dPrev>0?Math.round(prevM/dPrev*100):0;
+    const chg=stabM-stabP;
+    const sortedDates=entries.map(e=>e.date).sort();
+    let stabAll=0;
+    if(sortedDates.length>0){const firstDate=new Date(sortedDates[0]+'T12:00:00');const totalDaysSinceFirst=Math.max(1,Math.round((now-firstDate)/86400000)+1);stabAll=Math.round(entries.length/totalDaysSinceFirst*100);}
+    const yStart=now.getFullYear()+'-01';
+    const dayOfYear=Math.ceil((now-new Date(now.getFullYear(),0,1))/86400000)+1;
+    const thisY=entries.filter(e=>e.date>=yStart+'-01').length;
+    const stabYCur=dayOfYear>0?Math.round(thisY/dayOfYear*100):0;
+    const pyStart=(now.getFullYear()-1)+'-01';
+    const pyEnd=(now.getFullYear()-1)+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+    const prevYEntries=entries.filter(e=>e.date>=pyStart+'-01'&&e.date<=pyEnd).length;
+    const stabYPrev=dayOfYear>0?Math.round(prevYEntries/dayOfYear*100):0;
+    const chgY=prevYEntries>0?(stabYCur-stabYPrev):stabAll;
+
+    let freqLabel='Todo dia';
+    if(habit.frequency==='every_n')freqLabel='A cada '+(habit.freqEveryN||3)+' dias';
+    else if(habit.frequency==='per_week')freqLabel=(habit.freqPerWeek||3)+' vezes por semana';
+    else if(habit.frequency==='per_month')freqLabel=(habit.freqPerMonth||10)+' vezes por mês';
+    else if(habit.frequency==='custom')freqLabel=(habit.freqCustomTimes||3)+' vezes em '+(habit.freqCustomDays||14)+' dias';
+
+    let h=`<div style="margin-bottom:1rem"><button class="btn btn-o" style="padding:.4rem .8rem;font-size:.78rem;width:auto" onclick="viewUserProgress('${uid}','${userName.replace(/'/g,"\\'")}')">‹ Voltar ao progresso</button></div>`;
+    h+=`<div class="section-title" style="margin-top:0">${userName} · ${habit.name}</div>`;
+    h+=`<div style="font-size:.78rem;color:var(--text-dim);margin-bottom:1rem"><span>📅 ${freqLabel}</span></div>`;
+
+    if(isMeas){
+      const target=habit.target||0;const unit=habit.unit||'';
+      const todayStr=dateStr(now);
+      const todayVal=entries.filter(e=>e.date===todayStr).reduce((s,e)=>s+(e.value||0),0);
+      const weekStart=new Date(now);weekStart.setDate(weekStart.getDate()-6);const weekStartStr=dateStr(weekStart);
+      const weekVal=entries.filter(e=>e.date>=weekStartStr&&e.date<=todayStr).reduce((s,e)=>s+(e.value||0),0);
+      const monthVal=entries.filter(e=>e.date.startsWith(ym)).reduce((s,e)=>s+(e.value||0),0);
+      const qMonth=Math.floor(now.getMonth()/3)*3;const qStartStr=now.getFullYear()+'-'+String(qMonth+1).padStart(2,'0');
+      const qVal=entries.filter(e=>e.date>=qStartStr+'-01'&&e.date<=todayStr).reduce((s,e)=>s+(e.value||0),0);
+      const yearVal=entries.filter(e=>e.date>=yStart+'-01').reduce((s,e)=>s+(e.value||0),0);
+      const tDay=target,tWeek=target*7,tMonth=target*30,tQuarter=target*90,tYear=target*365;
+      function alvoBar(label,val,tgt,c){const pct=tgt>0?Math.min(100,Math.round(val/tgt*100)):(val>0?100:0);const fmtVal=val>=1000?(val/1000).toFixed(1).replace(/\.0$/,'')+'k':Math.round(val);const fmtTgt=tgt>0?(tgt>=1000?(tgt/1000).toFixed(1).replace(/\.0$/,'')+'k':Math.round(tgt)):'';return `<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.45rem"><div style="width:60px;font-size:.75rem;color:var(--text-dim);text-align:right">${label}</div><div style="flex:1;height:22px;background:rgba(255,255,255,.06);border-radius:6px;position:relative;overflow:hidden"><div style="height:100%;width:${pct}%;background:${c};border-radius:6px;transition:width .3s"></div><span style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:.7rem;font-weight:600;color:var(--text)">${fmtVal}</span></div>${fmtTgt?`<div style="width:32px;font-size:.7rem;color:var(--text-dim)">${fmtTgt}</div>`:`<div style="width:32px"></div>`}</div>`;}
+      h+=`<div class="card no-tap" style="margin-bottom:1.2rem"><div class="detail-section-title" style="color:${clr}">Alvo</div><div style="margin-top:.6rem">${alvoBar('Hoje',todayVal,tDay,clr)}${alvoBar('Semana',weekVal,tWeek,clr)}${alvoBar('Mês',monthVal,tMonth,clr)}${alvoBar('Trimestre',qVal,tQuarter,clr)}${alvoBar('Ano',yearVal,tYear,clr)}</div></div>`;
+    }else{
+      h+=`<div class="card no-tap" style="margin-bottom:1.2rem"><div class="detail-section-title" style="color:${clr}">Visão geral</div><div style="display:flex;align-items:center;gap:1rem;margin-top:.6rem"><svg viewBox="0 0 36 36" width="52" height="52"><path d="M18 2.0845a15.9155 15.9155 0 0 1 0 31.831a15.9155 15.9155 0 0 1 0-31.831" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="3"/><path d="M18 2.0845a15.9155 15.9155 0 0 1 0 31.831a15.9155 15.9155 0 0 1 0-31.831" fill="none" stroke="${clr}" stroke-width="3" stroke-dasharray="${stabAll},100" stroke-linecap="round"/></svg><div style="display:flex;gap:1rem;flex:1;flex-wrap:wrap"><div><div style="font-size:1.05rem;font-weight:600;color:${clr}">${stabAll}%</div><div style="font-size:.6rem;color:var(--text-dim)">Estabilidade</div></div><div><div style="font-size:1.05rem;font-weight:600;color:${chg>=0?'var(--green)':'var(--danger)'}">${chg>=0?'+':''}${chg}%</div><div style="font-size:.6rem;color:var(--text-dim)">Mês</div></div><div><div style="font-size:1.05rem;font-weight:600;color:${chgY>=0?'var(--green)':'var(--danger)'}">${chgY>=0?'+':''}${chgY}%</div><div style="font-size:.6rem;color:var(--text-dim)">Ano</div></div><div><div style="font-size:1.05rem;font-weight:600;color:${clr}">${entries.length}</div><div style="font-size:.6rem;color:var(--text-dim)">Total</div></div></div></div></div>`;
+    }
+
+    h+=`<div class="card no-tap" style="margin-bottom:1.2rem"><div style="display:flex;justify-content:space-between;align-items:center"><div class="detail-section-title" style="color:${clr}">Estabilidade</div><select class="input" style="width:auto;padding:.3rem .7rem;font-size:.72rem;margin:0" id="detStabPeriod"><option value="day" selected>Dia</option><option value="week">Semana</option><option value="month">Mês</option><option value="quarter">Trimestre</option><option value="year">Ano</option></select></div><div id="detStabChart" style="margin-top:.8rem"></div></div>`;
+    h+=`<div class="card no-tap" style="margin-bottom:1.2rem"><div style="display:flex;justify-content:space-between;align-items:center"><div class="detail-section-title" style="color:${clr}">Histórico</div><select class="input" style="width:auto;padding:.3rem .7rem;font-size:.72rem;margin:0" id="detHistPeriod">${isMeas?'<option value="day" selected>Dia</option><option value="week">Semana</option>':'<option value="week" selected>Semana</option>'}<option value="month">Mês</option><option value="quarter">Trimestre</option><option value="year">Ano</option></select></div><div id="detHistChart" style="margin-top:.8rem"></div></div>`;
+    h+=`<div class="card no-tap" style="margin-bottom:1.2rem"><div class="detail-section-title" style="color:${clr}">Calendário</div><div id="detCalendar" style="margin-top:.6rem;overflow-x:auto"></div></div>`;
+    h+=`<div class="card no-tap" style="margin-bottom:1.2rem"><div class="detail-section-title" style="color:${clr}">Correntes mais longas</div><div id="detStreaks" style="margin-top:.6rem"></div></div>`;
+    h+=`<div class="card no-tap" style="margin-bottom:1.5rem"><div class="detail-section-title" style="color:${clr}">Frequência</div><div id="detFreq" style="margin-top:.6rem;overflow-x:auto"></div></div>`;
+
+    $('adminContent').innerHTML=h;
+    // Set globals for render functions (read-only, no calendar editing)
+    detailHabitKey=key;detailIsDefault=true;detailIsMeas=isMeas;detailClr=clr;detailEntries=entries;detailCSet=cSet;detailHabit=habit;calEditMode=false;
+    renderDetStability(entries,clr);
+    $('detStabPeriod').addEventListener('change',()=>renderDetStability(entries,clr));
+    renderDetHist(entries,clr,isMeas);
+    $('detHistPeriod').addEventListener('change',()=>renderDetHist(entries,clr,isMeas));
+    renderDetCal(cSet,clr,isMeas,habit);
+    renderDetStreaks(cSet,clr);
+    renderDetFreq(cSet,clr);
   }catch(e){$('adminContent').innerHTML=`<div class="error-msg">Erro: ${e.message}</div>`;}
 };
 
