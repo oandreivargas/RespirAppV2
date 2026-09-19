@@ -385,7 +385,7 @@ const AUDIO_LEVELS={1:{name:'Nível 1 — Iniciante',audios:[{title:'Suspiro Fis
 const TESTS={bolt:{name:'Bolt Score',instruction:'Após uma expiração normal e tranquila, segure a respiração. Toque em "Iniciar" quando parar de respirar e "Parar" quando sentir a primeira vontade de respirar.'},tell:{name:'TELL Score',instruction:'Após uma inspiração completa, sustente o som "sssss" de forma contínua. Toque em "Iniciar" quando começar e "Parar" quando não conseguir mais.'},till:{name:'TILL Score',instruction:'Após uma inspiração completa, sustente o som "zzzzz" de forma contínua. Toque em "Iniciar" quando começar e "Parar" quando não conseguir mais.'}};
 
 // DEFAULT HABITS
-const DEFAULT_HABITS=[{key:'breathe',name:'Respire Agora',type:'boolean',color:'#4fc3f7',isDefault:true},{key:'audio',name:'Protocolos com Áudio',type:'boolean',color:'#ffa726',isDefault:true},{key:'test',name:'Testes Respiratórios',type:'measurable',unit:'seg',color:'#66bb6a',isDefault:true}];
+const DEFAULT_HABITS=[{key:'breathe',name:'Respire Agora',type:'boolean',color:'#4fc3f7',isDefault:true},{key:'audio',name:'Protocolos com Áudio',type:'boolean',color:'#ffa726',isDefault:true},{key:'test',name:'Testes Respiratórios',type:'measurable',unit:'seg',color:'#66bb6a',isDefault:true,target:25}];
 
 let currentUser=null,currentProtocolKey=null,sessionData={},totalCyclesCompleted=0;
 let running=false,animFrame=null,qIndex=0,qAnswers={};
