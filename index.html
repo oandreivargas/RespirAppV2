@@ -1350,7 +1350,7 @@ async function loadAdmin(tab){
           const isCur=uLvl===lv;
           h+=`<button class="btn ${isCur?'btn-p':'btn-o'}" style="flex:1;padding:.35rem;font-size:.7rem;${isCur?'':'opacity:.6'}" onclick="setUserAccess('${doc.id}','${lv}')">${ACCESS_LABELS[lv]}</button>`;
         });
-        h+=`</div><button class="btn btn-s" style="margin-top:.4rem;font-size:.72rem;padding:.35rem" onclick="viewQuestionnaire('${doc.id}')">Ver respostas</button></div>`;
+        h+=`</div><div style="display:flex;gap:.4rem;margin-top:.4rem"><button class="btn btn-s" style="flex:1;font-size:.72rem;padding:.35rem" onclick="viewQuestionnaire('${doc.id}')">Ver respostas</button><button class="btn btn-s" style="flex:1;font-size:.72rem;padding:.35rem" onclick="viewUserProgress('${doc.id}','${(u.name||'').replace(/'/g,"\\'")}')">📊 Ver progresso</button></div></div>`;
       });
       $('adminContent').innerHTML=h||'<div class="loader">Nenhum usuário.</div>';
     }else if(tab==='sessions'){
@@ -1368,6 +1368,100 @@ async function loadAdmin(tab){
 const userNameCache={};
 async function getUserName(uid){if(!uid)return'Desconhecido';if(userNameCache[uid])return userNameCache[uid];try{const d=await db.collection('users').doc(uid).get();const n=d.exists?d.data().name:'Desconhecido';userNameCache[uid]=n;return n;}catch(e){return'Desconhecido';}}
 window.viewQuestionnaire=async function(uid){try{const d=await db.collection('questionnaires').doc(uid).get();if(!d.exists){alert('Questionário não preenchido.');return;}const data=d.data();let msg='';QUESTIONS.forEach(q=>{const a=data[q.id];msg+=q.label+'\n';if(a&&a.selected)msg+='→ '+a.selected.join(', ')+(a.other?', Outro: '+a.other:'')+'\n\n';else if(a&&a.text)msg+='→ '+a.text+'\n\n';else msg+='→ (sem resposta)\n\n';});alert(msg);}catch(e){alert('Erro: '+e.message);}};
+
+window.viewUserProgress=async function(uid,userName){
+  $('adminContent').innerHTML='<div class="loader">Carregando progresso...</div>';
+  try{
+    // Back button
+    let h=`<div style="margin-bottom:1rem"><button class="btn btn-o" style="padding:.4rem .8rem;font-size:.78rem;width:auto" onclick="loadAdmin('users')">‹ Voltar aos usuários</button></div>`;
+    h+=`<div class="section-title" style="margin-top:0">${userName}</div>`;
+
+    // Load sessions
+    const sessSnap=await db.collection('sessions').where('userId','==',uid).get();
+    const sByDay={};
+    sessSnap.forEach(doc=>{const d=doc.data();const ts=d.startedAt||d.completedAt;if(!ts)return;const dt=ts.toDate?ts.toDate():new Date(ts);const ds=dateStr(dt);if(!sByDay[ds])sByDay[ds]={breathe:false,audio:false,test:[]};if(d.type==='breathe')sByDay[ds].breathe=true;if(d.type==='audio')sByDay[ds].audio=true;if(d.type==='test')sByDay[ds].test.push(d.average||0);});
+
+    // Load custom habits
+    const habSnap=await db.collection('habits').where('userId','==',uid).get();
+    const uHabits=[];habSnap.forEach(doc=>uHabits.push({id:doc.id,...doc.data()}));
+
+    // Load habit logs
+    const logSnap=await db.collection('habitLogs').where('userId','==',uid).get();
+    const uLogs={};logSnap.forEach(doc=>{const d=doc.data();uLogs[d.habitId+'_'+d.date]=d;});
+
+    // Build habit table (last 30 days)
+    const days=[];for(let i=0;i<30;i++){const d=new Date();d.setDate(d.getDate()-i);days.push(dateStr(d));}
+    const dayW=58;
+    h+='<div class="card no-tap" style="margin-bottom:1rem"><div class="detail-section-title" style="color:var(--accent)">Hábitos</div>';
+    h+=`<div class="habit-scroll" style="margin-top:.5rem"><table class="habit-table" style="min-width:calc(150px + ${days.length}*${dayW}px)">`;
+    h+='<thead><tr><th class="h-name" style="min-width:150px">&nbsp;</th>';
+    days.forEach(d=>{h+=`<th class="h-day" style="min-width:${dayW}px;width:${dayW}px">${getDayLabel(d)}<br>${getDayNum(d)}</th>`;});
+    h+='</tr></thead><tbody>';
+
+    // Default habits
+    DEFAULT_HABITS.forEach(dh=>{
+      h+=`<tr><td class="h-name" style="min-width:150px"><div class="habit-name-cell" style="color:${dh.color}"><div class="habit-dot" style="background:${dh.color}"></div>${dh.name}</div></td>`;
+      days.forEach(day=>{
+        const sd=sByDay[day]||{breathe:false,audio:false,test:[]};
+        if(dh.key==='breathe'){h+=`<td class="h-day">${sd.breathe?`<span class="h-check" style="color:${dh.color}">✓</span>`:'<span class="h-cross">✗</span>'}</td>`;}
+        else if(dh.key==='audio'){h+=`<td class="h-day">${sd.audio?`<span class="h-check" style="color:${dh.color}">✓</span>`:'<span class="h-cross">✗</span>'}</td>`;}
+        else if(dh.key==='test'){
+          if(sd.test.length>0){const avg=parseFloat((sd.test.reduce((a,b)=>a+b,0)/sd.test.length).toFixed(0));const cls=avg>=25?'good':'low';h+=`<td class="h-day"><span class="h-val ${cls}" style="${cls==='good'?'color:'+dh.color:''}">${avg}s</span></td>`;}
+          else h+=`<td class="h-day"><span class="h-cross">✗</span></td>`;
+        }
+      });
+      h+='</tr>';
+    });
+
+    // Custom habits
+    uHabits.forEach(hab=>{
+      const hc=hab.color||'#80cbc4';
+      h+=`<tr><td class="h-name" style="min-width:150px"><div class="habit-name-cell" style="color:${hc}"><div class="habit-dot" style="background:${hc}"></div>${hab.name}</div></td>`;
+      const goalCheck=buildGoalChecker(hab,uLogs);
+      days.forEach(day=>{
+        const log=uLogs[hab.id+'_'+day];
+        if(hab.type==='boolean'){
+          const goalMet=goalCheck?goalCheck(day):false;
+          const goalHighlight=goalMet?`border:1.5px solid ${hc};border-radius:4px;`:'';
+          if(log&&log.completed)h+=`<td class="h-day" style="${goalHighlight}"><span class="h-check" style="color:${hc}">✓</span></td>`;
+          else h+=`<td class="h-day" style="${goalHighlight}"><span class="h-cross">✗</span></td>`;
+        }else{
+          if(log&&log.value!=null){const cls=hab.target&&log.value>=hab.target?'good':'low';h+=`<td class="h-day"><span class="h-val ${cls}" style="${cls==='good'?'color:'+hc:''}">${log.value}<br><span style="font-size:.6rem">${hab.unit||''}</span></span></td>`;}
+          else h+=`<td class="h-day"><span class="h-cross">✗</span></td>`;
+        }
+      });
+      h+='</tr>';
+    });
+    h+='</tbody></table></div></div>';
+
+    // Session summary stats
+    let breathe=0,audio=0,test=0;
+    sessSnap.forEach(doc=>{const d=doc.data();if(d.type==='breathe')breathe++;else if(d.type==='audio')audio++;else if(d.type==='test')test++;});
+    h+=`<div class="card no-tap" style="margin-bottom:1rem"><div class="detail-section-title" style="color:var(--accent)">Resumo de Sessões</div><div class="stat-grid" style="margin-top:.5rem">`;
+    h+=`<div class="stat-box"><div class="n">${breathe+audio+test}</div><div class="l">Total</div></div>`;
+    h+=`<div class="stat-box"><div class="n">${breathe}</div><div class="l">Respire Agora</div></div>`;
+    h+=`<div class="stat-box"><div class="n">${audio}</div><div class="l">Com Áudio</div></div>`;
+    h+=`<div class="stat-box"><div class="n">${test}</div><div class="l">Testes</div></div>`;
+    h+='</div></div>';
+
+    // Recent sessions list
+    const recentSessions=[];
+    sessSnap.forEach(doc=>{const d=doc.data();d._id=doc.id;recentSessions.push(d);});
+    recentSessions.sort((a,b)=>{const ta=a.startedAt||a.completedAt;const tb=b.startedAt||b.completedAt;if(!ta)return 1;if(!tb)return-1;return(tb.toDate?tb.toDate():new Date(tb))-(ta.toDate?ta.toDate():new Date(ta));});
+    if(recentSessions.length>0){
+      h+='<div class="card no-tap"><div class="detail-section-title" style="color:var(--accent)">Últimas Sessões</div>';
+      recentSessions.slice(0,20).forEach(s=>{
+        const ts=s.startedAt||s.completedAt;const dt=ts?(ts.toDate?ts.toDate().toLocaleString('pt-BR'):''):'';
+        if(s.type==='breathe')h+=`<div style="padding:.4rem 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:.8rem">🌬️ ${s.protocolName||s.protocol} · ${s.totalCycles||0} ciclos · <span style="color:var(--text-dim)">${dt}</span></div>`;
+        else if(s.type==='audio')h+=`<div style="padding:.4rem 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:.8rem">🎧 ${s.audioTitle||''} · Nível ${s.level||''} · <span style="color:var(--text-dim)">${dt}</span></div>`;
+        else if(s.type==='test')h+=`<div style="padding:.4rem 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:.8rem">⏱️ ${s.testLabel||s.testName} · Média: ${s.average||0}s · <span style="color:var(--text-dim)">${dt}</span></div>`;
+      });
+      h+='</div>';
+    }
+
+    $('adminContent').innerHTML=h;
+  }catch(e){$('adminContent').innerHTML=`<div class="error-msg">Erro: ${e.message}</div>`;}
+};
 
 window.setUserAccess=async function(uid,level){
   try{
