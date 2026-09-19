@@ -73,14 +73,16 @@ select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
 
 /* HABITS DASHBOARD */
 .habit-grid{width:100%;margin-bottom:1rem}
-.habit-outer{display:flex;width:100%}
-.habit-names{flex-shrink:0}
+.habit-outer{display:flex;width:100%;overflow:hidden}
+.habit-names{flex-shrink:0;max-width:55%}
 .habit-names table{border-collapse:collapse;font-size:.8rem}
 .habit-names th,.habit-names td{padding:.6rem .3rem;text-align:left;white-space:nowrap}
 .habit-names th{font-size:.8rem;font-weight:500;color:var(--text);padding:.5rem .3rem}
-.habit-names td{border-top:1px solid rgba(255,255,255,.04);color:var(--text);font-size:.85rem;overflow:hidden;text-overflow:ellipsis;max-width:140px}
-.habit-days-wrap{flex:1;overflow-x:auto;-ms-overflow-style:none;scrollbar-width:none;-webkit-overflow-scrolling:touch}
-.habit-days-wrap::-webkit-scrollbar{display:none}
+.habit-names td{border-top:1px solid rgba(255,255,255,.04);color:var(--text);font-size:.85rem}
+.habit-days-wrap{flex:1;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.12) transparent}
+.habit-days-wrap::-webkit-scrollbar{height:4px}
+.habit-days-wrap::-webkit-scrollbar-track{background:transparent}
+.habit-days-wrap::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:4px}
 .habit-days table{border-collapse:collapse;font-size:.8rem}
 .habit-days th{padding:.5rem .3rem;color:var(--text-dim);font-weight:400;text-align:center;font-size:.7rem;text-transform:uppercase;min-width:48px}
 .habit-days td{padding:.6rem .3rem;text-align:center;border-top:1px solid rgba(255,255,255,.04);min-width:48px}
