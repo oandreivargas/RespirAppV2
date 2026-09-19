@@ -73,19 +73,17 @@ select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
 
 /* HABITS DASHBOARD */
 .habit-grid{width:100%;margin-bottom:1rem}
-.habit-outer{display:flex;width:100%;overflow:hidden}
-.habit-names{flex-shrink:0;max-width:55%}
-.habit-names table{border-collapse:collapse;font-size:.8rem}
-.habit-names th,.habit-names td{padding:.6rem .3rem;text-align:left;white-space:nowrap}
-.habit-names th{font-size:.8rem;font-weight:500;color:var(--text);padding:.5rem .3rem}
-.habit-names td{border-top:1px solid rgba(255,255,255,.04);color:var(--text);font-size:.85rem}
-.habit-days-wrap{flex:1;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.12) transparent}
-.habit-days-wrap::-webkit-scrollbar{height:4px}
-.habit-days-wrap::-webkit-scrollbar-track{background:transparent}
-.habit-days-wrap::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:4px}
-.habit-days table{border-collapse:collapse;font-size:.8rem}
-.habit-days th{padding:.5rem .3rem;color:var(--text-dim);font-weight:400;text-align:center;font-size:.7rem;text-transform:uppercase;min-width:48px}
-.habit-days td{padding:.6rem .3rem;text-align:center;border-top:1px solid rgba(255,255,255,.04);min-width:48px}
+.habit-scroll{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.15) transparent}
+.habit-scroll::-webkit-scrollbar{height:4px}
+.habit-scroll::-webkit-scrollbar-track{background:transparent}
+.habit-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:4px}
+.habit-table{border-collapse:collapse;font-size:.8rem}
+.habit-table th,.habit-table td{padding:.6rem .3rem;white-space:nowrap}
+.habit-table th{font-size:.7rem;font-weight:400;color:var(--text-dim);text-align:center;text-transform:uppercase;padding:.5rem .3rem}
+.habit-table td{border-top:1px solid rgba(255,255,255,.04)}
+.habit-table .h-name{position:sticky;left:0;z-index:2;background:var(--bg-card);text-align:left;color:var(--text);font-size:.85rem}
+.habit-table thead .h-name{z-index:3;font-size:.8rem;font-weight:500;color:var(--text)}
+.habit-table .h-day{text-align:center}
 .habit-name-cell{display:flex;align-items:center;gap:.4rem}
 .habit-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 .h-check{color:var(--accent);font-size:1rem;cursor:pointer}.h-cross{color:rgba(239,83,80,.5);font-size:.9rem;cursor:pointer}
@@ -502,52 +500,43 @@ async function loadDashboard(){
 }
 
 function renderHabitTable(days){
-  // Split into names column (fixed) + days columns (scrollable)
-  // Names table
-  let nl='<table><thead><tr><th style="height:34px">&nbsp;</th></tr></thead><tbody>';
+  // Single table: sticky name column + scrollable day columns
+  // Calculate day column width so exactly 5 fit in the available space
+  // Container is max 440px, name col ~150px, so day area ~290px => 58px per col for 5
+  const dayW=58;
+  let h='<table class="habit-table" style="min-width:calc(150px + '+days.length+'*'+dayW+'px)">';
+  h+='<thead><tr><th class="h-name" style="min-width:150px">&nbsp;</th>';
+  days.forEach(d=>{h+=`<th class="h-day" style="min-width:${dayW}px;width:${dayW}px">${getDayLabel(d)}<br>${getDayNum(d)}</th>`;});
+  h+='</tr></thead><tbody>';
   DEFAULT_HABITS.forEach(dh=>{
-    nl+=`<tr><td><div class="habit-name-cell" onclick="openHabitDetail('${dh.key}',true)" style="cursor:pointer"><div class="habit-dot" style="background:${dh.color}"></div>${dh.name}</div></td></tr>`;
-  });
-  userHabits.forEach(hab=>{
-    nl+=`<tr><td><div class="habit-name-cell" onclick="openHabitDetail('${hab.id}',false)" style="cursor:pointer"><div class="habit-dot" style="background:${hab.color||'#80cbc4'}"></div>${hab.name}<span onclick="event.stopPropagation();deleteHabit('${hab.id}','${hab.name}')" style="margin-left:auto;color:var(--danger);font-size:.7rem;opacity:.5;cursor:pointer;padding:0 .3rem">✕</span></div></td></tr>`;
-  });
-  nl+='</tbody></table>';
-
-  // Days table
-  let dl='<table><thead><tr>';
-  days.forEach(d=>{dl+=`<th>${getDayLabel(d)}<br>${getDayNum(d)}</th>`;});
-  dl+='</tr></thead><tbody>';
-  DEFAULT_HABITS.forEach(dh=>{
-    dl+='<tr>';
+    h+=`<tr><td class="h-name" style="min-width:150px"><div class="habit-name-cell" onclick="openHabitDetail('${dh.key}',true)" style="cursor:pointer"><div class="habit-dot" style="background:${dh.color}"></div>${dh.name}</div></td>`;
     days.forEach(day=>{
       const sd=sessionsByDay[day]||{breathe:false,audio:false,test:[]};
-      if(dh.key==='breathe'){dl+=`<td>${sd.breathe?'<span class="h-check">✓</span>':'<span class="h-cross">✗</span>'}</td>`;}
-      else if(dh.key==='audio'){dl+=`<td>${sd.audio?'<span class="h-check">✓</span>':'<span class="h-cross">✗</span>'}</td>`;}
+      if(dh.key==='breathe'){h+=`<td class="h-day">${sd.breathe?'<span class="h-check">✓</span>':'<span class="h-cross">✗</span>'}</td>`;}
+      else if(dh.key==='audio'){h+=`<td class="h-day">${sd.audio?'<span class="h-check">✓</span>':'<span class="h-cross">✗</span>'}</td>`;}
       else if(dh.key==='test'){
-        if(sd.test.length>0){const avg=parseFloat((sd.test.reduce((a,b)=>a+b,0)/sd.test.length).toFixed(0));const cls=avg>=25?'good':'low';dl+=`<td><span class="h-val ${cls}">${avg}s</span></td>`;}
-        else dl+=`<td><span class="h-cross">✗</span></td>`;
+        if(sd.test.length>0){const avg=parseFloat((sd.test.reduce((a,b)=>a+b,0)/sd.test.length).toFixed(0));const cls=avg>=25?'good':'low';h+=`<td class="h-day"><span class="h-val ${cls}">${avg}s</span></td>`;}
+        else h+=`<td class="h-day"><span class="h-cross">✗</span></td>`;
       }
     });
-    dl+='</tr>';
+    h+='</tr>';
   });
   userHabits.forEach(hab=>{
-    dl+='<tr>';
+    h+=`<tr><td class="h-name" style="min-width:150px"><div class="habit-name-cell" onclick="openHabitDetail('${hab.id}',false)" style="cursor:pointer"><div class="habit-dot" style="background:${hab.color||'#80cbc4'}"></div>${hab.name}<span onclick="event.stopPropagation();deleteHabit('${hab.id}','${hab.name}')" style="margin-left:auto;color:var(--danger);font-size:.7rem;opacity:.5;cursor:pointer;padding:0 .3rem">✕</span></div></td>`;
     days.forEach(day=>{
       const log=habitLogs[hab.id+'_'+day];
       if(hab.type==='boolean'){
-        if(log&&log.completed)dl+=`<td><span class="h-check" onclick="toggleHabitLog('${hab.id}','${day}',true)">✓</span></td>`;
-        else dl+=`<td><span class="h-cross" onclick="toggleHabitLog('${hab.id}','${day}',false)">✗</span></td>`;
+        if(log&&log.completed)h+=`<td class="h-day"><span class="h-check" onclick="toggleHabitLog('${hab.id}','${day}',true)">✓</span></td>`;
+        else h+=`<td class="h-day"><span class="h-cross" onclick="toggleHabitLog('${hab.id}','${day}',false)">✗</span></td>`;
       }else{
-        if(log&&log.value!=null){const cls=hab.target&&log.value>=hab.target?'good':'low';dl+=`<td><span class="h-val ${cls}" onclick="showInlineInput('${hab.id}','${day}',this)">${log.value}<br><span style="font-size:.6rem">${hab.unit||''}</span></span></td>`;}
-        else dl+=`<td><span class="h-cross" onclick="showInlineInput('${hab.id}','${day}',this)">0</span></td>`;
+        if(log&&log.value!=null){const cls=hab.target&&log.value>=hab.target?'good':'low';h+=`<td class="h-day"><span class="h-val ${cls}" onclick="showInlineInput('${hab.id}','${day}',this)">${log.value}<br><span style="font-size:.6rem">${hab.unit||''}</span></span></td>`;}
+        else h+=`<td class="h-day"><span class="h-cross" onclick="showInlineInput('${hab.id}','${day}',this)">0</span></td>`;
       }
     });
-    dl+='</tr>';
+    h+='</tr>';
   });
-  dl+='</tbody></table>';
-
-  $('habitTableWrap').innerHTML=`<div class="habit-outer"><div class="habit-names">${nl}</div><div class="habit-days-wrap" id="habitDaysScroll"><div class="habit-days">${dl}</div></div></div>`;
-  // Scroll to left (most recent = leftmost, already there)
+  h+='</tbody></table>';
+  $('habitTableWrap').innerHTML=`<div class="habit-scroll">${h}</div>`;
 }
 
 window.toggleHabitLog=async function(habitId,date,currentState){
