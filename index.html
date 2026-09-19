@@ -375,6 +375,8 @@ select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
 
 <script>
 const ADMIN_EMAIL='andrei-94@hotmail.com';
+let currentAccessLevel='gratuito'; // gratuito | grupo | mentoria
+let adminTestLevel=null; // admin override for testing
 firebase.initializeApp({apiKey:"AIzaSyC5Fa-qRDTLyVbC_N-y3lP7o4NSJqTcewc",authDomain:"respirapp-58d2b.firebaseapp.com",projectId:"respirapp-58d2b",storageBucket:"respirapp-58d2b.firebasestorage.app",messagingSenderId:"565648433343",appId:"1:565648433343:web:1939a62510bc3af509660a"});
 const auth=firebase.auth(),db=firebase.firestore();
 
@@ -463,7 +465,7 @@ let isLogin=false;
 $('authToggle').addEventListener('click',()=>{isLogin=!isLogin;$('authTitle').textContent=isLogin?'Entrar':'Criar conta';$('authBtn').textContent=isLogin?'Entrar':'Criar conta';$('authToggle').textContent=isLogin?'Não tenho conta → Criar':'Já tenho conta → Entrar';$('authName').style.display=isLogin?'none':'';$('authWhatsapp').style.display=isLogin?'none':'';$('authError').textContent='';});
 $('authBtn').addEventListener('click',async()=>{const email=$('authEmail').value.trim(),pass=$('authPass').value,name=$('authName').value.trim(),wpp=$('authWhatsapp').value.trim();$('authError').textContent='';if(!email||!pass){$('authError').textContent='Preencha e-mail e senha.';return;}if(!isLogin&&(!name||!wpp)){$('authError').textContent='Preencha todos os campos.';return;}if(pass.length<6){$('authError').textContent='Senha mínima: 6 caracteres.';return;}$('authBtn').disabled=true;try{if(isLogin)await auth.signInWithEmailAndPassword(email,pass);else{const c=await auth.createUserWithEmailAndPassword(email,pass);await db.collection('users').doc(c.user.uid).set({name,email,whatsapp:wpp,createdAt:firebase.firestore.FieldValue.serverTimestamp(),consentAccepted:false,questionnaireCompleted:false});}}catch(e){const m={'auth/email-already-in-use':'E-mail já cadastrado.','auth/invalid-email':'E-mail inválido.','auth/user-not-found':'Usuário não encontrado.','auth/wrong-password':'Senha incorreta.','auth/invalid-credential':'E-mail ou senha incorretos.'};$('authError').textContent=m[e.code]||e.message;}$('authBtn').disabled=false;});
 $('logoutBtn').addEventListener('click',()=>auth.signOut());
-auth.onAuthStateChanged(async user=>{if(!user){show('authScreen');currentUser=null;return;}currentUser=user;try{const doc=await db.collection('users').doc(user.uid).get();if(!doc.exists){show('authScreen');return;}const d=doc.data();if(!d.consentAccepted){show('consentScreen');return;}if(!d.questionnaireCompleted){qIndex=0;renderQuestion();show('questionnaireScreen');return;}showHome();}catch(e){console.error(e);show('authScreen');}});
+auth.onAuthStateChanged(async user=>{if(!user){show('authScreen');currentUser=null;return;}currentUser=user;try{const doc=await db.collection('users').doc(user.uid).get();if(!doc.exists){show('authScreen');return;}const d=doc.data();currentAccessLevel=d.accessLevel||'gratuito';adminTestLevel=null;if(!d.consentAccepted){show('consentScreen');return;}if(!d.questionnaireCompleted){qIndex=0;renderQuestion();show('questionnaireScreen');return;}showHome();}catch(e){console.error(e);show('authScreen');}});
 
 // ═══ CONSENT ═══
 $('consentBtn').addEventListener('click',async()=>{await db.collection('users').doc(currentUser.uid).update({consentAccepted:true,consentAt:firebase.firestore.FieldValue.serverTimestamp()});qIndex=0;renderQuestion();show('questionnaireScreen');});
@@ -475,20 +477,70 @@ function saveCurrentAnswer(){const q=QUESTIONS[qIndex];if(q.type==='multi'){cons
 $('qNext').addEventListener('click',async()=>{saveCurrentAnswer();if(qIndex<QUESTIONS.length-1){qIndex++;renderQuestion();}else{await db.collection('questionnaires').doc(currentUser.uid).set({...qAnswers,submittedAt:firebase.firestore.FieldValue.serverTimestamp()});await db.collection('users').doc(currentUser.uid).update({questionnaireCompleted:true});showHome();}});
 $('qBack').addEventListener('click',()=>{if(qIndex>0){saveCurrentAnswer();qIndex--;renderQuestion();}});
 
+// ═══ ACCESS LEVELS ═══
+function getLevel(){return adminTestLevel||currentAccessLevel;}
+const ACCESS_LABELS={gratuito:'Gratuito',grupo:'Grupo',mentoria:'Mentoria'};
+const ACCESS_COLORS={gratuito:'var(--text-dim)',grupo:'var(--warn)',mentoria:'var(--green)'};
+
 // ═══ HOME ═══
-function showHome(){$('adminLink').style.display=(currentUser&&currentUser.email===ADMIN_EMAIL)?'':'none';show('homeScreen');}
+function showHome(){
+  const isAdmin=currentUser&&currentUser.email===ADMIN_EMAIL;
+  $('adminLink').style.display=isAdmin?'':'none';
+  const lvl=getLevel();
+  // Meu Progresso: disabled for gratuito
+  const dashCard=$('btnDashboard');
+  if(lvl==='gratuito'){
+    dashCard.style.opacity='.4';dashCard.style.pointerEvents='none';
+    dashCard.querySelector('.d').textContent='Disponível nos planos Grupo e Mentoria';
+  }else{
+    dashCard.style.opacity='';dashCard.style.pointerEvents='';
+    dashCard.querySelector('.d').textContent='Acompanhe seus hábitos e evolução';
+  }
+  // Show test mode indicator for admin
+  let testBanner=document.getElementById('adminTestBanner');
+  if(isAdmin&&adminTestLevel){
+    if(!testBanner){testBanner=document.createElement('div');testBanner.id='adminTestBanner';testBanner.style.cssText='width:100%;max-width:440px;background:rgba(255,167,38,.15);border:1px solid var(--warn);border-radius:.75rem;padding:.5rem .8rem;margin-bottom:.75rem;display:flex;align-items:center;justify-content:space-between;font-size:.78rem;color:var(--warn)';dashCard.parentElement.insertBefore(testBanner,dashCard.parentElement.firstChild.nextSibling);}
+    testBanner.innerHTML=`<span>🔧 Testando como: <b>${ACCESS_LABELS[adminTestLevel]}</b></span><button onclick="adminTestLevel=null;showHome()" style="background:none;border:1px solid var(--warn);color:var(--warn);border-radius:.5rem;padding:.2rem .5rem;font-size:.7rem;cursor:pointer">Voltar ao normal</button>`;
+    testBanner.style.display='flex';
+  }else if(testBanner){testBanner.style.display='none';}
+  show('homeScreen');
+}
 
 $('btnRespireAgora').addEventListener('click',()=>{let h='';for(const[k,p]of Object.entries(PROTOCOLS))h+=`<div class="card" data-key="${k}"><div class="t">${p.name} — ${p.subtitle}</div><div class="d">${p.desc}</div></div>`;$('protocolList').innerHTML=h;$('protocolList').querySelectorAll('.card').forEach(c=>c.addEventListener('click',()=>{currentProtocolKey=c.dataset.key;startSession();}));show('breatheNowScreen');});
 $('breatheNowBack').addEventListener('click',()=>showHome());
-$('btnProtocolosAudio').addEventListener('click',()=>show('audioScreen'));
+$('btnProtocolosAudio').addEventListener('click',()=>{
+  const lvl=getLevel();
+  // For gratuito: show only Level 1 directly, filter audios
+  show('audioScreen');
+});
 $('audioBack').addEventListener('click',()=>showHome());
-$('btnTreinos').addEventListener('click',()=>show('testsScreen'));
+$('btnTreinos').addEventListener('click',()=>{
+  const lvl=getLevel();
+  // Restrict TELL and TILL for gratuito and grupo
+  document.querySelectorAll('[data-test]').forEach(c=>{
+    const testKey=c.dataset.test;
+    if(testKey!=='bolt'&&lvl!=='mentoria'){
+      c.style.opacity='.4';c.style.pointerEvents='none';
+      if(!c.querySelector('.lock-msg')){const lm=document.createElement('div');lm.className='lock-msg';lm.style.cssText='font-size:.7rem;color:var(--text-dim);margin-top:.3rem';lm.textContent='Disponível no plano Mentoria';c.appendChild(lm);}
+    }else{
+      c.style.opacity='';c.style.pointerEvents='';
+      const lm=c.querySelector('.lock-msg');if(lm)lm.remove();
+    }
+  });
+  show('testsScreen');
+});
 $('testsBack').addEventListener('click',()=>showHome());
-$('btnDashboard').addEventListener('click',()=>loadDashboard());
+$('btnDashboard').addEventListener('click',()=>{
+  const lvl=getLevel();
+  if(lvl==='gratuito')return; // blocked in showHome
+  // Hide add habit btn for grupo
+  $('addHabitBtn').style.display=(lvl==='grupo')?'none':'';
+  loadDashboard();
+});
 $('dashboardBack').addEventListener('click',()=>showHome());
 
 // ═══ AUDIO ═══
-document.querySelectorAll('.level-card').forEach(c=>c.addEventListener('click',()=>{currentAudioLevel=parseInt(c.dataset.level);const lvl=AUDIO_LEVELS[currentAudioLevel];$('audioLevelBadge').textContent=lvl.name;if(lvl.audios.length===0){$('audioLevelContent').innerHTML='<div class="coming-soon">Os áudios deste nível serão adicionados em breve.</div>';}else{let h='';lvl.audios.forEach((a,i)=>{h+=`<div class="card" data-audio-idx="${i}"><div class="t">🎵 ${a.title}</div></div>`;});$('audioLevelContent').innerHTML=h;$('audioLevelContent').querySelectorAll('.card').forEach(c=>c.addEventListener('click',()=>{const idx=parseInt(c.dataset.audioIdx);const a=lvl.audios[idx];$('audioPlayerBadge').textContent=lvl.name;$('audioPlayerTitle').textContent=a.title;$('audioPlayerContainer').innerHTML=`<audio controls style="width:100%;margin-top:1rem;filter:invert(.85)" src="${a.file}" id="activeAudio"></audio>`;$('activeAudio').addEventListener('ended',async()=>{try{await db.collection('sessions').add({userId:currentUser.uid,type:'audio',level:currentAudioLevel,audioTitle:a.title,completedAt:firebase.firestore.FieldValue.serverTimestamp()});}catch(e){}});show('audioPlayerScreen');}));}show('audioLevelScreen');}));
+document.querySelectorAll('.level-card').forEach(c=>c.addEventListener('click',()=>{currentAudioLevel=parseInt(c.dataset.level);const lvl=AUDIO_LEVELS[currentAudioLevel];$('audioLevelBadge').textContent=lvl.name;if(lvl.audios.length===0){$('audioLevelContent').innerHTML='<div class="coming-soon">Os áudios deste nível serão adicionados em breve.</div>';}else{const accessLvl=getLevel();let h='';lvl.audios.forEach((a,i)=>{const locked=accessLvl==='gratuito'&&a.title!=='Suspiro Fisiológico';if(locked){h+=`<div class="card no-tap" style="opacity:.4"><div class="t">🔒 ${a.title}</div><div class="d" style="font-size:.7rem;color:var(--text-dim)">Disponível nos planos Grupo e Mentoria</div></div>`;}else{h+=`<div class="card" data-audio-idx="${i}"><div class="t">🎵 ${a.title}</div></div>`;}});$('audioLevelContent').innerHTML=h;$('audioLevelContent').querySelectorAll('.card[data-audio-idx]').forEach(c=>c.addEventListener('click',()=>{const idx=parseInt(c.dataset.audioIdx);const a=lvl.audios[idx];$('audioPlayerBadge').textContent=lvl.name;$('audioPlayerTitle').textContent=a.title;$('audioPlayerContainer').innerHTML=`<audio controls style="width:100%;margin-top:1rem;filter:invert(.85)" src="${a.file}" id="activeAudio"></audio>`;$('activeAudio').addEventListener('ended',async()=>{try{await db.collection('sessions').add({userId:currentUser.uid,type:'audio',level:currentAudioLevel,audioTitle:a.title,completedAt:firebase.firestore.FieldValue.serverTimestamp()});}catch(e){}});show('audioPlayerScreen');}));}show('audioLevelScreen');}));
 $('audioLevelBack').addEventListener('click',()=>show('audioScreen'));
 $('audioPlayerBack').addEventListener('click',()=>{const a=$('activeAudio');if(a)a.pause();show('audioLevelScreen');});
 
@@ -579,7 +631,8 @@ function renderHabitTable(days){
     });
     h+='</tr>';
   });
-  userHabits.forEach(hab=>{
+  const showCustom=getLevel()==='mentoria';
+  if(showCustom) userHabits.forEach(hab=>{
     const hc=hab.color||'#80cbc4';
     h+=`<tr><td class="h-name" style="min-width:150px"><div class="habit-name-cell" onclick="openHabitDetail('${hab.id}',false)" style="cursor:pointer;color:${hc}"><div class="habit-dot" style="background:${hc}"></div>${hab.name}<span onclick="event.stopPropagation();deleteHabit('${hab.id}','${hab.name}')" style="margin-left:auto;color:var(--danger);font-size:.7rem;opacity:.5;cursor:pointer;padding:0 .3rem">✕</span></div></td>`;
     const goalCheck=buildGoalChecker(hab,habitLogs);
@@ -1276,7 +1329,29 @@ async function loadAdmin(tab){
       if(Object.keys(protoCounts).length){h+='<div class="admin-section"><div class="h2">Protocolos mais usados</div>';Object.entries(protoCounts).sort((a,b)=>b[1]-a[1]).forEach(([k,v])=>{const p=PROTOCOLS[k];const name=p?p.name+' '+p.subtitle:k;h+=`<div style="display:flex;justify-content:space-between;padding:.4rem 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:.85rem"><span>${name}</span><span style="color:var(--accent)">${v}</span></div>`;});h+='</div>';}
       $('adminContent').innerHTML=h;
     }else if(tab==='users'){
-      const snap=await db.collection('users').get();let h='';snap.forEach(doc=>{const u=doc.data();const dt=u.createdAt?(u.createdAt.toDate?u.createdAt.toDate().toLocaleDateString('pt-BR'):''):'';h+=`<div class="card no-tap"><div class="t">${u.name||''}</div><div class="d">${u.email||''}<br>${u.whatsapp||''}<br>Cadastro: ${dt}</div><button class="btn btn-s" style="margin-top:.5rem;font-size:.75rem;padding:.4rem" onclick="viewQuestionnaire('${doc.id}')">Ver respostas</button></div>`;});
+      // Admin test level switcher
+      let h='<div class="card no-tap" style="margin-bottom:1rem;border-color:var(--warn);border-style:dashed"><div class="t" style="font-size:.85rem;color:var(--warn);margin-bottom:.5rem">🔧 Testar como outro nível</div><div style="display:flex;gap:.5rem;flex-wrap:wrap">';
+      ['gratuito','grupo','mentoria'].forEach(lv=>{
+        const sel=adminTestLevel===lv?'background:'+ACCESS_COLORS[lv]+';color:var(--bg);font-weight:600':'';
+        h+=`<button class="btn btn-o" style="flex:1;padding:.4rem;font-size:.75rem;${sel}" onclick="adminTestLevel=${adminTestLevel===lv?'null':"'"+lv+"'"};showHome();show('adminScreen');loadAdmin('users')">${ACCESS_LABELS[lv]}</button>`;
+      });
+      h+='</div></div>';
+      const snap=await db.collection('users').get();
+      // Count by level
+      const counts={gratuito:0,grupo:0,mentoria:0};
+      snap.forEach(doc=>{const lv=doc.data().accessLevel||'gratuito';counts[lv]=(counts[lv]||0)+1;});
+      h+=`<div style="display:flex;gap:.5rem;margin-bottom:1rem">`;
+      ['gratuito','grupo','mentoria'].forEach(lv=>{h+=`<div style="flex:1;text-align:center;padding:.5rem;background:var(--bg-card);border-radius:.6rem"><div style="font-size:1.1rem;font-weight:600;color:${ACCESS_COLORS[lv]}">${counts[lv]}</div><div style="font-size:.65rem;color:var(--text-dim)">${ACCESS_LABELS[lv]}</div></div>`;});
+      h+='</div>';
+      snap.forEach(doc=>{const u=doc.data();const dt=u.createdAt?(u.createdAt.toDate?u.createdAt.toDate().toLocaleDateString('pt-BR'):''):'';const uLvl=u.accessLevel||'gratuito';
+        h+=`<div class="card no-tap" style="margin-bottom:.6rem"><div style="display:flex;justify-content:space-between;align-items:center"><div class="t">${u.name||''}</div><span style="font-size:.7rem;padding:.15rem .5rem;border-radius:1rem;background:${ACCESS_COLORS[uLvl]}22;color:${ACCESS_COLORS[uLvl]};border:1px solid ${ACCESS_COLORS[uLvl]}44">${ACCESS_LABELS[uLvl]}</span></div><div class="d">${u.email||''}<br>${u.whatsapp||''}<br>Cadastro: ${dt}</div>`;
+        h+=`<div style="display:flex;gap:.4rem;margin-top:.5rem">`;
+        ['gratuito','grupo','mentoria'].forEach(lv=>{
+          const isCur=uLvl===lv;
+          h+=`<button class="btn ${isCur?'btn-p':'btn-o'}" style="flex:1;padding:.35rem;font-size:.7rem;${isCur?'':'opacity:.6'}" onclick="setUserAccess('${doc.id}','${lv}')">${ACCESS_LABELS[lv]}</button>`;
+        });
+        h+=`</div><button class="btn btn-s" style="margin-top:.4rem;font-size:.72rem;padding:.35rem" onclick="viewQuestionnaire('${doc.id}')">Ver respostas</button></div>`;
+      });
       $('adminContent').innerHTML=h||'<div class="loader">Nenhum usuário.</div>';
     }else if(tab==='sessions'){
       const snap=await db.collection('sessions').limit(50).get();let h='';for(const doc of snap.docs){const s=doc.data();const userName=await getUserName(s.userId);const ts=s.startedAt||s.completedAt;const dt=ts?(ts.toDate?ts.toDate().toLocaleString('pt-BR'):''):'';
@@ -1293,6 +1368,15 @@ async function loadAdmin(tab){
 const userNameCache={};
 async function getUserName(uid){if(!uid)return'Desconhecido';if(userNameCache[uid])return userNameCache[uid];try{const d=await db.collection('users').doc(uid).get();const n=d.exists?d.data().name:'Desconhecido';userNameCache[uid]=n;return n;}catch(e){return'Desconhecido';}}
 window.viewQuestionnaire=async function(uid){try{const d=await db.collection('questionnaires').doc(uid).get();if(!d.exists){alert('Questionário não preenchido.');return;}const data=d.data();let msg='';QUESTIONS.forEach(q=>{const a=data[q.id];msg+=q.label+'\n';if(a&&a.selected)msg+='→ '+a.selected.join(', ')+(a.other?', Outro: '+a.other:'')+'\n\n';else if(a&&a.text)msg+='→ '+a.text+'\n\n';else msg+='→ (sem resposta)\n\n';});alert(msg);}catch(e){alert('Erro: '+e.message);}};
+
+window.setUserAccess=async function(uid,level){
+  try{
+    await db.collection('users').doc(uid).update({accessLevel:level});
+    // If changing own access, update local
+    if(currentUser&&uid===currentUser.uid)currentAccessLevel=level;
+    loadAdmin('users');
+  }catch(e){alert('Erro: '+e.message);}
+};
 
 // ═══ PWA ═══
 let deferredPrompt=null;
