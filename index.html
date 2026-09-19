@@ -72,12 +72,15 @@ select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
 .coming-soon{font-size:.85rem;color:var(--text-dim);text-align:center;padding:2rem;font-style:italic}
 
 /* HABITS DASHBOARD */
-.habit-grid{width:100%;overflow-x:auto;margin-bottom:1rem}
-.habit-table{width:100%;border-collapse:collapse;font-size:.8rem;min-width:340px}
+.habit-grid{width:100%;margin-bottom:1rem}
+.habit-table{width:100%;border-collapse:collapse;font-size:.8rem}
 .habit-table th{padding:.5rem .3rem;color:var(--text-dim);font-weight:400;text-align:center;font-size:.7rem;text-transform:uppercase}
-.habit-table th:first-child{text-align:left;font-size:.8rem;font-weight:500;text-transform:none;color:var(--text)}
+.habit-table th:first-child{text-align:left;font-size:.8rem;font-weight:500;text-transform:none;color:var(--text);position:sticky;left:0;background:var(--bg-card);z-index:2}
 .habit-table td{padding:.6rem .3rem;text-align:center;border-top:1px solid rgba(255,255,255,.04)}
-.habit-table td:first-child{text-align:left;color:var(--text);font-weight:400;font-size:.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px}
+.habit-table td:first-child{text-align:left;color:var(--text);font-weight:400;font-size:.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px;position:sticky;left:0;background:var(--bg-card);z-index:1}
+.habit-scroll-wrap{overflow-x:auto;-ms-overflow-style:none;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.habit-scroll-wrap::-webkit-scrollbar{display:none}
+.habit-table th:not(:first-child),.habit-table td:not(:first-child){min-width:48px}
 .habit-name-cell{display:flex;align-items:center;gap:.4rem}
 .habit-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 .h-check{color:var(--accent);font-size:1rem;cursor:pointer}.h-cross{color:rgba(239,83,80,.5);font-size:.9rem;cursor:pointer}
@@ -273,7 +276,7 @@ select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
 <div class="screen scroll" id="dashboardScreen">
   <div class="top-bar"><button class="back-btn" id="dashboardBack">‹ Voltar</button><div class="badge">Meu Progresso</div></div>
   <div class="section-title" style="margin-top:.5rem">Hábitos</div>
-  <div class="habit-grid"><div id="habitTableWrap"></div></div>
+  <div class="habit-grid"><div class="habit-scroll-wrap" id="habitScrollWrap"><div id="habitTableWrap"></div></div></div>
   <div class="add-habit-btn" id="addHabitBtn">＋ Adicionar hábito</div>
 </div>
 
@@ -466,11 +469,10 @@ async function loadDashboard(){
   show('dashboardScreen');
   $('habitTableWrap').innerHTML='<div class="loader">Carregando...</div>';
 
-  // Get last 5 days
-  const days=[];for(let i=0;i<5;i++){const d=new Date();d.setDate(d.getDate()-i);days.push(dateStr(d));}
+  // Get last 30 days (visible 5, scroll for more)
+  const days=[];for(let i=0;i<30;i++){const d=new Date();d.setDate(d.getDate()-i);days.push(dateStr(d));}
 
-  // Load sessions for this user (last 7 days)
-  const weekAgo=new Date();weekAgo.setDate(weekAgo.getDate()-7);
+  // Load sessions for this user
   sessionsByDay={};
   try{
     const snap=await db.collection('sessions').where('userId','==',currentUser.uid).get();
@@ -532,6 +534,9 @@ function renderHabitTable(days){
 
   h+='</tbody></table>';
   $('habitTableWrap').innerHTML=h;
+  // Scroll to left (most recent days) — table is right-to-left so leftmost = newest
+  const sw=$('habitScrollWrap');
+  if(sw)sw.scrollLeft=0;
 }
 
 window.toggleHabitLog=async function(habitId,date,currentState){
@@ -546,7 +551,7 @@ window.toggleHabitLog=async function(habitId,date,currentState){
       await db.collection('habitLogs').add({userId:currentUser.uid,habitId,date,completed:true,timestamp:firebase.firestore.FieldValue.serverTimestamp()});
       habitLogs[key]={completed:true};
     }
-    const days=[];for(let i=0;i<5;i++){const d=new Date();d.setDate(d.getDate()-i);days.push(dateStr(d));}
+    const days=[];for(let i=0;i<30;i++){const d=new Date();d.setDate(d.getDate()-i);days.push(dateStr(d));}
     renderHabitTable(days);
   }catch(e){console.error(e);}
 };
@@ -576,7 +581,7 @@ window.saveInlineVal=async function(habitId,date){
     else await db.collection('habitLogs').add({userId:currentUser.uid,habitId,date,value:val,completed:true,timestamp:firebase.firestore.FieldValue.serverTimestamp()});
     habitLogs[habitId+'_'+date]={value:val,completed:true};
   }catch(e){console.error(e);}
-  const days=[];for(let i=0;i<5;i++){const d=new Date();d.setDate(d.getDate()-i);days.push(dateStr(d));}
+  const days=[];for(let i=0;i<30;i++){const d=new Date();d.setDate(d.getDate()-i);days.push(dateStr(d));}
   renderHabitTable(days);
 };
 
@@ -704,17 +709,70 @@ window.openHabitDetail=async function(key,isDefault){
   const stabM=daysSoFar>0?Math.round(thisM/daysSoFar*100):0;
   const stabP=dPrev>0?Math.round(prevM/dPrev*100):0;
   const chg=stabM-stabP;
+  // Year stability
+  const yStart=now.getFullYear()+'-01';
+  const dayOfYear=Math.ceil((now-new Date(now.getFullYear(),0,1))/86400000)+1;
+  const thisY=entries.filter(e=>e.date>=yStart+'-01').length;
+  const stabY=dayOfYear>0?Math.round(thisY/dayOfYear*100):0;
 
-  let h=`<div class="card no-tap" style="margin-bottom:1.2rem">
-    <div class="detail-section-title" style="color:${clr}">Visão geral</div>
-    <div style="display:flex;align-items:center;gap:1rem;margin-top:.6rem">
-      <svg viewBox="0 0 36 36" width="52" height="52"><path d="M18 2.0845a15.9155 15.9155 0 0 1 0 31.831a15.9155 15.9155 0 0 1 0-31.831" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="3"/><path d="M18 2.0845a15.9155 15.9155 0 0 1 0 31.831a15.9155 15.9155 0 0 1 0-31.831" fill="none" stroke="${clr}" stroke-width="3" stroke-dasharray="${stabM},100" stroke-linecap="round"/></svg>
-      <div style="display:flex;gap:1.2rem;flex:1">
-        <div><div style="font-size:1.05rem;font-weight:600;color:${clr}">${stabM}%</div><div style="font-size:.6rem;color:var(--text-dim)">Estabilidade Mês</div></div>
-        <div><div style="font-size:1.05rem;font-weight:600;color:${chg>=0?'var(--green)':'var(--danger)'}">${chg>=0?'+':''}${chg}%</div><div style="font-size:.6rem;color:var(--text-dim)">Variação</div></div>
-        <div><div style="font-size:1.05rem;font-weight:600;color:${clr}">${entries.length}</div><div style="font-size:.6rem;color:var(--text-dim)">Total</div></div>
-      </div>
-    </div></div>`;
+  let h='';
+  if(isMeas){
+    // ═══ ALVO section for measurable habits ═══
+    const target=habit.target||0;
+    const unit=habit.unit||'';
+    // Calculate totals per period
+    const todayStr=dateStr(now);
+    const todayVal=entries.filter(e=>e.date===todayStr).reduce((s,e)=>s+(e.value||0),0);
+    // Week (last 7 days)
+    const weekStart=new Date(now);weekStart.setDate(weekStart.getDate()-6);
+    const weekStartStr=dateStr(weekStart);
+    const weekVal=entries.filter(e=>e.date>=weekStartStr&&e.date<=todayStr).reduce((s,e)=>s+(e.value||0),0);
+    // Month
+    const monthVal=entries.filter(e=>e.date.startsWith(ym)).reduce((s,e)=>s+(e.value||0),0);
+    // Quarter
+    const qMonth=Math.floor(now.getMonth()/3)*3;
+    const qStartStr=now.getFullYear()+'-'+String(qMonth+1).padStart(2,'0');
+    const qVal=entries.filter(e=>e.date>=qStartStr+'-01'&&e.date<=todayStr).reduce((s,e)=>s+(e.value||0),0);
+    // Year
+    const yearVal=entries.filter(e=>e.date>=yStart+'-01').reduce((s,e)=>s+(e.value||0),0);
+    // Target multipliers
+    const tDay=target;const tWeek=target*7;const tMonth=target*30;const tQuarter=target*90;const tYear=target*365;
+    function alvoBar(label,val,tgt,c){
+      const pct=tgt>0?Math.min(100,Math.round(val/tgt*100)):(val>0?100:0);
+      const fmtVal=val>=1000?(val/1000).toFixed(1).replace(/\.0$/,'')+'k':Math.round(val);
+      const fmtTgt=tgt>0?(tgt>=1000?(tgt/1000).toFixed(1).replace(/\.0$/,'')+'k':Math.round(tgt)):'';
+      return `<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.45rem">
+        <div style="width:60px;font-size:.75rem;color:var(--text-dim);text-align:right">${label}</div>
+        <div style="flex:1;height:22px;background:rgba(255,255,255,.06);border-radius:6px;position:relative;overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:${c};border-radius:6px;transition:width .3s"></div>
+          <span style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:.7rem;font-weight:600;color:var(--text)">${fmtVal}</span>
+        </div>
+        ${fmtTgt?`<div style="width:32px;font-size:.7rem;color:var(--text-dim)">${fmtTgt}</div>`:`<div style="width:32px"></div>`}
+      </div>`;
+    }
+    h+=`<div class="card no-tap" style="margin-bottom:1.2rem">
+      <div class="detail-section-title" style="color:${clr}">Alvo</div>
+      <div style="margin-top:.6rem">
+        ${alvoBar('Hoje',todayVal,tDay,clr)}
+        ${alvoBar('Semana',weekVal,tWeek,clr)}
+        ${alvoBar('Mês',monthVal,tMonth,clr)}
+        ${alvoBar('Trimestre',qVal,tQuarter,clr)}
+        ${alvoBar('Ano',yearVal,tYear,clr)}
+      </div></div>`;
+  }else{
+    // ═══ Visão Geral for boolean habits ═══
+    h+=`<div class="card no-tap" style="margin-bottom:1.2rem">
+      <div class="detail-section-title" style="color:${clr}">Visão geral</div>
+      <div style="display:flex;align-items:center;gap:1rem;margin-top:.6rem">
+        <svg viewBox="0 0 36 36" width="52" height="52"><path d="M18 2.0845a15.9155 15.9155 0 0 1 0 31.831a15.9155 15.9155 0 0 1 0-31.831" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="3"/><path d="M18 2.0845a15.9155 15.9155 0 0 1 0 31.831a15.9155 15.9155 0 0 1 0-31.831" fill="none" stroke="${clr}" stroke-width="3" stroke-dasharray="${stabM},100" stroke-linecap="round"/></svg>
+        <div style="display:flex;gap:1rem;flex:1;flex-wrap:wrap">
+          <div><div style="font-size:1.05rem;font-weight:600;color:${clr}">${stabM}%</div><div style="font-size:.6rem;color:var(--text-dim)">Estabilidade Mês</div></div>
+          <div><div style="font-size:1.05rem;font-weight:600;color:${chg>=0?'var(--green)':'var(--danger)'}">${chg>=0?'+':''}${chg}%</div><div style="font-size:.6rem;color:var(--text-dim)">Variação</div></div>
+          <div><div style="font-size:1.05rem;font-weight:600;color:${stabY>=0?'var(--green)':'var(--danger)'}">${stabY>0?'+':''}${stabY}%</div><div style="font-size:.6rem;color:var(--text-dim)">Ano</div></div>
+          <div><div style="font-size:1.05rem;font-weight:600;color:${clr}">${entries.length}</div><div style="font-size:.6rem;color:var(--text-dim)">Total</div></div>
+        </div>
+      </div></div>`;
+  }
 
   h+=`<div class="card no-tap" style="margin-bottom:1.2rem">
     <div style="display:flex;justify-content:space-between;align-items:center">
