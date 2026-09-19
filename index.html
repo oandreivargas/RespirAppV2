@@ -294,7 +294,7 @@ select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
 
 <!-- ADD HABIT -->
 <div class="screen scroll" id="addHabitScreen">
-  <div class="top-bar"><button class="back-btn" id="addHabitBack">‹ Voltar</button><div class="badge">Novo Hábito</div></div>
+  <div class="top-bar"><button class="back-btn" id="addHabitBack">‹ Voltar</button><div class="badge" id="addHabitBadge">Novo Hábito</div></div>
   <div class="section-title">Tipo de hábito</div>
   <div class="type-cards">
     <div class="type-card sel" data-htype="boolean" id="typeBoolean"><div class="t">Sim ou Não</div><div class="d">Ex.: Você meditou hoje?</div></div>
@@ -669,24 +669,82 @@ window.deleteHabit=async function(habitId,name){
   loadDashboard();
 };
 
-// ═══ ADD HABIT ═══
+// ═══ ADD / EDIT HABIT ═══
 let newHabitType='boolean';
 let selectedColor='#4fc3f7';
+let editingHabitId=null;
 
-$('addHabitBtn').addEventListener('click',()=>{
+function resetHabitForm(){
+  editingHabitId=null;
   newHabitType='boolean';selectedColor='#4fc3f7';
   $('typeBoolean').classList.add('sel');$('typeMeasurable').classList.remove('sel');
   $('measurableFields').style.display='none';$('freqBoolean').style.display='';$('freqMeasurable').style.display='none';
   $('habitName').value='';$('habitQuestion').value='';$('habitUnit').value='';$('habitTarget').value='';$('habitNotes').value='';
-  // Reset color picker
   document.querySelectorAll('#colorPicker .chip').forEach(c=>{c.classList.remove('sel');c.style.borderColor='transparent';});
   document.querySelector('#colorPicker .chip[data-color="#4fc3f7"]').classList.add('sel');
   document.querySelector('#colorPicker .chip[data-color="#4fc3f7"]').style.borderColor='#4fc3f7';
-  // Reset frequency
   document.querySelector('input[name="freqB"][value="daily"]').checked=true;
+  $('addHabitBadge').textContent='Novo Hábito';
+  $('saveHabitBtn').textContent='Salvar hábito';
+  // Show type cards for new habits
+  document.querySelector('.type-cards').style.display='';
+}
+
+$('addHabitBtn').addEventListener('click',()=>{
+  resetHabitForm();
   show('addHabitScreen');
 });
-$('addHabitBack').addEventListener('click',()=>loadDashboard());
+
+window.editHabit=function(habitId){
+  const hab=userHabits.find(h=>h.id===habitId);
+  if(!hab)return;
+  resetHabitForm();
+  editingHabitId=habitId;
+  $('addHabitBadge').textContent='Editar Hábito';
+  $('saveHabitBtn').textContent='Atualizar hábito';
+  // Hide type cards when editing (type can't change)
+  document.querySelector('.type-cards').style.display='none';
+  // Set type
+  newHabitType=hab.type||'boolean';
+  if(newHabitType==='measurable'){
+    $('typeMeasurable').classList.add('sel');$('typeBoolean').classList.remove('sel');
+    $('measurableFields').style.display='';$('freqBoolean').style.display='none';$('freqMeasurable').style.display='';
+    $('habitUnit').value=hab.unit||'';
+    $('habitTarget').value=hab.target||'';
+    $('habitTargetType').value=hab.targetType||'atleast';
+    $('freqMeasSelect').value=hab.frequency||'daily';
+  }else{
+    $('typeBoolean').classList.add('sel');$('typeMeasurable').classList.remove('sel');
+    $('measurableFields').style.display='none';$('freqBoolean').style.display='';$('freqMeasurable').style.display='none';
+    // Set frequency radio
+    const freq=hab.frequency||'daily';
+    const radio=document.querySelector(`input[name="freqB"][value="${freq}"]`);
+    if(radio)radio.checked=true;
+    if(hab.freqEveryN)$('freqEveryN').value=hab.freqEveryN;
+    if(hab.freqPerWeek)$('freqPerWeek').value=hab.freqPerWeek;
+    if(hab.freqPerMonth)$('freqPerMonth').value=hab.freqPerMonth;
+    if(hab.freqCustomTimes)$('freqCustomTimes').value=hab.freqCustomTimes;
+    if(hab.freqCustomDays)$('freqCustomDays').value=hab.freqCustomDays;
+  }
+  // Set fields
+  $('habitName').value=hab.name||'';
+  $('habitQuestion').value=hab.question||'';
+  $('habitNotes').value=hab.notes||'';
+  // Set color
+  const hc=hab.color||'#4fc3f7';
+  selectedColor=hc;
+  document.querySelectorAll('#colorPicker .chip').forEach(c=>{c.classList.remove('sel');c.style.borderColor='transparent';});
+  const colorChip=document.querySelector(`#colorPicker .chip[data-color="${hc}"]`);
+  if(colorChip){colorChip.classList.add('sel');colorChip.style.borderColor=hc;}
+  show('addHabitScreen');
+};
+$('addHabitBack').addEventListener('click',()=>{
+  if(editingHabitId){
+    // Return to detail view of the habit being edited
+    const hid=editingHabitId;editingHabitId=null;
+    openHabitDetail(hid,false);
+  }else{loadDashboard();}
+});
 
 // Color picker
 document.querySelectorAll('#colorPicker .chip').forEach(c=>c.addEventListener('click',()=>{
@@ -715,9 +773,19 @@ function getFrequencyData(){
 $('saveHabitBtn').addEventListener('click',async()=>{
   const name=$('habitName').value.trim();if(!name){alert('Informe o nome do hábito.');return;}
   const freqData=getFrequencyData();
-  const data={userId:currentUser.uid,name,type:newHabitType,question:$('habitQuestion').value.trim(),...freqData,notes:$('habitNotes').value.trim(),color:selectedColor,isDefault:false,createdAt:firebase.firestore.FieldValue.serverTimestamp()};
+  const data={name,type:newHabitType,question:$('habitQuestion').value.trim(),...freqData,notes:$('habitNotes').value.trim(),color:selectedColor,isDefault:false};
   if(newHabitType==='measurable'){data.unit=$('habitUnit').value.trim();data.target=parseFloat($('habitTarget').value)||0;data.targetType=$('habitTargetType').value;}
-  try{await db.collection('habits').add(data);}catch(e){console.error(e);alert('Erro ao salvar.');}
+  try{
+    if(editingHabitId){
+      data.updatedAt=firebase.firestore.FieldValue.serverTimestamp();
+      await db.collection('habits').doc(editingHabitId).update(data);
+      editingHabitId=null;
+    }else{
+      data.userId=currentUser.uid;
+      data.createdAt=firebase.firestore.FieldValue.serverTimestamp();
+      await db.collection('habits').add(data);
+    }
+  }catch(e){console.error(e);alert('Erro ao salvar.');}
   loadDashboard();
 });
 
@@ -797,7 +865,8 @@ window.openHabitDetail=async function(key,isDefault){
   else if(habit.frequency==='per_week')freqLabel=(habit.freqPerWeek||3)+' vezes por semana';
   else if(habit.frequency==='per_month')freqLabel=(habit.freqPerMonth||10)+' vezes por mês';
   else if(habit.frequency==='custom')freqLabel=(habit.freqCustomTimes||3)+' vezes em '+(habit.freqCustomDays||14)+' dias';
-  let h=`<div style="font-size:.78rem;color:var(--text-dim);margin-bottom:1rem;display:flex;align-items:center;gap:.8rem"><span>📅 ${freqLabel}</span></div>`;
+  const editBtn=isDefault?'':`<span onclick="editHabit('${habit.id||key}')" style="margin-left:auto;cursor:pointer;font-size:.9rem;opacity:.6;padding:.2rem .4rem" title="Editar hábito">✏️</span>`;
+  let h=`<div style="font-size:.78rem;color:var(--text-dim);margin-bottom:1rem;display:flex;align-items:center;gap:.8rem"><span>📅 ${freqLabel}</span>${editBtn}</div>`;
   if(isMeas){
     // ═══ ALVO section for measurable habits ═══
     const target=habit.target||0;
