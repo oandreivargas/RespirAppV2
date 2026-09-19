@@ -73,14 +73,17 @@ select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
 
 /* HABITS DASHBOARD */
 .habit-grid{width:100%;margin-bottom:1rem}
-.habit-table{width:100%;border-collapse:collapse;font-size:.8rem}
-.habit-table th{padding:.5rem .3rem;color:var(--text-dim);font-weight:400;text-align:center;font-size:.7rem;text-transform:uppercase}
-.habit-table th:first-child{text-align:left;font-size:.8rem;font-weight:500;text-transform:none;color:var(--text);position:sticky;left:0;background:var(--bg-card);z-index:2}
-.habit-table td{padding:.6rem .3rem;text-align:center;border-top:1px solid rgba(255,255,255,.04)}
-.habit-table td:first-child{text-align:left;color:var(--text);font-weight:400;font-size:.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px;position:sticky;left:0;background:var(--bg-card);z-index:1}
-.habit-scroll-wrap{overflow-x:auto;-ms-overflow-style:none;scrollbar-width:none;-webkit-overflow-scrolling:touch}
-.habit-scroll-wrap::-webkit-scrollbar{display:none}
-.habit-table th:not(:first-child),.habit-table td:not(:first-child){min-width:48px}
+.habit-outer{display:flex;width:100%}
+.habit-names{flex-shrink:0}
+.habit-names table{border-collapse:collapse;font-size:.8rem}
+.habit-names th,.habit-names td{padding:.6rem .3rem;text-align:left;white-space:nowrap}
+.habit-names th{font-size:.8rem;font-weight:500;color:var(--text);padding:.5rem .3rem}
+.habit-names td{border-top:1px solid rgba(255,255,255,.04);color:var(--text);font-size:.85rem;overflow:hidden;text-overflow:ellipsis;max-width:140px}
+.habit-days-wrap{flex:1;overflow-x:auto;-ms-overflow-style:none;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.habit-days-wrap::-webkit-scrollbar{display:none}
+.habit-days table{border-collapse:collapse;font-size:.8rem}
+.habit-days th{padding:.5rem .3rem;color:var(--text-dim);font-weight:400;text-align:center;font-size:.7rem;text-transform:uppercase;min-width:48px}
+.habit-days td{padding:.6rem .3rem;text-align:center;border-top:1px solid rgba(255,255,255,.04);min-width:48px}
 .habit-name-cell{display:flex;align-items:center;gap:.4rem}
 .habit-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 .h-check{color:var(--accent);font-size:1rem;cursor:pointer}.h-cross{color:rgba(239,83,80,.5);font-size:.9rem;cursor:pointer}
@@ -276,7 +279,7 @@ select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
 <div class="screen scroll" id="dashboardScreen">
   <div class="top-bar"><button class="back-btn" id="dashboardBack">‹ Voltar</button><div class="badge">Meu Progresso</div></div>
   <div class="section-title" style="margin-top:.5rem">Hábitos</div>
-  <div class="habit-grid"><div class="habit-scroll-wrap" id="habitScrollWrap"><div id="habitTableWrap"></div></div></div>
+  <div class="habit-grid"><div id="habitTableWrap"></div></div>
   <div class="add-habit-btn" id="addHabitBtn">＋ Adicionar hábito</div>
 </div>
 
@@ -497,46 +500,52 @@ async function loadDashboard(){
 }
 
 function renderHabitTable(days){
-  let h='<table class="habit-table"><thead><tr><th></th>';
-  days.forEach(d=>{h+=`<th>${getDayLabel(d)}<br>${getDayNum(d)}</th>`;});
-  h+='</tr></thead><tbody>';
-
-  // Default habits
+  // Split into names column (fixed) + days columns (scrollable)
+  // Names table
+  let nl='<table><thead><tr><th style="height:34px">&nbsp;</th></tr></thead><tbody>';
   DEFAULT_HABITS.forEach(dh=>{
-    h+=`<tr><td><div class="habit-name-cell" onclick="openHabitDetail('${dh.key}',true)" style="cursor:pointer"><div class="habit-dot" style="background:${dh.color}"></div>${dh.name}</div></td>`;
+    nl+=`<tr><td><div class="habit-name-cell" onclick="openHabitDetail('${dh.key}',true)" style="cursor:pointer"><div class="habit-dot" style="background:${dh.color}"></div>${dh.name}</div></td></tr>`;
+  });
+  userHabits.forEach(hab=>{
+    nl+=`<tr><td><div class="habit-name-cell" onclick="openHabitDetail('${hab.id}',false)" style="cursor:pointer"><div class="habit-dot" style="background:${hab.color||'#80cbc4'}"></div>${hab.name}<span onclick="event.stopPropagation();deleteHabit('${hab.id}','${hab.name}')" style="margin-left:auto;color:var(--danger);font-size:.7rem;opacity:.5;cursor:pointer;padding:0 .3rem">✕</span></div></td></tr>`;
+  });
+  nl+='</tbody></table>';
+
+  // Days table
+  let dl='<table><thead><tr>';
+  days.forEach(d=>{dl+=`<th>${getDayLabel(d)}<br>${getDayNum(d)}</th>`;});
+  dl+='</tr></thead><tbody>';
+  DEFAULT_HABITS.forEach(dh=>{
+    dl+='<tr>';
     days.forEach(day=>{
       const sd=sessionsByDay[day]||{breathe:false,audio:false,test:[]};
-      if(dh.key==='breathe'){h+=`<td>${sd.breathe?'<span class="h-check">✓</span>':'<span class="h-cross">✗</span>'}</td>`;}
-      else if(dh.key==='audio'){h+=`<td>${sd.audio?'<span class="h-check">✓</span>':'<span class="h-cross">✗</span>'}</td>`;}
+      if(dh.key==='breathe'){dl+=`<td>${sd.breathe?'<span class="h-check">✓</span>':'<span class="h-cross">✗</span>'}</td>`;}
+      else if(dh.key==='audio'){dl+=`<td>${sd.audio?'<span class="h-check">✓</span>':'<span class="h-cross">✗</span>'}</td>`;}
       else if(dh.key==='test'){
-        if(sd.test.length>0){const avg=parseFloat((sd.test.reduce((a,b)=>a+b,0)/sd.test.length).toFixed(0));const cls=avg>=25?'good':'low';h+=`<td><span class="h-val ${cls}">${avg}s</span></td>`;}
-        else h+=`<td><span class="h-cross">✗</span></td>`;
+        if(sd.test.length>0){const avg=parseFloat((sd.test.reduce((a,b)=>a+b,0)/sd.test.length).toFixed(0));const cls=avg>=25?'good':'low';dl+=`<td><span class="h-val ${cls}">${avg}s</span></td>`;}
+        else dl+=`<td><span class="h-cross">✗</span></td>`;
       }
     });
-    h+='</tr>';
+    dl+='</tr>';
   });
-
-  // Custom habits
   userHabits.forEach(hab=>{
-    h+=`<tr><td><div class="habit-name-cell" onclick="openHabitDetail('${hab.id}',false)" style="cursor:pointer"><div class="habit-dot" style="background:${hab.color||'#80cbc4'}"></div>${hab.name}<span onclick="event.stopPropagation();deleteHabit('${hab.id}','${hab.name}')" style="margin-left:auto;color:var(--danger);font-size:.7rem;opacity:.5;cursor:pointer;padding:0 .3rem">✕</span></div></td>`;
+    dl+='<tr>';
     days.forEach(day=>{
       const log=habitLogs[hab.id+'_'+day];
       if(hab.type==='boolean'){
-        if(log&&log.completed)h+=`<td><span class="h-check" onclick="toggleHabitLog('${hab.id}','${day}',true)">✓</span></td>`;
-        else h+=`<td><span class="h-cross" onclick="toggleHabitLog('${hab.id}','${day}',false)">✗</span></td>`;
+        if(log&&log.completed)dl+=`<td><span class="h-check" onclick="toggleHabitLog('${hab.id}','${day}',true)">✓</span></td>`;
+        else dl+=`<td><span class="h-cross" onclick="toggleHabitLog('${hab.id}','${day}',false)">✗</span></td>`;
       }else{
-        if(log&&log.value!=null){const cls=hab.target&&log.value>=hab.target?'good':'low';h+=`<td><span class="h-val ${cls}" onclick="showInlineInput('${hab.id}','${day}',this)">${log.value}<br><span style="font-size:.6rem">${hab.unit||''}</span></span></td>`;}
-        else h+=`<td><span class="h-cross" onclick="showInlineInput('${hab.id}','${day}',this)">0</span></td>`;
+        if(log&&log.value!=null){const cls=hab.target&&log.value>=hab.target?'good':'low';dl+=`<td><span class="h-val ${cls}" onclick="showInlineInput('${hab.id}','${day}',this)">${log.value}<br><span style="font-size:.6rem">${hab.unit||''}</span></span></td>`;}
+        else dl+=`<td><span class="h-cross" onclick="showInlineInput('${hab.id}','${day}',this)">0</span></td>`;
       }
     });
-    h+='</tr>';
+    dl+='</tr>';
   });
+  dl+='</tbody></table>';
 
-  h+='</tbody></table>';
-  $('habitTableWrap').innerHTML=h;
-  // Scroll to left (most recent days) — table is right-to-left so leftmost = newest
-  const sw=$('habitScrollWrap');
-  if(sw)sw.scrollLeft=0;
+  $('habitTableWrap').innerHTML=`<div class="habit-outer"><div class="habit-names">${nl}</div><div class="habit-days-wrap" id="habitDaysScroll"><div class="habit-days">${dl}</div></div></div>`;
+  // Scroll to left (most recent = leftmost, already there)
 }
 
 window.toggleHabitLog=async function(habitId,date,currentState){
@@ -788,7 +797,7 @@ window.openHabitDetail=async function(key,isDefault){
     <div style="display:flex;justify-content:space-between;align-items:center">
       <div class="detail-section-title" style="color:${clr}">Histórico</div>
       <select class="input" style="width:auto;padding:.3rem .7rem;font-size:.72rem;margin:0" id="detHistPeriod">
-        <option value="week" selected>Semana</option><option value="month">Mês</option><option value="quarter">Trimestre</option><option value="year">Ano</option>
+        ${isMeas?'<option value="day" selected>Dia</option><option value="week">Semana</option>':'<option value="week" selected>Semana</option>'}<option value="month">Mês</option><option value="quarter">Trimestre</option><option value="year">Ano</option>
       </select>
     </div>
     <div id="detHistChart" style="margin-top:.8rem"></div>
@@ -828,25 +837,28 @@ function renderDetHist(entries,clr,isMeas){
   const groups=[];
   const now=new Date();
   const MN=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
-  if(period==='week'){
-    for(let i=25;i>=0;i--){const d=new Date(now);d.setDate(d.getDate()-i*7);const dow=d.getDay();const mo=dow===0?-6:1-dow;const mon=new Date(d);mon.setDate(d.getDate()+mo);const k=dateStr(mon);if(!groups.find(g=>g.key===k))groups.push({key:k,label:mon.getDate()+'/'+String(mon.getMonth()+1),count:0});}
-    entries.forEach(e=>{const d=new Date(e.date+'T12:00:00');const dow=d.getDay();const mo=dow===0?-6:1-dow;const mon=new Date(d);mon.setDate(d.getDate()+mo);const k=dateStr(mon);const g=groups.find(x=>x.key===k);if(g)g.count++;});
+  const DN=['dom','seg','ter','qua','qui','sex','sáb'];
+  if(period==='day'){
+    for(let i=29;i>=0;i--){const d=new Date(now);d.setDate(d.getDate()-i);const k=dateStr(d);groups.push({key:k,label:DN[d.getDay()]+' '+d.getDate()+'/'+String(d.getMonth()+1),val:0});}
+    entries.forEach(e=>{const g=groups.find(x=>x.key===e.date);if(g)g.val+=(isMeas&&e.value?e.value:1);});
+  }else if(period==='week'){
+    for(let i=25;i>=0;i--){const d=new Date(now);d.setDate(d.getDate()-i*7);const dow=d.getDay();const mo=dow===0?-6:1-dow;const mon=new Date(d);mon.setDate(d.getDate()+mo);const k=dateStr(mon);if(!groups.find(g=>g.key===k))groups.push({key:k,label:mon.getDate()+'/'+String(mon.getMonth()+1),val:0});}
+    entries.forEach(e=>{const d=new Date(e.date+'T12:00:00');const dow=d.getDay();const mo=dow===0?-6:1-dow;const mon=new Date(d);mon.setDate(d.getDate()+mo);const k=dateStr(mon);const g=groups.find(x=>x.key===k);if(g)g.val+=(isMeas&&e.value?e.value:1);});
   }else if(period==='month'){
-    for(let i=23;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);const k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');groups.push({key:k,label:MN[d.getMonth()]+' '+String(d.getFullYear()).slice(2),count:0});}
-    entries.forEach(e=>{const k=e.date.slice(0,7);const g=groups.find(x=>x.key===k);if(g)g.count++;});
+    for(let i=23;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);const k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');groups.push({key:k,label:MN[d.getMonth()]+' '+String(d.getFullYear()).slice(2),val:0});}
+    entries.forEach(e=>{const k=e.date.slice(0,7);const g=groups.find(x=>x.key===k);if(g)g.val+=(isMeas&&e.value?e.value:1);});
   }else if(period==='quarter'){
-    for(let i=11;i>=0;i--){const qm=now.getMonth()-i*3;const d=new Date(now.getFullYear(),qm,1);const q=Math.floor(d.getMonth()/3)+1;const k=d.getFullYear()+'Q'+q;const label='T'+q+'/'+String(d.getFullYear()).slice(2);if(!groups.find(g=>g.key===k))groups.push({key:k,label,count:0});}
-    entries.forEach(e=>{const d=new Date(e.date+'T12:00:00');const q=Math.floor(d.getMonth()/3)+1;const k=d.getFullYear()+'Q'+q;const g=groups.find(x=>x.key===k);if(g)g.count++;});
+    for(let i=11;i>=0;i--){const qm=now.getMonth()-i*3;const d=new Date(now.getFullYear(),qm,1);const q=Math.floor(d.getMonth()/3)+1;const k=d.getFullYear()+'Q'+q;const label='T'+q+'/'+String(d.getFullYear()).slice(2);if(!groups.find(g=>g.key===k))groups.push({key:k,label,val:0});}
+    entries.forEach(e=>{const d=new Date(e.date+'T12:00:00');const q=Math.floor(d.getMonth()/3)+1;const k=d.getFullYear()+'Q'+q;const g=groups.find(x=>x.key===k);if(g)g.val+=(isMeas&&e.value?e.value:1);});
   }else{
-    for(let i=9;i>=0;i--){const y=now.getFullYear()-i;groups.push({key:''+y,label:''+y,count:0});}
-    entries.forEach(e=>{const k=e.date.slice(0,4);const g=groups.find(x=>x.key===k);if(g)g.count++;});
+    for(let i=9;i>=0;i--){const y=now.getFullYear()-i;groups.push({key:''+y,label:''+y,val:0});}
+    entries.forEach(e=>{const k=e.date.slice(0,4);const g=groups.find(x=>x.key===k);if(g)g.val+=(isMeas&&e.value?e.value:1);});
   }
-  const mx=Math.max(...groups.map(g=>g.count),1);
+  const mx=Math.max(...groups.map(g=>g.val),1);
   let bh='<div style="overflow-x:auto;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.1) transparent"><div class="bar-chart" style="min-width:'+Math.max(groups.length*30,280)+'px">';
-  groups.forEach(g=>{const pct=mx>0?(g.count/mx)*100:0;bh+=`<div class="bar-col"><div class="bar-val" style="color:${clr}">${g.count>0?g.count:''}</div><div class="bar-track"><div class="bar-fill" style="height:${pct}%;background:${clr}"></div></div><div class="bar-label">${g.label}</div></div>`;});
+  groups.forEach(g=>{const pct=mx>0?(g.val/mx)*100:0;const displayVal=isMeas?(g.val>0?g.val:''):(g.val>0?g.val:'');bh+=`<div class="bar-col"><div class="bar-val" style="color:${clr}">${displayVal}</div><div class="bar-track"><div class="bar-fill" style="height:${pct}%;background:${clr}"></div></div><div class="bar-label">${g.label}</div></div>`;});
   bh+='</div></div>';
   $('detHistChart').innerHTML=bh;
-  // Scroll to the right (most recent period)
   const histScroll=$('detHistChart').firstElementChild;
   if(histScroll)histScroll.scrollLeft=histScroll.scrollWidth;
 }
@@ -932,62 +944,34 @@ function renderDetStability(entries,clr){
   const MN=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
   const points=[];
 
-  // Per-period stability: each point = entries_in_period / days_in_period * 100
-  // Matches Visão Geral logic so the rightmost "Dia" point = Estabilidade Mês
+  // Cumulative stability: at each data point, entries_in_range / days_in_range * 100
+  // Range starts at leftmost chart point so days without activity count in the denominator
   const sorted=[...entries].sort((a,b)=>a.date.localeCompare(b.date));
 
-  function periodPct(pStart,pEnd){
-    const fromStr=dateStr(pStart);
-    const toStr=dateStr(pEnd);
-    const done=sorted.filter(e=>e.date>=fromStr&&e.date<=toStr).length;
-    const days=Math.max(1,Math.round((pEnd-pStart)/86400000)+1);
-    return Math.min(100,Math.round(done/days*100));
+  function cumPct(rangeStartDate,upTo){
+    const fromStr=dateStr(rangeStartDate);
+    const upToStr=dateStr(upTo);
+    const totalDone=sorted.filter(e=>e.date>=fromStr&&e.date<=upToStr).length;
+    const totalDays=Math.max(1,Math.round((upTo-rangeStartDate)/86400000)+1);
+    return Math.min(100,Math.round(totalDone/totalDays*100));
   }
 
   if(period==='day'){
-    // One point per month (last 6 months) — same formula as Visão Geral
-    for(let i=5;i>=0;i--){
-      const ms=new Date(now.getFullYear(),now.getMonth()-i,1);ms.setHours(12,0,0,0);
-      const meRaw=new Date(ms.getFullYear(),ms.getMonth()+1,0);meRaw.setHours(12,0,0,0);
-      const me=meRaw>now?now:meRaw;
-      points.push({label:MN[ms.getMonth()]+'/'+String(ms.getFullYear()).slice(2),value:periodPct(ms,me)});
-    }
+    const n=Math.min(30,Math.max(7,sorted.length||7));
+    const rangeStart=new Date(now);rangeStart.setDate(rangeStart.getDate()-(n-1));rangeStart.setHours(12,0,0,0);
+    for(let i=n-1;i>=0;i--){const d=new Date(now);d.setDate(d.getDate()-i);d.setHours(12,0,0,0);points.push({label:d.getDate()+(i===n-1?'\n'+MN[d.getMonth()]+'.':''),value:cumPct(rangeStart,d)});}
   }else if(period==='week'){
-    // Each point = one week's own stability
-    for(let i=11;i>=0;i--){
-      const we=new Date(now);we.setDate(we.getDate()-i*7);we.setHours(12,0,0,0);
-      const ws=new Date(we);ws.setDate(ws.getDate()-6);
-      const ce=we>now?now:we;
-      points.push({label:ce.getDate()+'/'+String(ce.getMonth()+1),value:periodPct(ws,ce)});
-    }
+    const rangeStart=new Date(now);rangeStart.setDate(rangeStart.getDate()-11*7);rangeStart.setHours(12,0,0,0);
+    for(let i=11;i>=0;i--){const wEnd=new Date(now);wEnd.setDate(wEnd.getDate()-i*7);wEnd.setHours(12,0,0,0);const capEnd=wEnd>now?now:wEnd;points.push({label:capEnd.getDate()+'/'+String(capEnd.getMonth()+1),value:cumPct(rangeStart,capEnd)});}
   }else if(period==='month'){
-    // Each point = that month's stability
-    for(let i=11;i>=0;i--){
-      const ms=new Date(now.getFullYear(),now.getMonth()-i,1);ms.setHours(12,0,0,0);
-      const meRaw=new Date(ms.getFullYear(),ms.getMonth()+1,0);meRaw.setHours(12,0,0,0);
-      const me=meRaw>now?now:meRaw;
-      points.push({label:MN[ms.getMonth()],value:periodPct(ms,me)});
-    }
+    const rangeStart=new Date(now.getFullYear(),now.getMonth()-11,1);rangeStart.setHours(12,0,0,0);
+    for(let i=11;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i+1,0);d.setHours(12,0,0,0);const capEnd=d>now?now:d;points.push({label:MN[capEnd.getMonth()],value:cumPct(rangeStart,capEnd)});}
   }else if(period==='quarter'){
-    for(let i=7;i>=0;i--){
-      const qm=now.getMonth()-i*3;
-      const qs=new Date(now.getFullYear(),qm,1);
-      const q=Math.floor(((qs.getMonth()%12)+12)%12/3);
-      const qeRaw=new Date(qs.getFullYear(),qs.getMonth()+3,0);qeRaw.setHours(12,0,0,0);
-      qs.setHours(12,0,0,0);
-      const k=qs.getFullYear()+'Q'+(q+1);
-      if(points.find(p=>p.key===k))continue;
-      const ce=qeRaw>now?now:qeRaw;
-      points.push({key:k,label:'T'+(q+1)+'/'+String(qs.getFullYear()).slice(2),value:periodPct(qs,ce)});
-    }
+    const rangeStart=new Date(now.getFullYear(),now.getMonth()-7*3,1);rangeStart.setHours(12,0,0,0);
+    for(let i=7;i>=0;i--){const qStart=new Date(now.getFullYear(),now.getMonth()-i*3,1);const q=Math.floor(qStart.getMonth()/3);const qEndDate=new Date(qStart.getFullYear(),q*3+3,0);qEndDate.setHours(12,0,0,0);const k=qStart.getFullYear()+'Q'+(q+1);if(points.find(p=>p.key===k))continue;const capEnd=qEndDate>now?now:qEndDate;points.push({key:k,label:'T'+(q+1)+'/'+String(qStart.getFullYear()).slice(2),value:cumPct(rangeStart,capEnd)});}
   }else{
-    for(let i=4;i>=0;i--){
-      const y=now.getFullYear()-i;
-      const ys=new Date(y,0,1);ys.setHours(12,0,0,0);
-      const yeRaw=new Date(y,11,31);yeRaw.setHours(12,0,0,0);
-      const ce=yeRaw>now?now:yeRaw;
-      points.push({label:''+y,value:periodPct(ys,ce)});
-    }
+    const rangeStart=new Date(now.getFullYear()-4,0,1);rangeStart.setHours(12,0,0,0);
+    for(let i=4;i>=0;i--){const y=now.getFullYear()-i;const yEnd=new Date(y,11,31);yEnd.setHours(12,0,0,0);const capEnd=yEnd>now?now:yEnd;points.push({label:''+y,value:cumPct(rangeStart,capEnd)});}
   }
 
   if(points.length<2){$('detStabChart').innerHTML='<div style="font-size:.8rem;color:var(--text-dim);padding:.5rem 0">Dados insuficientes.</div>';return;}
