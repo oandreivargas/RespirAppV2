@@ -404,6 +404,59 @@ function getDayLabel(ds){const d=new Date(ds+'T12:00:00');const days=['DOM','SEG
 function getDayNum(ds){return ds.slice(8,10);}
 function getISOWeekKey(d){const t=new Date(d);t.setHours(12,0,0,0);const day=t.getDay()||7;t.setDate(t.getDate()+4-day);const yearStart=new Date(t.getFullYear(),0,1);const wn=Math.ceil(((t-yearStart)/86400000+1)/7);return t.getFullYear()+'W'+String(wn).padStart(2,'0');}
 function getWeekStartFromKey(wk){const y=parseInt(wk.slice(0,4));const w=parseInt(wk.slice(5));const jan4=new Date(y,0,4,12,0,0);const dow=jan4.getDay()||7;const mon=new Date(jan4);mon.setDate(jan4.getDate()-(dow-1)+(w-1)*7);return mon;}
+function getMonthKey(ds){return ds.slice(0,7);}
+// Build a goal-met map for boolean habits with frequency goals
+// Returns a function: isGoalMet(dayStr) => true/false, or null if no frequency goal
+function buildGoalChecker(hab,logSource){
+  if(!hab||hab.type!=='boolean'||!hab.frequency||hab.frequency==='daily')return null;
+  const freq=hab.frequency;
+  // Helper to check if a day has a completion
+  function isDone(ds){
+    if(typeof logSource==='function')return logSource(ds);
+    const log=logSource[hab.id+'_'+ds];
+    return log&&log.completed;
+  }
+  if(freq==='per_week'){
+    const goal=hab.freqPerWeek||3;
+    const cache={};
+    return function(ds){
+      const dt=new Date(ds+'T12:00:00');
+      const wk=getISOWeekKey(dt);
+      if(cache[wk]!==undefined)return cache[wk];
+      // Find Monday of this week
+      const wkStart=getWeekStartFromKey(wk);
+      let cnt=0;
+      for(let i=0;i<7;i++){const d=new Date(wkStart);d.setDate(d.getDate()+i);if(isDone(dateStr(d)))cnt++;}
+      cache[wk]=cnt>=goal;
+      return cache[wk];
+    };
+  }
+  if(freq==='per_month'){
+    const goal=hab.freqPerMonth||10;
+    const cache={};
+    return function(ds){
+      const mk=getMonthKey(ds);
+      if(cache[mk]!==undefined)return cache[mk];
+      const y=parseInt(mk.slice(0,4)),m=parseInt(mk.slice(5))-1;
+      const daysInMonth=new Date(y,m+1,0).getDate();
+      let cnt=0;
+      for(let i=1;i<=daysInMonth;i++){const d=y+'-'+String(m+1).padStart(2,'0')+'-'+String(i).padStart(2,'0');if(isDone(d))cnt++;}
+      cache[mk]=cnt>=goal;
+      return cache[mk];
+    };
+  }
+  if(freq==='custom'){
+    const times=hab.freqCustomTimes||3,window=hab.freqCustomDays||14;
+    // Sliding window: for each day, check if in the window of Y days ending on that day, there are >= X completions
+    return function(ds){
+      const dt=new Date(ds+'T12:00:00');
+      let cnt=0;
+      for(let i=0;i<window;i++){const d=new Date(dt);d.setDate(d.getDate()-i);if(isDone(dateStr(d)))cnt++;}
+      return cnt>=times;
+    };
+  }
+  return null;
+}
 
 // ═══ AUTH ═══
 let isLogin=false;
@@ -529,43 +582,12 @@ function renderHabitTable(days){
   userHabits.forEach(hab=>{
     const hc=hab.color||'#80cbc4';
     h+=`<tr><td class="h-name" style="min-width:150px"><div class="habit-name-cell" onclick="openHabitDetail('${hab.id}',false)" style="cursor:pointer;color:${hc}"><div class="habit-dot" style="background:${hc}"></div>${hab.name}<span onclick="event.stopPropagation();deleteHabit('${hab.id}','${hab.name}')" style="margin-left:auto;color:var(--danger);font-size:.7rem;opacity:.5;cursor:pointer;padding:0 .3rem">✕</span></div></td>`;
-    // Check weekly goal for boolean habits with per_week frequency
-    let weekGoalMet=false;
-    if(hab.type==='boolean'&&hab.frequency==='per_week'&&hab.freqPerWeek){
-      // Find which ISO week each day belongs to, count completions per week
-      const weekMap={};
-      days.forEach(day=>{
-        const dt=new Date(day+'T12:00:00');
-        const wk=getISOWeekKey(dt);
-        if(!weekMap[wk])weekMap[wk]={count:0,days:[]};
-        weekMap[wk].days.push(day);
-        const log=habitLogs[hab.id+'_'+day];
-        if(log&&log.completed)weekMap[wk].count++;
-      });
-      // Also count completions from days not in visible range but in same weeks
-      for(const wk of Object.keys(weekMap)){
-        const wkStart=getWeekStartFromKey(wk);
-        for(let i=0;i<7;i++){
-          const d=new Date(wkStart);d.setDate(d.getDate()+i);
-          const ds=dateStr(d);
-          if(!weekMap[wk].days.includes(ds)){
-            const log=habitLogs[hab.id+'_'+ds];
-            if(log&&log.completed)weekMap[wk].count++;
-          }
-        }
-      }
-      // Store week goal status
-      hab._weekGoalMap=weekMap;
-    }
+    const goalCheck=buildGoalChecker(hab,habitLogs);
     days.forEach(day=>{
       const log=habitLogs[hab.id+'_'+day];
       if(hab.type==='boolean'){
-        let goalHighlight='';
-        if(hab._weekGoalMap){
-          const dt=new Date(day+'T12:00:00');
-          const wk=getISOWeekKey(dt);
-          if(hab._weekGoalMap[wk]&&hab._weekGoalMap[wk].count>=hab.freqPerWeek)goalHighlight=`border:1.5px solid ${hc};border-radius:4px;`;
-        }
+        const goalMet=goalCheck?goalCheck(day):false;
+        const goalHighlight=goalMet?`border:1.5px solid ${hc};border-radius:4px;`:'';
         if(log&&log.completed)h+=`<td class="h-day" style="${goalHighlight}"><span class="h-check" style="color:${hc}" onclick="toggleHabitLog('${hab.id}','${day}',true)">✓</span></td>`;
         else h+=`<td class="h-day" style="${goalHighlight}"><span class="h-cross" onclick="toggleHabitLog('${hab.id}','${day}',false)">✗</span></td>`;
       }else{
@@ -573,7 +595,6 @@ function renderHabitTable(days){
         else h+=`<td class="h-day"><span class="h-cross" onclick="showInlineInput('${hab.id}','${day}',this)">0</span></td>`;
       }
     });
-    delete hab._weekGoalMap;
     h+='</tr>';
   });
   h+='</tbody></table>';
@@ -949,17 +970,8 @@ function renderDetCal(cSet,clr,isMeas,habit){
     weeks.push(week);
     if(d>now&&d.getDay()===0)break;
   }
-  // Check weekly goal per week (for per_week frequency boolean habits)
-  const hasWeekGoal=habit&&habit.type==='boolean'&&habit.frequency==='per_week'&&habit.freqPerWeek;
-  const weekGoalN=hasWeekGoal?habit.freqPerWeek:0;
-  const weekGoalMap={};
-  if(hasWeekGoal){
-    weeks.forEach(w=>{
-      const wk=getISOWeekKey(new Date(w[3].ds+'T12:00:00'));
-      const cnt=w.filter(c=>c.ok&&c.done).length;
-      weekGoalMap[wk]=cnt>=weekGoalN;
-    });
-  }
+  // Build goal checker for all frequency types
+  const calGoalCheck=buildGoalChecker(habit,function(ds){return cSet.has(ds);});
   const isEdit=calEditMode;
   let ch='<div style="display:inline-flex;flex-direction:column;gap:2px">';
   ch+='<div style="display:flex;gap:2px;height:14px">';
@@ -970,12 +982,11 @@ function renderDetCal(cSet,clr,isMeas,habit){
     ch+='<div style="display:flex;gap:2px;align-items:center">';
     weeks.forEach(w=>{
       const c=w[dow];
-      const wk=getISOWeekKey(new Date(w[3].ds+'T12:00:00'));
-      const goalMet=hasWeekGoal&&weekGoalMap[wk];
-      // If week goal is met: done days = full color, undone days = faded color
+      const goalMet=calGoalCheck&&c.ok?calGoalCheck(c.ds):false;
+      // If goal is met: done days = full color, undone days = faded color
       let bg,tc;
       if(c.done){bg=clr;tc='var(--bg)';}
-      else if(goalMet&&c.ok){bg=clr+'30';tc='var(--text-dim)';}
+      else if(goalMet){bg=clr+'30';tc='var(--text-dim)';}
       else{bg='rgba(255,255,255,.05)';tc='var(--text-dim)';}
       const op=c.ok?'1':'.2';
       const editCls=isEdit&&c.ok?' cal-cell-edit':'';
