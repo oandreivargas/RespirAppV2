@@ -771,23 +771,26 @@ function renderDetHist(entries,clr,isMeas){
   const now=new Date();
   const MN=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
   if(period==='week'){
-    for(let i=11;i>=0;i--){const d=new Date(now);d.setDate(d.getDate()-i*7);const dow=d.getDay();const mo=dow===0?-6:1-dow;const mon=new Date(d);mon.setDate(d.getDate()+mo);const k=dateStr(mon);if(!groups.find(g=>g.key===k))groups.push({key:k,label:mon.getDate()+'/'+String(mon.getMonth()+1),count:0});}
+    for(let i=25;i>=0;i--){const d=new Date(now);d.setDate(d.getDate()-i*7);const dow=d.getDay();const mo=dow===0?-6:1-dow;const mon=new Date(d);mon.setDate(d.getDate()+mo);const k=dateStr(mon);if(!groups.find(g=>g.key===k))groups.push({key:k,label:mon.getDate()+'/'+String(mon.getMonth()+1),count:0});}
     entries.forEach(e=>{const d=new Date(e.date+'T12:00:00');const dow=d.getDay();const mo=dow===0?-6:1-dow;const mon=new Date(d);mon.setDate(d.getDate()+mo);const k=dateStr(mon);const g=groups.find(x=>x.key===k);if(g)g.count++;});
   }else if(period==='month'){
-    for(let i=11;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);const k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');groups.push({key:k,label:MN[d.getMonth()],count:0});}
+    for(let i=23;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);const k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');groups.push({key:k,label:MN[d.getMonth()]+' '+String(d.getFullYear()).slice(2),count:0});}
     entries.forEach(e=>{const k=e.date.slice(0,7);const g=groups.find(x=>x.key===k);if(g)g.count++;});
   }else if(period==='quarter'){
-    for(let i=7;i>=0;i--){const qm=now.getMonth()-i*3;const d=new Date(now.getFullYear(),qm,1);const q=Math.floor(d.getMonth()/3)+1;const k=d.getFullYear()+'Q'+q;const label='T'+q+'/'+String(d.getFullYear()).slice(2);if(!groups.find(g=>g.key===k))groups.push({key:k,label,count:0});}
+    for(let i=11;i>=0;i--){const qm=now.getMonth()-i*3;const d=new Date(now.getFullYear(),qm,1);const q=Math.floor(d.getMonth()/3)+1;const k=d.getFullYear()+'Q'+q;const label='T'+q+'/'+String(d.getFullYear()).slice(2);if(!groups.find(g=>g.key===k))groups.push({key:k,label,count:0});}
     entries.forEach(e=>{const d=new Date(e.date+'T12:00:00');const q=Math.floor(d.getMonth()/3)+1;const k=d.getFullYear()+'Q'+q;const g=groups.find(x=>x.key===k);if(g)g.count++;});
   }else{
-    for(let i=4;i>=0;i--){const y=now.getFullYear()-i;groups.push({key:''+y,label:''+y,count:0});}
+    for(let i=9;i>=0;i--){const y=now.getFullYear()-i;groups.push({key:''+y,label:''+y,count:0});}
     entries.forEach(e=>{const k=e.date.slice(0,4);const g=groups.find(x=>x.key===k);if(g)g.count++;});
   }
   const mx=Math.max(...groups.map(g=>g.count),1);
-  let bh='<div class="bar-chart">';
+  let bh='<div style="overflow-x:auto;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.1) transparent"><div class="bar-chart" style="min-width:'+Math.max(groups.length*30,280)+'px">';
   groups.forEach(g=>{const pct=mx>0?(g.count/mx)*100:0;bh+=`<div class="bar-col"><div class="bar-val" style="color:${clr}">${g.count>0?g.count:''}</div><div class="bar-track"><div class="bar-fill" style="height:${pct}%;background:${clr}"></div></div><div class="bar-label">${g.label}</div></div>`;});
-  bh+='</div>';
+  bh+='</div></div>';
   $('detHistChart').innerHTML=bh;
+  // Scroll to the right (most recent period)
+  const histScroll=$('detHistChart').firstElementChild;
+  if(histScroll)histScroll.scrollLeft=histScroll.scrollWidth;
 }
 
 function renderDetCal(cSet,clr,isMeas){
@@ -819,9 +822,11 @@ function renderDetCal(cSet,clr,isMeas){
     ch+=`<div style="font-size:.48rem;color:var(--text-dim);margin-left:.3rem;width:26px;flex-shrink:0">${DN[dow]}</div></div>`;
   }
   ch+='</div>';
-  ch+=`<button class="cal-edit-btn ${isEdit?'active':''}" id="calEditBtn">${isEdit?'CONCLUIR':'EDITAR'}</button>`;
+  if(!detailIsDefault) ch+=`<button class="cal-edit-btn ${isEdit?'active':''}" id="calEditBtn">${isEdit?'CONCLUIR':'EDITAR'}</button>`;
   $('detCalendar').innerHTML=ch;
-  $('calEditBtn').addEventListener('click',()=>{calEditMode=!calEditMode;renderDetCal(detailCSet,detailClr,detailIsMeas);});
+  // Scroll to the right (most recent week)
+  $('detCalendar').scrollLeft=$('detCalendar').scrollWidth;
+  if($('calEditBtn')) $('calEditBtn').addEventListener('click',()=>{calEditMode=!calEditMode;renderDetCal(detailCSet,detailClr,detailIsMeas);});
 }
 
 function renderDetStreaks(cSet,clr){
@@ -869,17 +874,31 @@ function renderDetStability(entries,clr){
   const MN=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
   const points=[];
 
+  // Cumulative stability: at each data point, total_done_so_far / total_days_so_far * 100
+  // "so far" = from the first ever entry date to the data point's date
+  const sorted=[...entries].sort((a,b)=>a.date.localeCompare(b.date));
+  const firstDate=sorted.length>0?sorted[0].date:dateStr(now);
+  const firstD=new Date(firstDate+'T12:00:00');
+
+  function cumPct(upTo){
+    // upTo is a Date; count entries with date <= upTo, days from firstD to upTo
+    const upToStr=dateStr(upTo);
+    const totalDone=sorted.filter(e=>e.date<=upToStr).length;
+    const totalDays=Math.max(1,Math.round((upTo-firstD)/86400000)+1);
+    return Math.min(100,Math.round(totalDone/totalDays*100));
+  }
+
   if(period==='day'){
-    const n=Math.min(30,Math.max(7,entries.length||7));
-    for(let i=n-1;i>=0;i--){const d=new Date(now);d.setDate(d.getDate()-i);const ds=dateStr(d);const done=entries.some(e=>e.date===ds);points.push({label:d.getDate()+(i===n-1?'\n'+MN[d.getMonth()]+'.':''),value:done?100:0});}
+    const n=Math.min(30,Math.max(7,sorted.length||7));
+    for(let i=n-1;i>=0;i--){const d=new Date(now);d.setDate(d.getDate()-i);points.push({label:d.getDate()+(i===n-1?'\n'+MN[d.getMonth()]+'.':''),value:cumPct(d)});}
   }else if(period==='week'){
-    for(let i=11;i>=0;i--){const wEnd=new Date(now);wEnd.setDate(wEnd.getDate()-i*7);const wStart=new Date(wEnd);wStart.setDate(wEnd.getDate()-6);let total=0,done=0;for(let j=0;j<7;j++){const d=new Date(wStart);d.setDate(wStart.getDate()+j);if(d<=now){total++;if(entries.some(e=>e.date===dateStr(d)))done++;}};const pct=total>0?Math.round(done/total*100):0;points.push({label:wStart.getDate()+'/'+String(wStart.getMonth()+1),value:pct});}
+    for(let i=11;i>=0;i--){const wEnd=new Date(now);wEnd.setDate(wEnd.getDate()-i*7);const capEnd=wEnd>now?now:wEnd;points.push({label:capEnd.getDate()+'/'+String(capEnd.getMonth()+1),value:cumPct(capEnd)});}
   }else if(period==='month'){
-    for(let i=11;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);const ym=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');const daysInMonth=new Date(d.getFullYear(),d.getMonth()+1,0).getDate();const isCurrentMonth=d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth();const totalDays=isCurrentMonth?now.getDate():daysInMonth;const cnt=entries.filter(e=>e.date.startsWith(ym)).length;const pct=totalDays>0?Math.round(cnt/totalDays*100):0;points.push({label:MN[d.getMonth()],value:pct});}
+    for(let i=11;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i+1,0);const capEnd=d>now?now:d;points.push({label:MN[capEnd.getMonth()],value:cumPct(capEnd)});}
   }else if(period==='quarter'){
-    for(let i=7;i>=0;i--){const qStart=new Date(now.getFullYear(),now.getMonth()-i*3,1);const q=Math.floor(qStart.getMonth()/3);const qStartDate=new Date(qStart.getFullYear(),q*3,1);const qEndDate=new Date(qStart.getFullYear(),q*3+3,0);const k=qStartDate.getFullYear()+'Q'+(q+1);if(points.find(p=>p.key===k))continue;const isCurrentQ=now>=qStartDate&&now<=qEndDate;const totalDays=isCurrentQ?Math.round((now-qStartDate)/86400000)+1:Math.round((qEndDate-qStartDate)/86400000)+1;let cnt=0;entries.forEach(e=>{const ed=new Date(e.date+'T12:00:00');if(ed>=qStartDate&&ed<=qEndDate)cnt++;});const pct=totalDays>0?Math.round(cnt/totalDays*100):0;points.push({key:k,label:'T'+(q+1)+'/'+String(qStartDate.getFullYear()).slice(2),value:pct});}
+    for(let i=7;i>=0;i--){const qStart=new Date(now.getFullYear(),now.getMonth()-i*3,1);const q=Math.floor(qStart.getMonth()/3);const qEndDate=new Date(qStart.getFullYear(),q*3+3,0);const k=qStart.getFullYear()+'Q'+(q+1);if(points.find(p=>p.key===k))continue;const capEnd=qEndDate>now?now:qEndDate;points.push({key:k,label:'T'+(q+1)+'/'+String(qStart.getFullYear()).slice(2),value:cumPct(capEnd)});}
   }else{
-    for(let i=4;i>=0;i--){const y=now.getFullYear()-i;const isCurrentYear=y===now.getFullYear();const totalDays=isCurrentYear?Math.round((now-new Date(y,0,1))/86400000)+1:366;const cnt=entries.filter(e=>e.date.startsWith(''+y)).length;const pct=totalDays>0?Math.round(cnt/totalDays*100):0;points.push({label:''+y,value:pct});}
+    for(let i=4;i>=0;i--){const y=now.getFullYear()-i;const yEnd=new Date(y,11,31);const capEnd=yEnd>now?now:yEnd;points.push({label:''+y,value:cumPct(capEnd)});}
   }
 
   if(points.length<2){$('detStabChart').innerHTML='<div style="font-size:.8rem;color:var(--text-dim);padding:.5rem 0">Dados insuficientes.</div>';return;}
