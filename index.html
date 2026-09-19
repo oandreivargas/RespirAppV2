@@ -1051,8 +1051,8 @@ function renderDetStability(entries,clr){
   const points=[];
 
   // Cumulative stability: at each data point, entries_in_range / days_in_range * 100
-  // Range starts at leftmost chart point so days without activity count in the denominator
   const sorted=[...entries].sort((a,b)=>a.date.localeCompare(b.date));
+  const firstEntry=sorted.length>0?new Date(sorted[0].date+'T12:00:00'):null;
 
   function cumPct(rangeStartDate,upTo){
     const fromStr=dateStr(rangeStartDate);
@@ -1063,49 +1063,68 @@ function renderDetStability(entries,clr){
   }
 
   if(period==='day'){
-    const n=Math.min(30,Math.max(7,sorted.length||7));
+    // Show from first entry or min 30 days
+    let n=30;
+    if(firstEntry){const daysSinceFirst=Math.round((now-firstEntry)/86400000)+1;n=Math.max(30,daysSinceFirst);}
     const rangeStart=new Date(now);rangeStart.setDate(rangeStart.getDate()-(n-1));rangeStart.setHours(12,0,0,0);
-    for(let i=n-1;i>=0;i--){const d=new Date(now);d.setDate(d.getDate()-i);d.setHours(12,0,0,0);points.push({label:d.getDate()+(i===n-1?'\n'+MN[d.getMonth()]+'.':''),value:cumPct(rangeStart,d)});}
+    let prevMonth=-1;
+    for(let i=n-1;i>=0;i--){const d=new Date(now);d.setDate(d.getDate()-i);d.setHours(12,0,0,0);const m=d.getMonth();let lbl=''+d.getDate();if(m!==prevMonth){lbl+='\n'+MN[m]+'.';prevMonth=m;}points.push({label:lbl,value:cumPct(rangeStart,d)});}
   }else if(period==='week'){
-    const rangeStart=new Date(now);rangeStart.setDate(rangeStart.getDate()-11*7);rangeStart.setHours(12,0,0,0);
-    for(let i=11;i>=0;i--){const wEnd=new Date(now);wEnd.setDate(wEnd.getDate()-i*7);wEnd.setHours(12,0,0,0);const capEnd=wEnd>now?now:wEnd;points.push({label:capEnd.getDate()+'/'+String(capEnd.getMonth()+1),value:cumPct(rangeStart,capEnd)});}
+    let nWeeks=12;
+    if(firstEntry){const weeksSinceFirst=Math.ceil((now-firstEntry)/604800000)+1;nWeeks=Math.max(12,weeksSinceFirst);}
+    const rangeStart=new Date(now);rangeStart.setDate(rangeStart.getDate()-nWeeks*7);rangeStart.setHours(12,0,0,0);
+    for(let i=nWeeks;i>=0;i--){const wEnd=new Date(now);wEnd.setDate(wEnd.getDate()-i*7);wEnd.setHours(12,0,0,0);const capEnd=wEnd>now?now:wEnd;points.push({label:capEnd.getDate()+'/'+String(capEnd.getMonth()+1),value:cumPct(rangeStart,capEnd)});}
   }else if(period==='month'){
-    const rangeStart=new Date(now.getFullYear(),now.getMonth()-11,1);rangeStart.setHours(12,0,0,0);
-    for(let i=11;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i+1,0);d.setHours(12,0,0,0);const capEnd=d>now?now:d;points.push({label:MN[capEnd.getMonth()],value:cumPct(rangeStart,capEnd)});}
+    let nMonths=12;
+    if(firstEntry){const monthsSinceFirst=(now.getFullYear()-firstEntry.getFullYear())*12+(now.getMonth()-firstEntry.getMonth())+1;nMonths=Math.max(12,monthsSinceFirst);}
+    const rangeStart=new Date(now.getFullYear(),now.getMonth()-(nMonths-1),1);rangeStart.setHours(12,0,0,0);
+    for(let i=nMonths-1;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i+1,0);d.setHours(12,0,0,0);const capEnd=d>now?now:d;points.push({label:MN[capEnd.getMonth()],value:cumPct(rangeStart,capEnd)});}
   }else if(period==='quarter'){
-    const rangeStart=new Date(now.getFullYear(),now.getMonth()-7*3,1);rangeStart.setHours(12,0,0,0);
-    for(let i=7;i>=0;i--){const qStart=new Date(now.getFullYear(),now.getMonth()-i*3,1);const q=Math.floor(qStart.getMonth()/3);const qEndDate=new Date(qStart.getFullYear(),q*3+3,0);qEndDate.setHours(12,0,0,0);const k=qStart.getFullYear()+'Q'+(q+1);if(points.find(p=>p.key===k))continue;const capEnd=qEndDate>now?now:qEndDate;points.push({key:k,label:'T'+(q+1)+'/'+String(qStart.getFullYear()).slice(2),value:cumPct(rangeStart,capEnd)});}
+    let nQ=8;
+    if(firstEntry){const qSinceFirst=Math.ceil(((now.getFullYear()-firstEntry.getFullYear())*12+(now.getMonth()-firstEntry.getMonth()))/3)+1;nQ=Math.max(8,qSinceFirst);}
+    const rangeStart=new Date(now.getFullYear(),now.getMonth()-nQ*3,1);rangeStart.setHours(12,0,0,0);
+    for(let i=nQ;i>=0;i--){const qStart=new Date(now.getFullYear(),now.getMonth()-i*3,1);const q=Math.floor(qStart.getMonth()/3);const qEndDate=new Date(qStart.getFullYear(),q*3+3,0);qEndDate.setHours(12,0,0,0);const k=qStart.getFullYear()+'Q'+(q+1);if(points.find(p=>p.key===k))continue;const capEnd=qEndDate>now?now:qEndDate;points.push({key:k,label:'T'+(q+1)+'/'+String(qStart.getFullYear()).slice(2),value:cumPct(rangeStart,capEnd)});}
   }else{
-    const rangeStart=new Date(now.getFullYear()-4,0,1);rangeStart.setHours(12,0,0,0);
-    for(let i=4;i>=0;i--){const y=now.getFullYear()-i;const yEnd=new Date(y,11,31);yEnd.setHours(12,0,0,0);const capEnd=yEnd>now?now:yEnd;points.push({label:''+y,value:cumPct(rangeStart,capEnd)});}
+    let nY=5;
+    if(firstEntry){nY=Math.max(5,now.getFullYear()-firstEntry.getFullYear()+1);}
+    const rangeStart=new Date(now.getFullYear()-(nY-1),0,1);rangeStart.setHours(12,0,0,0);
+    for(let i=nY-1;i>=0;i--){const y=now.getFullYear()-i;const yEnd=new Date(y,11,31);yEnd.setHours(12,0,0,0);const capEnd=yEnd>now?now:yEnd;points.push({label:''+y,value:cumPct(rangeStart,capEnd)});}
   }
 
   if(points.length<2){$('detStabChart').innerHTML='<div style="font-size:.8rem;color:var(--text-dim);padding:.5rem 0">Dados insuficientes.</div>';return;}
 
-  // SVG line chart
-  const W=320,H=140,PL=32,PR=8,PT=8,PB=28;
-  const cw=W-PL-PR,ch=H-PT-PB;
+  // SVG line chart with fixed Y-axis
+  const H=140,PL=0,PR=8,PT=8,PB=28;
+  const ch=H-PT-PB;
   const n=points.length;
-  const stepX=cw/(n-1||1);
+  const YW=32; // width for Y-axis column
 
-  const svgW=Math.max(W,PL+PR+n*28);
-  const cw2=svgW-PL-PR;
-  const stepX2=cw2/(n-1||1);
-  let svg=`<div style="overflow-x:auto;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.15) transparent"><svg viewBox="0 0 ${svgW} ${H}" style="width:${svgW}px;height:auto;min-width:100%">`;
-  // Grid lines & Y labels
-  for(let p=0;p<=100;p+=20){const y=PT+ch-ch*(p/100);svg+=`<line x1="${PL}" y1="${y}" x2="${svgW-PR}" y2="${y}" class="stab-grid-line"/>`;svg+=`<text x="${PL-4}" y="${y+3}" text-anchor="end" class="stab-axis-label">${p}%</text>`;}
+  const svgW=Math.max(280,n*28);
+  const stepX2=svgW/(n-1||1);
+
+  // Fixed Y-axis SVG
+  let yAxis=`<svg viewBox="0 0 ${YW} ${H}" style="width:${YW}px;height:auto;flex-shrink:0">`;
+  for(let p=0;p<=100;p+=20){const y=PT+ch-ch*(p/100);yAxis+=`<text x="${YW-4}" y="${y+3}" text-anchor="end" class="stab-axis-label">${p}%</text>`;}
+  yAxis+='</svg>';
+
+  // Scrollable chart SVG
+  let chart=`<svg viewBox="0 0 ${svgW} ${H}" style="width:${svgW}px;height:auto;min-width:100%">`;
+  // Grid lines
+  for(let p=0;p<=100;p+=20){const y=PT+ch-ch*(p/100);chart+=`<line x1="0" y1="${y}" x2="${svgW}" y2="${y}" class="stab-grid-line"/>`;}
   // X labels
-  points.forEach((p,i)=>{const x=PL+i*stepX2;const lines=p.label.split('\n');lines.forEach((ln,li)=>{svg+=`<text x="${x}" y="${H-PB+12+li*10}" text-anchor="middle" class="stab-axis-label">${ln}</text>`;});});
+  points.forEach((p,i)=>{const x=i*stepX2;const lines=p.label.split('\n');lines.forEach((ln,li)=>{chart+=`<text x="${x}" y="${H-PB+12+li*10}" text-anchor="middle" class="stab-axis-label">${ln}</text>`;});});
   // Line
   let pathD='';
-  points.forEach((p,i)=>{const x=PL+i*stepX2;const y=PT+ch-ch*(p.value/100);pathD+=(i===0?'M':'L')+x.toFixed(1)+','+y.toFixed(1);});
-  svg+=`<path d="${pathD}" class="stab-line" stroke="${clr}"/>`;
+  points.forEach((p,i)=>{const x=i*stepX2;const y=PT+ch-ch*(p.value/100);pathD+=(i===0?'M':'L')+x.toFixed(1)+','+y.toFixed(1);});
+  chart+=`<path d="${pathD}" class="stab-line" stroke="${clr}"/>`;
   // Dots
-  points.forEach((p,i)=>{const x=PL+i*stepX2;const y=PT+ch-ch*(p.value/100);svg+=`<circle cx="${x}" cy="${y}" r="3.5" fill="${clr}" class="stab-dot"/>`;});
-  svg+='</svg></div>';
-  $('detStabChart').innerHTML=svg;
+  points.forEach((p,i)=>{const x=i*stepX2;const y=PT+ch-ch*(p.value/100);chart+=`<circle cx="${x}" cy="${y}" r="3.5" fill="${clr}" class="stab-dot"/>`;});
+  chart+='</svg>';
+
+  const html=`<div style="display:flex;align-items:stretch">${yAxis}<div style="flex:1;overflow-x:auto;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.15) transparent">${chart}</div></div>`;
+  $('detStabChart').innerHTML=html;
   // Scroll to the right (most recent)
-  const stabScroll=$('detStabChart').firstElementChild;
+  const stabScroll=$('detStabChart').querySelector('div[style*="overflow-x"]');
   if(stabScroll)stabScroll.scrollLeft=stabScroll.scrollWidth;
 }
 
