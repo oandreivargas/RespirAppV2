@@ -712,11 +712,25 @@ window.openHabitDetail=async function(key,isDefault){
   const stabM=daysSoFar>0?Math.round(thisM/daysSoFar*100):0;
   const stabP=dPrev>0?Math.round(prevM/dPrev*100):0;
   const chg=stabM-stabP;
-  // Year stability
+  // Overall stability: total entries / total days since first entry
+  const sortedDates=entries.map(e=>e.date).sort();
+  let stabAll=0;
+  if(sortedDates.length>0){
+    const firstDate=new Date(sortedDates[0]+'T12:00:00');
+    const totalDaysSinceFirst=Math.max(1,Math.round((now-firstDate)/86400000)+1);
+    stabAll=Math.round(entries.length/totalDaysSinceFirst*100);
+  }
+  // Year-over-year variation
   const yStart=now.getFullYear()+'-01';
   const dayOfYear=Math.ceil((now-new Date(now.getFullYear(),0,1))/86400000)+1;
   const thisY=entries.filter(e=>e.date>=yStart+'-01').length;
-  const stabY=dayOfYear>0?Math.round(thisY/dayOfYear*100):0;
+  const stabYCur=dayOfYear>0?Math.round(thisY/dayOfYear*100):0;
+  // Previous year same period
+  const pyStart=(now.getFullYear()-1)+'-01';
+  const pyEnd=(now.getFullYear()-1)+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+  const prevYEntries=entries.filter(e=>e.date>=pyStart+'-01'&&e.date<=pyEnd).length;
+  const stabYPrev=dayOfYear>0?Math.round(prevYEntries/dayOfYear*100):0;
+  const chgY=prevYEntries>0?(stabYCur-stabYPrev):stabAll;
 
   let h='';
   if(isMeas){
@@ -767,11 +781,11 @@ window.openHabitDetail=async function(key,isDefault){
     h+=`<div class="card no-tap" style="margin-bottom:1.2rem">
       <div class="detail-section-title" style="color:${clr}">Visão geral</div>
       <div style="display:flex;align-items:center;gap:1rem;margin-top:.6rem">
-        <svg viewBox="0 0 36 36" width="52" height="52"><path d="M18 2.0845a15.9155 15.9155 0 0 1 0 31.831a15.9155 15.9155 0 0 1 0-31.831" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="3"/><path d="M18 2.0845a15.9155 15.9155 0 0 1 0 31.831a15.9155 15.9155 0 0 1 0-31.831" fill="none" stroke="${clr}" stroke-width="3" stroke-dasharray="${stabM},100" stroke-linecap="round"/></svg>
+        <svg viewBox="0 0 36 36" width="52" height="52"><path d="M18 2.0845a15.9155 15.9155 0 0 1 0 31.831a15.9155 15.9155 0 0 1 0-31.831" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="3"/><path d="M18 2.0845a15.9155 15.9155 0 0 1 0 31.831a15.9155 15.9155 0 0 1 0-31.831" fill="none" stroke="${clr}" stroke-width="3" stroke-dasharray="${stabAll},100" stroke-linecap="round"/></svg>
         <div style="display:flex;gap:1rem;flex:1;flex-wrap:wrap">
-          <div><div style="font-size:1.05rem;font-weight:600;color:${clr}">${stabM}%</div><div style="font-size:.6rem;color:var(--text-dim)">Estabilidade Mês</div></div>
-          <div><div style="font-size:1.05rem;font-weight:600;color:${chg>=0?'var(--green)':'var(--danger)'}">${chg>=0?'+':''}${chg}%</div><div style="font-size:.6rem;color:var(--text-dim)">Variação</div></div>
-          <div><div style="font-size:1.05rem;font-weight:600;color:${stabY>=0?'var(--green)':'var(--danger)'}">${stabY>0?'+':''}${stabY}%</div><div style="font-size:.6rem;color:var(--text-dim)">Ano</div></div>
+          <div><div style="font-size:1.05rem;font-weight:600;color:${clr}">${stabAll}%</div><div style="font-size:.6rem;color:var(--text-dim)">Estabilidade</div></div>
+          <div><div style="font-size:1.05rem;font-weight:600;color:${chg>=0?'var(--green)':'var(--danger)'}">${chg>=0?'+':''}${chg}%</div><div style="font-size:.6rem;color:var(--text-dim)">Mês</div></div>
+          <div><div style="font-size:1.05rem;font-weight:600;color:${chgY>=0?'var(--green)':'var(--danger)'}">${chgY>=0?'+':''}${chgY}%</div><div style="font-size:.6rem;color:var(--text-dim)">Ano</div></div>
           <div><div style="font-size:1.05rem;font-weight:600;color:${clr}">${entries.length}</div><div style="font-size:.6rem;color:var(--text-dim)">Total</div></div>
         </div>
       </div></div>`;
