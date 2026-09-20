@@ -22,7 +22,7 @@ body{background:var(--bg);display:flex;flex-direction:column;align-items:center;
 .screen{display:none;flex-direction:column;align-items:center;width:100%;max-width:440px;padding:calc(var(--safe-top)+1rem) 1.5rem calc(var(--safe-bottom)+1.5rem);min-height:100dvh}
 .screen.active{display:flex}.screen.scroll{overflow-y:auto;justify-content:flex-start}.screen.center{justify-content:center}
 .brand{display:flex;flex-direction:column;align-items:center;gap:.3rem;margin-bottom:1.5rem}
-.brand-icon{font-size:2.4rem}.brand-name{font-size:1.4rem;font-weight:600}.brand-sub{font-size:.8rem;color:var(--text-dim);letter-spacing:.06em}
+.brand-icon{width:3.2rem;height:3.2rem}.brand-icon img{width:100%;height:100%;object-fit:contain}.brand-name{font-size:1.4rem;font-weight:600}.brand-sub{font-size:.8rem;color:var(--text-dim);letter-spacing:.06em}
 .card{background:var(--bg-card);border:1px solid rgba(255,255,255,.06);border-radius:1rem;padding:1.2rem;width:100%;margin-bottom:.75rem;cursor:pointer;transition:background .2s,border-color .2s}
 .card:active{background:rgba(255,255,255,.08);border-color:rgba(128,203,196,.3)}
 .card.no-tap{cursor:default}.card.no-tap:active{background:var(--bg-card);border-color:rgba(255,255,255,.06)}
@@ -158,7 +158,7 @@ select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
 
 <!-- AUTH -->
 <div class="screen center" id="authScreen">
-  <div class="brand"><div class="brand-icon">🫁</div><div class="brand-name">RespirApp</div><div class="brand-sub">Regulação pela Respiração</div></div>
+  <div class="brand"><div class="brand-icon"><img src="./icon-192.png" alt="RespirApp"></div><div class="brand-name">RespirApp</div><div class="brand-sub">Regulação pela Respiração</div></div>
   <div id="authForm" style="width:100%">
     <div id="authTitle" class="section-title" style="text-align:center">Criar conta</div>
     <input class="input" id="authName" placeholder="Seu nome completo">
@@ -188,7 +188,7 @@ select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
 
 <!-- HOME -->
 <div class="screen scroll" id="homeScreen">
-  <div class="brand"><div class="brand-icon">🫁</div><div class="brand-name">RespirApp</div><div class="brand-sub">Regulação pela Respiração</div></div>
+  <div class="brand"><div class="brand-icon"><img src="./icon-192.png" alt="RespirApp"></div><div class="brand-name">RespirApp</div><div class="brand-sub">Regulação pela Respiração</div></div>
   <div class="card main-card" id="btnRespireAgora"><div class="card-icon">🌬️</div><div class="t">Respire Agora</div><div class="d">Protocolos guiados de respiração</div></div>
   <div class="card main-card" id="btnProtocolosAudio"><div class="card-icon">🎧</div><div class="t">Protocolos Respiratórios</div><div class="d">Sessões guiadas com áudio</div></div>
   <div class="card main-card" id="btnTreinos"><div class="card-icon">⏱️</div><div class="t">Treinos e Testes de Respiração</div><div class="d">Bolt Score · TELL Score · TILL Score</div></div>
