@@ -1797,12 +1797,17 @@ function showInstallBanner(){
     $('installIcon').textContent='🍎';
     $('installText').innerHTML='Instale o app: toque em <strong>Compartilhar</strong> <span style="font-size:1.1em">⬆️</span> e depois <strong>"Adicionar à Tela Inicial"</strong><small>Acesso rápido e offline</small>';
     $('installBtn').style.display='none';
+  }else if(!deferredPrompt){
+    $('installBtn').textContent='Como instalar';
   }
   setTimeout(()=>$('installBanner').classList.add('show'),1500);
 }
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;showInstallBanner();});
 if(!isStandalone){firebase.auth().onAuthStateChanged(u=>{if(u&&!deferredPrompt)setTimeout(showInstallBanner,2500);});}
-$('installBtn').addEventListener('click',async()=>{if(deferredPrompt){deferredPrompt.prompt();const r=await deferredPrompt.userChoice;deferredPrompt=null;$('installBanner').classList.remove('show');sessionStorage.setItem('installDismissed','1');}});
+$('installBtn').addEventListener('click',async()=>{
+  if(deferredPrompt){deferredPrompt.prompt();const r=await deferredPrompt.userChoice;deferredPrompt=null;$('installBanner').classList.remove('show');sessionStorage.setItem('installDismissed','1');}
+  else{$('installIcon').textContent='📋';$('installText').innerHTML='Toque no menu <strong>⋮</strong> do navegador e selecione <strong>"Adicionar à tela inicial"</strong> ou <strong>"Instalar app"</strong><small>O navegador não suportou instalação automática</small>';$('installBtn').style.display='none';}
+});
 $('installClose').addEventListener('click',()=>{$('installBanner').classList.remove('show');sessionStorage.setItem('installDismissed','1');});
 let wakeLock=null;async function requestWakeLock(){try{if('wakeLock' in navigator)wakeLock=await navigator.wakeLock.request('screen');}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&running)requestWakeLock();});
