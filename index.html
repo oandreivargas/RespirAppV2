@@ -1145,7 +1145,7 @@ function renderHistChart(targetId,entries,clr,isMeas,period,unit){
   let bh='<div style="overflow-x:auto;overflow-y:visible;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.15) transparent"><div class="bar-wrap" style="min-width:'+chartW+'px"><div class="bar-chart">';
   groups.forEach(g=>{
     const pct=mx>0?(g.val/mx)*100:0;
-    const displayVal=g.val>0?(g.val+u):'';
+    const displayVal=g.val>0?g.val:'';
     bh+=`<div class="bar-col"><div class="bar-val" style="color:${clr}">${displayVal}</div><div class="bar-track"><div class="bar-fill" style="height:${pct}%;background:${clr}"></div></div><div class="bar-label">${g.label}</div></div>`;
   });
   bh+='</div>';
@@ -1182,6 +1182,8 @@ function renderMoreDetails(snap,key,clr,contentEl,btnEl){
     const ts=d.startedAt||d.completedAt;
     if(ts){const dt=ts.toDate?ts.toDate():new Date(ts);allSub[label].push({date:dateStr(dt),value:isTest?(d.average||0):1});}
   });
+  // Consolidate sub-entries by date (average when multiple on same day)
+  if(isTest){Object.keys(allSub).forEach(label=>{const byD={};allSub[label].forEach(e=>{if(!byD[e.date])byD[e.date]={s:0,c:0};byD[e.date].s+=e.value;byD[e.date].c++;});allSub[label]=Object.entries(byD).map(([date,d])=>({date,value:parseFloat((d.s/d.c).toFixed(1))}));});}
   const sorted=Object.entries(counts).sort((a,b)=>b[1]-a[1]);
   const mx=sorted.length>0?sorted[0][1]:1;
   let mh=`<div class="card no-tap" style="margin-bottom:1.2rem"><div class="detail-section-title" style="color:${clr}">Ranking — ${key==='breathe'?'Protocolos':key==='audio'?'Áudios':'Testes'}</div>`;
