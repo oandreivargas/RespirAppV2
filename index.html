@@ -1052,6 +1052,7 @@ window.openHabitDetail=async function(key,isDefault){
           <div><div style="font-size:1.05rem;font-weight:600;color:${chg>=0?'var(--green)':'var(--danger)'}">${chg>=0?'+':''}${chg}%</div><div style="font-size:.6rem;color:var(--text-dim)">Mês</div></div>
           <div><div style="font-size:1.05rem;font-weight:600;color:${chgY>=0?'var(--green)':'var(--danger)'}">${chgY>=0?'+':''}${chgY}%</div><div style="font-size:.6rem;color:var(--text-dim)">Ano</div></div>
           <div><div style="font-size:1.05rem;font-weight:600;color:${clr}">${entries.length}</div><div style="font-size:.6rem;color:var(--text-dim)">Total</div></div>
+          ${isDefault&&(key==='audio'||key==='breathe')?`<div id="detTotalTime"><div style="font-size:1.05rem;font-weight:600;color:${clr}">⏳</div><div style="font-size:.6rem;color:var(--text-dim)">Tempo</div></div>`:''}
         </div>
       </div></div>`;
   }
@@ -1117,7 +1118,21 @@ window.openHabitDetail=async function(key,isDefault){
       }catch(e){console.error(e);$('detMoreBtn').disabled=false;$('detMoreBtn').textContent='📊 Mais Detalhes';}
     });
   }
+  if(isDefault&&(key==='audio'||key==='breathe')){
+    (async()=>{try{
+      const [aSnap,bSnap]=await Promise.all([
+        db.collection('sessions').where('userId','==',currentUser.uid).where('type','==','audio').get(),
+        db.collection('sessions').where('userId','==',currentUser.uid).where('type','==','breathe').get()
+      ]);
+      let totalSec=0;
+      aSnap.forEach(doc=>{const d=doc.data();if(d.startedAt&&d.completedAt){const s=d.startedAt.toDate?d.startedAt.toDate():new Date(d.startedAt);const e=d.completedAt.toDate?d.completedAt.toDate():new Date(d.completedAt);totalSec+=Math.max(0,Math.floor((e-s)/1000));}});
+      bSnap.forEach(doc=>{const d=doc.data();if(d.startedAt&&d.endedAt){const s=d.startedAt.toDate?d.startedAt.toDate():new Date(d.startedAt);const e=d.endedAt.toDate?d.endedAt.toDate():new Date(d.endedAt);totalSec+=Math.max(0,Math.floor((e-s)/1000));}});
+      const el=$('detTotalTime');if(el)el.querySelector('div').textContent=fmtDur(totalSec);
+    }catch(e){console.error(e);}})();
+  }
 };
+
+function fmtDur(sec){const h=Math.floor(sec/3600);const m=Math.floor((sec%3600)/60);const s=sec%60;return h>0?h+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0'):String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');}
 
 $('habitDetailBack').addEventListener('click',()=>loadDashboard());
 
@@ -1175,16 +1190,18 @@ function renderHistChart(targetId,entries,clr,isMeas,period,unit){
 
 function renderMoreDetails(snap,key,clr,contentEl,btnEl){
   const isTest=(key==='test');
-  const counts={},sums={},allSub={};
+  const counts={},sums={},allSub={},durSums={};
   snap.forEach(doc=>{const d=doc.data();
     let label='';
     if(key==='breathe')label=d.protocolName||d.protocol||'Desconhecido';
     else if(key==='audio')label=`Nível ${d.level||'?'} — ${d.audioTitle||'Desconhecido'}`;
     else if(key==='test')label=d.testLabel||d.testName||'Desconhecido';
-    if(!counts[label]){counts[label]=0;sums[label]=0;allSub[label]=[];}
+    if(!counts[label]){counts[label]=0;sums[label]=0;allSub[label]=[];durSums[label]=0;}
     counts[label]++;
     if(isTest)sums[label]+=(d.average||0);
-    const ts=d.startedAt||d.completedAt;
+    if(key==='audio'&&d.startedAt&&d.completedAt){const s0=d.startedAt.toDate?d.startedAt.toDate():new Date(d.startedAt);const e0=d.completedAt.toDate?d.completedAt.toDate():new Date(d.completedAt);durSums[label]+=Math.max(0,Math.floor((e0-s0)/1000));}
+    if(key==='breathe'&&d.startedAt&&d.endedAt){const s0=d.startedAt.toDate?d.startedAt.toDate():new Date(d.startedAt);const e0=d.endedAt.toDate?d.endedAt.toDate():new Date(d.endedAt);durSums[label]+=Math.max(0,Math.floor((e0-s0)/1000));}
+    const ts=d.startedAt||d.completedAt||d.endedAt;
     if(ts){const dt=ts.toDate?ts.toDate():new Date(ts);allSub[label].push({date:dateStr(dt),value:isTest?(d.average||0):1});}
   });
   // Consolidate sub-entries by date (average when multiple on same day)
@@ -1196,7 +1213,9 @@ function renderMoreDetails(snap,key,clr,contentEl,btnEl){
   else sorted.forEach(([label,count],i)=>{
     const w=Math.max(Math.round((count/mx)*100),15);
     const avgStr=isTest?` · Média: ${(sums[label]/count).toFixed(1)}s`:'';
-    mh+=`<div style="margin-top:.6rem"><div style="font-size:.78rem;color:var(--text);margin-bottom:.25rem">${i+1}. ${label}</div><div style="display:flex;align-items:center;gap:.5rem"><div style="flex:1;height:20px;background:rgba(255,255,255,.06);border-radius:6px;overflow:hidden"><div style="height:100%;width:${w}%;background:${clr};border-radius:6px"></div></div><span style="font-size:.75rem;font-weight:600;color:${clr};min-width:${isTest?'100px':'30px'};text-align:right;white-space:nowrap">${count}x${avgStr}</span></div></div>`;
+    const durStr=(key==='audio'||key==='breathe')&&durSums[label]>0?' · '+fmtDur(durSums[label]):'';
+    const infoWidth=isTest?'100px':((key==='audio'||key==='breathe')?'90px':'30px');
+    mh+=`<div style="margin-top:.6rem"><div style="font-size:.78rem;color:var(--text);margin-bottom:.25rem">${i+1}. ${label}</div><div style="display:flex;align-items:center;gap:.5rem"><div style="flex:1;height:20px;background:rgba(255,255,255,.06);border-radius:6px;overflow:hidden"><div style="height:100%;width:${w}%;background:${clr};border-radius:6px"></div></div><span style="font-size:.75rem;font-weight:600;color:${clr};min-width:${infoWidth};text-align:right;white-space:nowrap">${count}x${avgStr}${durStr}</span></div></div>`;
   });
   mh+='</div>';
   // Sub-detail: each option with full history chart + period filter
