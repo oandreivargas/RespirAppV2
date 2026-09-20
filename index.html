@@ -219,9 +219,30 @@ select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
   <div id="audioDurationContent" style="width:100%"></div>
 </div>
 
+<div class="screen scroll" id="audioWbBeforeScreen">
+  <div class="top-bar"><button class="back-btn" id="audioWbBeforeBack">‹ Voltar</button><div class="badge" id="audioWbBeforeBadge">Antes do Protocolo</div></div>
+  <div class="section-title">Como você está agora?</div>
+  <div id="audioWbBeforeFields"></div>
+  <button class="btn btn-p" id="audioWbBeforeNext">Iniciar áudio</button>
+</div>
+
 <div class="screen center" id="audioPlayerScreen">
   <div class="top-bar"><button class="back-btn" id="audioPlayerBack">‹ Voltar</button><div class="badge" id="audioPlayerBadge"></div></div>
   <div class="exercise-center"><div class="card-icon" style="font-size:3rem">🎧</div><div class="section-title" style="text-align:center" id="audioPlayerTitle"></div><div id="audioPlayerContainer" style="width:100%"></div></div>
+</div>
+
+<div class="screen scroll" id="audioWbAfterScreen">
+  <div class="top-bar"><button class="back-btn" id="audioWbAfterBack">‹ Voltar</button><div class="badge">Depois do Protocolo</div></div>
+  <div class="section-title">Como você está agora?</div>
+  <div id="audioWbAfterFields"></div>
+  <button class="btn btn-p" id="audioWbAfterNext">Ver resultado</button>
+</div>
+
+<div class="screen center" id="audioDoneScreen">
+  <div class="done-check">✓</div>
+  <div class="section-title" style="text-align:center">Protocolo concluído!</div>
+  <div id="audioCompareResult" style="width:100%"></div>
+  <button class="btn btn-p" style="margin-top:1.5rem" id="audioDoneHome">Voltar ao início</button>
 </div>
 
 <!-- TESTES -->
@@ -387,7 +408,7 @@ const auth=firebase.auth(),db=firebase.firestore();
 
 const PROTOCOLS={equilibrio:{name:'4 × 4',subtitle:'Equilíbrio',cycles:7,desc:'4s inspira · 4s expira · 7 ciclos · 56s',phases:[{label:'Inspire',duration:4,scaleFrom:0,scaleTo:1},{label:'Expire',duration:4,scaleFrom:1,scaleTo:0}]},ansiedade:{name:'2 × 4',subtitle:'Anti-ansiedade',cycles:9,desc:'2s inspira · 4s expira · 9 ciclos · 54s',phases:[{label:'Inspire',duration:2,scaleFrom:0,scaleTo:.5},{label:'Expire',duration:4,scaleFrom:.5,scaleTo:0}]},suspiro:{name:'Suspiro',subtitle:'Fisiológico',cycles:8,desc:'2s inspira · 1s suspiro · 4s expira · 8 ciclos · 56s',phases:[{label:'Inspire',duration:2,scaleFrom:0,scaleTo:.65},{label:'Suspiro',duration:1,scaleFrom:.65,scaleTo:1},{label:'Expire',duration:4,scaleFrom:1,scaleTo:0}]}};
 const QUESTIONS=[{id:'q1',type:'multi',label:'Você tem algum tipo dessas situações de saúde?',options:['Problemas de Pressão','Problemas no Coração','Glaucoma ou Pressão nos Olhos','Esquizofrenia','Bipolaridade','Gravidez'],hasOther:true},{id:'q2',type:'text',label:'Qual o seu atual desafio com estresse, ansiedade, hiperatividade ou outro?'},{id:'q3',type:'text',label:'O que você já tentou para resolver esse problema ou desafio?'},{id:'q4',type:'multi',label:'Esse problema ou desafio tem interferido em qual(is) áreas da sua vida?',options:['Financeiro','Relacionamento afetivo','Ambiente profissional','Bem-estar pessoal','Ambientes sociais/amizades']},{id:'q5',type:'text',label:'Se gerenciar melhor seu estresse te ajudasse a melhorar 1 única coisa importante na sua vida, o que seria?'},{id:'q7',type:'multi',label:'Nos últimos 12 meses, você tentou alguma dessas soluções?',options:['Suplementos','Academia ou Outros Esportes','Yoga','Meditação','Remédios','Terapias'],hasOther:true}];
-const WB_PARAMS=[{id:'stress',label:'Nível de Estresse',low:'Nenhum',high:'Extremo'},{id:'sleep',label:'O quão bem você dorme',low:'Muito mal',high:'Muito bem'},{id:'energy',label:'Quanta energia você está agora',low:'Nenhuma',high:'Máxima'},{id:'clarity',label:'Clareza Mental',low:'Muito baixa',high:'Muito alta'}];
+const WB_PARAMS=[{id:'stress',label:'Nível de Estresse',low:'Nenhum',high:'Extremo'},{id:'anxiety',label:'Nível de Ansiedade',low:'Nenhuma',high:'Extrema'},{id:'energy',label:'Energia',low:'Nenhuma',high:'Máxima'},{id:'clarity',label:'Clareza e Foco',low:'Muito baixa',high:'Muito alta'},{id:'emotional',label:'Controle Emocional',low:'Muito baixo',high:'Muito alto'}];
 const AUDIO_LEVELS={1:{name:'Nível 1 — Iniciante',groups:[{name:'3 Minutos',audios:[{title:'Suspiro Fisiológico',file:'./N1 - Suspiro Fisiológico - 3 min II.mp3'}]},{name:'5 Minutos',audios:[]}]},2:{name:'Nível 2 — Intermediário',groups:[{name:'Áudios',audios:[]}]},3:{name:'Nível 3 — Avançado',groups:[{name:'Áudios',audios:[]}]}};
 const TESTS={bolt:{name:'Bolt Score',instruction:'Após uma expiração normal e tranquila, segure a respiração. Toque em "Iniciar" quando parar de respirar e "Parar" quando sentir a primeira vontade de respirar.'},tell:{name:'TELL Score',instruction:'Após uma inspiração completa, sustente o som "sssss" de forma contínua. Toque em "Iniciar" quando começar e "Parar" quando não conseguir mais.'},till:{name:'TILL Score',instruction:'Após uma inspiração completa, sustente o som "zzzzz" de forma contínua. Toque em "Iniciar" quando começar e "Parar" quando não conseguir mais.'}};
 
@@ -564,13 +585,37 @@ document.querySelectorAll('.level-card').forEach(c=>c.addEventListener('click',(
     let ah='';
     grp.audios.forEach((a,ai)=>{const locked=accessLvl==='gratuito'&&a.title!=='Suspiro Fisiológico';if(locked){ah+=`<div class="card no-tap" style="opacity:.4"><div class="t">🔒 ${a.title}</div><div class="d" style="font-size:.7rem;color:var(--text-dim)">Disponível nos planos Grupo e Mentoria</div></div>`;}else{ah+=`<div class="card" data-audio-idx="${ai}"><div class="t">🎵 ${a.title}</div></div>`;}});
     $('audioDurationContent').innerHTML=ah;
-    $('audioDurationContent').querySelectorAll('.card[data-audio-idx]').forEach(ac=>ac.addEventListener('click',()=>{const ai=parseInt(ac.dataset.audioIdx);const a=grp.audios[ai];$('audioPlayerBadge').textContent=lvl.name+' · '+grp.name;$('audioPlayerTitle').textContent=a.title;$('audioPlayerContainer').innerHTML=`<audio controls style="width:100%;margin-top:1rem;filter:invert(.85)" src="${a.file}" id="activeAudio"></audio>`;$('activeAudio').addEventListener('ended',async()=>{try{await db.collection('sessions').add({userId:currentUser.uid,type:'audio',level:currentAudioLevel,audioTitle:a.title,completedAt:firebase.firestore.FieldValue.serverTimestamp()});}catch(e){}});show('audioPlayerScreen');}));
+    $('audioDurationContent').querySelectorAll('.card[data-audio-idx]').forEach(ac=>ac.addEventListener('click',()=>{const ai=parseInt(ac.dataset.audioIdx);const a=grp.audios[ai];
+      audioSessionData={level:currentAudioLevel,audioTitle:a.title,audioFile:a.file,levelName:lvl.name,groupName:grp.name};
+      $('audioWbBeforeBadge').textContent=a.title;
+      renderWellbeing('audioWbBeforeFields');
+      show('audioWbBeforeScreen');
+    }));
     show('audioDurationScreen');
   }));
   show('audioLevelScreen');}));
+let audioSessionData={};
+$('audioWbBeforeBack').addEventListener('click',()=>show('audioDurationScreen'));
+$('audioWbBeforeNext').addEventListener('click',()=>{
+  const wb=collectWellbeing('audioWbBeforeFields');if(!wb){alert('Preencha todos os campos.');return;}
+  audioSessionData.wellbeingBefore=wb;audioSessionData.startedAt=new Date();
+  $('audioPlayerBadge').textContent=audioSessionData.levelName+' · '+audioSessionData.groupName;
+  $('audioPlayerTitle').textContent=audioSessionData.audioTitle;
+  $('audioPlayerContainer').innerHTML=`<audio controls style="width:100%;margin-top:1rem;filter:invert(.85)" src="${audioSessionData.audioFile}" id="activeAudio"></audio>`;
+  $('activeAudio').addEventListener('ended',()=>{renderWellbeing('audioWbAfterFields');show('audioWbAfterScreen');});
+  show('audioPlayerScreen');
+});
 $('audioLevelBack').addEventListener('click',()=>show('audioScreen'));
 $('audioDurationBack').addEventListener('click',()=>show('audioLevelScreen'));
-$('audioPlayerBack').addEventListener('click',()=>{const a=$('activeAudio');if(a)a.pause();show('audioDurationScreen');});
+$('audioPlayerBack').addEventListener('click',()=>{const a=$('activeAudio');if(a)a.pause();show('audioWbBeforeScreen');});
+$('audioWbAfterBack').addEventListener('click',()=>show('audioPlayerScreen'));
+$('audioWbAfterNext').addEventListener('click',async()=>{
+  const wb=collectWellbeing('audioWbAfterFields');if(!wb){alert('Preencha todos os campos.');return;}
+  audioSessionData.wellbeingAfter=wb;audioSessionData.endedAt=new Date();
+  try{await db.collection('sessions').add({userId:currentUser.uid,type:'audio',level:audioSessionData.level,audioTitle:audioSessionData.audioTitle,wellbeingBefore:audioSessionData.wellbeingBefore,wellbeingAfter:audioSessionData.wellbeingAfter,startedAt:audioSessionData.startedAt,completedAt:firebase.firestore.FieldValue.serverTimestamp()});}catch(e){console.error(e);}
+  showComparison(audioSessionData.wellbeingBefore,wb,'audioDoneScreen','audioCompareResult');
+});
+$('audioDoneHome').addEventListener('click',()=>showHome());
 
 // ═══ TESTS ═══
 document.querySelectorAll('[data-test]').forEach(c=>c.addEventListener('click',()=>{currentTestKey=c.dataset.test;const t=TESTS[currentTestKey];$('chronoBadge').textContent=t.name;$('chronoInstruction').textContent=t.instruction;chronoCycleNum=0;chronoTimes=[];updateChronoUI();show('chronoScreen');}));
@@ -601,8 +646,8 @@ $('exBack').addEventListener('click',()=>{running=false;if(animFrame)cancelAnima
 function endExercise(p){running=false;totalCyclesCompleted+=p.cycles;$('repeatInfo').textContent=`${p.name} · ${p.subtitle} — ${totalCyclesCompleted} ciclo(s)`;if(navigator.vibrate)navigator.vibrate([30,80,30]);show('repeatScreen');}
 $('repeatYes').addEventListener('click',()=>startExercise());
 $('repeatNo').addEventListener('click',()=>{renderWellbeing('wbAfterFields');show('wbAfterScreen');});
-$('wbAfterNext').addEventListener('click',async()=>{const wb=collectWellbeing('wbAfterFields');if(!wb){alert('Preencha todos os campos.');return;}sessionData.wellbeingAfter=wb;sessionData.endedAt=new Date();sessionData.totalCycles=totalCyclesCompleted;sessionData.userId=currentUser.uid;sessionData.type='breathe';sessionData.protocolName=PROTOCOLS[currentProtocolKey].name+' '+PROTOCOLS[currentProtocolKey].subtitle;try{await db.collection('sessions').add(sessionData);}catch(e){}showComparison(sessionData.wellbeingBefore,wb);});
-function showComparison(before,after){const labels={stress:'Estresse',sleep:'Sono',energy:'Energia',clarity:'Clareza'};let h='<div class="compare-grid"><div class="compare-col"><div class="h">Antes</div></div><div class="compare-col"><div class="h">Depois</div></div></div>';for(const key of Object.keys(labels)){const diff=after[key]-before[key];const arrow=diff>0?' ↑':diff<0?' ↓':' =';const color=key==='stress'?(diff<0?'var(--accent)':diff>0?'var(--danger)':'var(--text-dim)'):(diff>0?'var(--accent)':diff<0?'var(--danger)':'var(--text-dim)');h+=`<div class="compare-row-label">${labels[key]}</div><div class="compare-grid"><div class="compare-col"><div class="v">${before[key]}</div></div><div class="compare-col"><div class="v" style="color:${color}">${after[key]}${arrow}</div></div></div>`;}$('compareResult').innerHTML=h;show('doneScreen');}
+$('wbAfterNext').addEventListener('click',async()=>{const wb=collectWellbeing('wbAfterFields');if(!wb){alert('Preencha todos os campos.');return;}sessionData.wellbeingAfter=wb;sessionData.endedAt=new Date();sessionData.totalCycles=totalCyclesCompleted;sessionData.userId=currentUser.uid;sessionData.type='breathe';sessionData.protocolName=PROTOCOLS[currentProtocolKey].name+' '+PROTOCOLS[currentProtocolKey].subtitle;try{await db.collection('sessions').add(sessionData);}catch(e){}showComparison(sessionData.wellbeingBefore,wb,'doneScreen');});
+function showComparison(before,after,doneScreenId,targetEl){const labels={stress:'Estresse',anxiety:'Ansiedade',energy:'Energia',clarity:'Clareza e Foco',emotional:'Controle Emocional'};const negKeys=['stress','anxiety'];let h='<div class="compare-grid"><div class="compare-col"><div class="h">Antes</div></div><div class="compare-col"><div class="h">Depois</div></div></div>';for(const key of Object.keys(labels)){if(before[key]==null&&after[key]==null)continue;const diff=(after[key]||0)-(before[key]||0);const arrow=diff>0?' ↑':diff<0?' ↓':' =';const isNeg=negKeys.includes(key);const color=isNeg?(diff<0?'var(--accent)':diff>0?'var(--danger)':'var(--text-dim)'):(diff>0?'var(--accent)':diff<0?'var(--danger)':'var(--text-dim)');h+=`<div class="compare-row-label">${labels[key]}</div><div class="compare-grid"><div class="compare-col"><div class="v">${before[key]!=null?before[key]:'-'}</div></div><div class="compare-col"><div class="v" style="color:${color}">${after[key]!=null?after[key]+arrow:'-'}</div></div></div>`;}$(targetEl||'compareResult').innerHTML=h;show(doneScreenId||'doneScreen');}
 $('doneHome').addEventListener('click',()=>showHome());
 
 // ═══ USER DASHBOARD ═══
@@ -1041,6 +1086,11 @@ window.openHabitDetail=async function(key,isDefault){
     <div id="detFreq" style="margin-top:.6rem;overflow-x:auto"></div>
   </div>`;
 
+  if(isDefault){
+    h+=`<button class="btn btn-s" style="margin-bottom:1.5rem" id="detMoreBtn">📊 Mais Detalhes</button>`;
+    h+=`<div id="detMoreContent" style="display:none;width:100%"></div>`;
+  }
+
   $('habitDetailContent').innerHTML=h;
   // Store detail context for calendar edit
   detailHabitKey=key;detailIsDefault=isDefault;detailIsMeas=isMeas;detailClr=clr;detailEntries=entries;detailCSet=cSet;detailHabit=habit;calEditMode=false;
@@ -1051,6 +1101,57 @@ window.openHabitDetail=async function(key,isDefault){
   renderDetCal(cSet,clr,isMeas,habit);
   renderDetStreaks(cSet,clr);
   renderDetFreq(cSet,clr);
+
+  if(isDefault&&$('detMoreBtn')){
+    $('detMoreBtn').addEventListener('click',async()=>{
+      $('detMoreBtn').disabled=true;$('detMoreBtn').textContent='Carregando...';
+      try{
+        const snap=await db.collection('sessions').where('userId','==',currentUser.uid).where('type','==',key==='test'?'test':(key==='audio'?'audio':'breathe')).get();
+        const counts={};
+        snap.forEach(doc=>{const d=doc.data();
+          let label='';
+          if(key==='breathe') label=d.protocolName||d.protocol||'Desconhecido';
+          else if(key==='audio') label=`Nível ${d.level||'?'} — ${d.audioTitle||'Desconhecido'}`;
+          else if(key==='test') label=d.testLabel||d.testName||'Desconhecido';
+          if(!counts[label])counts[label]=0;counts[label]++;
+        });
+        const sorted=Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+        const mx=sorted.length>0?sorted[0][1]:1;
+        let mh=`<div class="card no-tap" style="margin-bottom:1.2rem"><div class="detail-section-title" style="color:${clr}">Ranking — ${key==='breathe'?'Protocolos':key==='audio'?'Áudios':'Testes'}</div>`;
+        if(sorted.length===0) mh+=`<div style="font-size:.8rem;color:var(--text-dim);padding:.5rem 0">Nenhum registro ainda.</div>`;
+        else sorted.forEach(([label,count],i)=>{
+          const w=Math.max(Math.round((count/mx)*100),15);
+          mh+=`<div style="margin-top:.6rem"><div style="font-size:.78rem;color:var(--text);margin-bottom:.25rem">${i+1}. ${label}</div><div style="display:flex;align-items:center;gap:.5rem"><div style="flex:1;height:20px;background:rgba(255,255,255,.06);border-radius:6px;overflow:hidden"><div style="height:100%;width:${w}%;background:${clr};border-radius:6px"></div></div><span style="font-size:.75rem;font-weight:600;color:${clr};min-width:30px;text-align:right">${count}x</span></div></div>`;
+        });
+        mh+='</div>';
+
+        // Sub-detail: each option with its own chart
+        sorted.forEach(([label,count])=>{
+          const subEntries=[];
+          snap.forEach(doc=>{const d=doc.data();
+            let lbl='';
+            if(key==='breathe') lbl=d.protocolName||d.protocol||'Desconhecido';
+            else if(key==='audio') lbl=`Nível ${d.level||'?'} — ${d.audioTitle||'Desconhecido'}`;
+            else if(key==='test') lbl=d.testLabel||d.testName||'Desconhecido';
+            if(lbl===label){const ts=d.startedAt||d.completedAt;if(ts){const dt=ts.toDate?ts.toDate():new Date(ts);subEntries.push({date:dateStr(dt),value:key==='test'?(d.average||0):1});}}
+          });
+          // Monthly bar chart for this option
+          const now=new Date();const MN=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+          const months=[];for(let i=5;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);months.push({key:d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'),label:MN[d.getMonth()],val:0});}
+          subEntries.forEach(e=>{const mk=e.date.slice(0,7);const g=months.find(m=>m.key===mk);if(g)g.val+=(key==='test'?1:e.value);});
+          const smx=Math.max(...months.map(m=>m.val),1);
+          mh+=`<div class="card no-tap" style="margin-bottom:.8rem"><div style="font-size:.82rem;font-weight:500;color:${clr};margin-bottom:.5rem">${label}</div>`;
+          mh+='<div style="display:flex;align-items:flex-end;gap:4px;height:60px">';
+          months.forEach(m=>{const pct=smx>0?(m.val/smx)*100:0;mh+=`<div style="flex:1;display:flex;flex-direction:column;align-items:center;height:100%;justify-content:flex-end"><div style="font-size:.55rem;color:var(--text-dim);margin-bottom:2px">${m.val||''}</div><div style="width:100%;height:${pct}%;background:${clr};border-radius:3px;min-height:${m.val>0?2:0}px"></div><div style="font-size:.5rem;color:var(--text-dim);margin-top:2px">${m.label}</div></div>`;});
+          mh+='</div></div>';
+        });
+
+        $('detMoreContent').innerHTML=mh;
+        $('detMoreContent').style.display='';
+        $('detMoreBtn').style.display='none';
+      }catch(e){console.error(e);$('detMoreBtn').disabled=false;$('detMoreBtn').textContent='📊 Mais Detalhes';}
+    });
+  }
 };
 
 $('habitDetailBack').addEventListener('click',()=>loadDashboard());
@@ -1473,6 +1574,55 @@ window.viewUserProgress=async function(uid,userName){
     h+=`<div class="stat-box"><div class="n">${test}</div><div class="l">Testes</div></div>`;
     h+='</div></div>';
 
+    // Wellbeing averages (before/after)
+    const wbLabels={stress:'Estresse',anxiety:'Ansiedade',energy:'Energia',clarity:'Clareza e Foco',emotional:'Controle Emocional'};
+    const negKeys=['stress','anxiety'];
+    const wbTypes=[{key:'all',label:'Todos'},{key:'breathe',label:'Respire Agora'},{key:'audio',label:'Com Áudio'}];
+    const wbData={};
+    wbTypes.forEach(t=>{wbData[t.key]={before:{},after:{},count:0};});
+    sessSnap.forEach(doc=>{const d=doc.data();
+      if(!d.wellbeingBefore||!d.wellbeingAfter)return;
+      const types=['all'];
+      if(d.type==='breathe')types.push('breathe');
+      if(d.type==='audio')types.push('audio');
+      types.forEach(t=>{
+        wbData[t].count++;
+        for(const k of Object.keys(wbLabels)){
+          if(d.wellbeingBefore[k]!=null){if(!wbData[t].before[k])wbData[t].before[k]={sum:0,n:0};wbData[t].before[k].sum+=d.wellbeingBefore[k];wbData[t].before[k].n++;}
+          if(d.wellbeingAfter[k]!=null){if(!wbData[t].after[k])wbData[t].after[k]={sum:0,n:0};wbData[t].after[k].sum+=d.wellbeingAfter[k];wbData[t].after[k].n++;}
+        }
+      });
+    });
+    h+=`<div class="card no-tap" style="margin-bottom:1rem"><div class="detail-section-title" style="color:var(--accent)">Bem-estar — Antes × Depois</div>`;
+    h+=`<div style="display:flex;gap:.4rem;margin:.6rem 0">`;
+    wbTypes.forEach((t,i)=>{h+=`<button class="btn btn-s adminWbFilter" data-wbtype="${t.key}" style="flex:1;font-size:.7rem;padding:.3rem;${i===0?'background:rgba(128,203,196,.3);':''}">${t.label}</button>`;});
+    h+=`</div>`;
+    wbTypes.forEach(t=>{
+      const wb=wbData[t.key];
+      h+=`<div class="adminWbPanel" data-wbtype="${t.key}" style="${t.key!=='all'?'display:none':''}">`;
+      if(wb.count===0){h+=`<div style="font-size:.8rem;color:var(--text-dim);padding:.5rem 0">Sem dados de bem-estar.</div>`;}
+      else{
+        h+=`<div style="font-size:.72rem;color:var(--text-dim);margin-bottom:.5rem">${wb.count} sessão(ões) com dados</div>`;
+        h+=`<div style="display:grid;grid-template-columns:auto 1fr 1fr 1fr;gap:.3rem .6rem;align-items:center;font-size:.75rem">`;
+        h+=`<div style="color:var(--text-dim)"></div><div style="text-align:center;color:var(--text-dim);font-size:.65rem">ANTES</div><div style="text-align:center;color:var(--text-dim);font-size:.65rem">DEPOIS</div><div style="text-align:center;color:var(--text-dim);font-size:.65rem">VARIAÇÃO</div>`;
+        for(const[k,label] of Object.entries(wbLabels)){
+          const bAvg=wb.before[k]?parseFloat((wb.before[k].sum/wb.before[k].n).toFixed(1)):'-';
+          const aAvg=wb.after[k]?parseFloat((wb.after[k].sum/wb.after[k].n).toFixed(1)):'-';
+          let diff='-',diffColor='var(--text-dim)';
+          if(typeof bAvg==='number'&&typeof aAvg==='number'){
+            const d=parseFloat((aAvg-bAvg).toFixed(1));
+            const isNeg=negKeys.includes(k);
+            diff=(d>0?'+':'')+d;
+            diffColor=isNeg?(d<0?'var(--accent)':d>0?'var(--danger)':'var(--text-dim)'):(d>0?'var(--accent)':d<0?'var(--danger)':'var(--text-dim)');
+          }
+          h+=`<div style="color:var(--text)">${label}</div><div style="text-align:center">${bAvg}</div><div style="text-align:center">${aAvg}</div><div style="text-align:center;font-weight:600;color:${diffColor}">${diff}</div>`;
+        }
+        h+=`</div>`;
+      }
+      h+=`</div>`;
+    });
+    h+=`</div>`;
+
     // Recent sessions list
     const recentSessions=[];
     sessSnap.forEach(doc=>{const d=doc.data();d._id=doc.id;recentSessions.push(d);});
@@ -1489,6 +1639,15 @@ window.viewUserProgress=async function(uid,userName){
     }
 
     $('adminContent').innerHTML=h;
+
+    document.querySelectorAll('.adminWbFilter').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        document.querySelectorAll('.adminWbFilter').forEach(b=>{b.style.background='';});
+        btn.style.background='rgba(128,203,196,.3)';
+        const t=btn.getAttribute('data-wbtype');
+        document.querySelectorAll('.adminWbPanel').forEach(p=>{p.style.display=p.getAttribute('data-wbtype')===t?'':'none';});
+      });
+    });
   }catch(e){$('adminContent').innerHTML=`<div class="error-msg">Erro: ${e.message}</div>`;}
 };
 
