@@ -214,6 +214,11 @@ select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
   <div id="audioLevelContent" style="width:100%"></div>
 </div>
 
+<div class="screen scroll" id="audioDurationScreen">
+  <div class="top-bar"><button class="back-btn" id="audioDurationBack">‹ Voltar</button><div class="badge" id="audioDurationBadge"></div></div>
+  <div id="audioDurationContent" style="width:100%"></div>
+</div>
+
 <div class="screen center" id="audioPlayerScreen">
   <div class="top-bar"><button class="back-btn" id="audioPlayerBack">‹ Voltar</button><div class="badge" id="audioPlayerBadge"></div></div>
   <div class="exercise-center"><div class="card-icon" style="font-size:3rem">🎧</div><div class="section-title" style="text-align:center" id="audioPlayerTitle"></div><div id="audioPlayerContainer" style="width:100%"></div></div>
@@ -541,22 +546,31 @@ $('btnDashboard').addEventListener('click',()=>{
 $('dashboardBack').addEventListener('click',()=>showHome());
 
 // ═══ AUDIO ═══
+let currentAudioGroup=null;
 document.querySelectorAll('.level-card').forEach(c=>c.addEventListener('click',()=>{currentAudioLevel=parseInt(c.dataset.level);const lvl=AUDIO_LEVELS[currentAudioLevel];const accessLvl=getLevel();
   // Levels 2 and 3 require Mentoria
   if(currentAudioLevel>=2&&accessLvl!=='mentoria'){$('audioLevelBadge').textContent=lvl.name;$('audioLevelContent').innerHTML='<div class="card no-tap" style="opacity:.4;text-align:center"><div class="t">🔒 Conteúdo exclusivo</div><div class="d" style="font-size:.75rem;color:var(--text-dim);margin-top:.3rem">Disponível no plano Mentoria</div></div>';show('audioLevelScreen');return;}
   $('audioLevelBadge').textContent=lvl.name;
-  let h='';
+  // Show duration/group cards
+  let h='<div class="section-title">Escolha a duração</div>';
   lvl.groups.forEach((grp,gi)=>{
-    const hasAudios=grp.audios&&grp.audios.length>0;
-    h+=`<div class="section-title" style="font-size:.9rem;margin-top:${gi>0?'1.2rem':'.5rem'}">${grp.name}</div>`;
-    if(!hasAudios){h+=`<div class="coming-soon" style="padding:.8rem 0">Os áudios serão adicionados em breve.</div>`;}
-    else{grp.audios.forEach((a,ai)=>{const locked=accessLvl==='gratuito'&&a.title!=='Suspiro Fisiológico';if(locked){h+=`<div class="card no-tap" style="opacity:.4"><div class="t">🔒 ${a.title}</div><div class="d" style="font-size:.7rem;color:var(--text-dim)">Disponível nos planos Grupo e Mentoria</div></div>`;}else{h+=`<div class="card" data-audio-group="${gi}" data-audio-idx="${ai}"><div class="t">🎵 ${a.title}</div></div>`;}});}
+    h+=`<div class="card" data-group-idx="${gi}" style="text-align:center"><div class="card-icon">⏱️</div><div class="t">${grp.name}</div><div class="d">${grp.audios&&grp.audios.length>0?grp.audios.length+' áudio(s)':'Em breve'}</div></div>`;
   });
   $('audioLevelContent').innerHTML=h;
-  $('audioLevelContent').querySelectorAll('.card[data-audio-idx]').forEach(c=>c.addEventListener('click',()=>{const gi=parseInt(c.dataset.audioGroup);const ai=parseInt(c.dataset.audioIdx);const a=lvl.groups[gi].audios[ai];$('audioPlayerBadge').textContent=lvl.name;$('audioPlayerTitle').textContent=a.title;$('audioPlayerContainer').innerHTML=`<audio controls style="width:100%;margin-top:1rem;filter:invert(.85)" src="${a.file}" id="activeAudio"></audio>`;$('activeAudio').addEventListener('ended',async()=>{try{await db.collection('sessions').add({userId:currentUser.uid,type:'audio',level:currentAudioLevel,audioTitle:a.title,completedAt:firebase.firestore.FieldValue.serverTimestamp()});}catch(e){}});show('audioPlayerScreen');}));
+  $('audioLevelContent').querySelectorAll('.card[data-group-idx]').forEach(gc=>gc.addEventListener('click',()=>{
+    const gi=parseInt(gc.dataset.groupIdx);const grp=lvl.groups[gi];currentAudioGroup=gi;
+    $('audioDurationBadge').textContent=lvl.name+' · '+grp.name;
+    if(!grp.audios||grp.audios.length===0){$('audioDurationContent').innerHTML='<div class="coming-soon">Os áudios serão adicionados em breve.</div>';show('audioDurationScreen');return;}
+    let ah='';
+    grp.audios.forEach((a,ai)=>{const locked=accessLvl==='gratuito'&&a.title!=='Suspiro Fisiológico';if(locked){ah+=`<div class="card no-tap" style="opacity:.4"><div class="t">🔒 ${a.title}</div><div class="d" style="font-size:.7rem;color:var(--text-dim)">Disponível nos planos Grupo e Mentoria</div></div>`;}else{ah+=`<div class="card" data-audio-idx="${ai}"><div class="t">🎵 ${a.title}</div></div>`;}});
+    $('audioDurationContent').innerHTML=ah;
+    $('audioDurationContent').querySelectorAll('.card[data-audio-idx]').forEach(ac=>ac.addEventListener('click',()=>{const ai=parseInt(ac.dataset.audioIdx);const a=grp.audios[ai];$('audioPlayerBadge').textContent=lvl.name+' · '+grp.name;$('audioPlayerTitle').textContent=a.title;$('audioPlayerContainer').innerHTML=`<audio controls style="width:100%;margin-top:1rem;filter:invert(.85)" src="${a.file}" id="activeAudio"></audio>`;$('activeAudio').addEventListener('ended',async()=>{try{await db.collection('sessions').add({userId:currentUser.uid,type:'audio',level:currentAudioLevel,audioTitle:a.title,completedAt:firebase.firestore.FieldValue.serverTimestamp()});}catch(e){}});show('audioPlayerScreen');}));
+    show('audioDurationScreen');
+  }));
   show('audioLevelScreen');}));
 $('audioLevelBack').addEventListener('click',()=>show('audioScreen'));
-$('audioPlayerBack').addEventListener('click',()=>{const a=$('activeAudio');if(a)a.pause();show('audioLevelScreen');});
+$('audioDurationBack').addEventListener('click',()=>show('audioLevelScreen'));
+$('audioPlayerBack').addEventListener('click',()=>{const a=$('activeAudio');if(a)a.pause();show('audioDurationScreen');});
 
 // ═══ TESTS ═══
 document.querySelectorAll('[data-test]').forEach(c=>c.addEventListener('click',()=>{currentTestKey=c.dataset.test;const t=TESTS[currentTestKey];$('chronoBadge').textContent=t.name;$('chronoInstruction').textContent=t.instruction;chronoCycleNum=0;chronoTimes=[];updateChronoUI();show('chronoScreen');}));
