@@ -1,4 +1,4 @@
-const CACHE_NAME = 'respira-v33';
+const CACHE_NAME = 'respira-v34';
 const ASSETS = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
  
 self.addEventListener('install', e => {
@@ -27,4 +27,3 @@ self.addEventListener('fetch', e => {
     }).catch(() => caches.match(e.request))
   );
 });
- 
