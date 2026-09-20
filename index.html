@@ -1094,10 +1094,11 @@ window.openHabitDetail=async function(key,isDefault){
   $('habitDetailContent').innerHTML=h;
   // Store detail context for calendar edit
   detailHabitKey=key;detailIsDefault=isDefault;detailIsMeas=isMeas;detailClr=clr;detailEntries=entries;detailCSet=cSet;detailHabit=habit;calEditMode=false;
+  const hUnit=isMeas?(habit.unit||''):'';
   renderDetStability(entries,clr);
   $('detStabPeriod').addEventListener('change',()=>renderDetStability(entries,clr));
-  renderDetHist(entries,clr,isMeas);
-  $('detHistPeriod').addEventListener('change',()=>renderDetHist(entries,clr,isMeas));
+  renderHistChart('detHistChart',entries,clr,isMeas,$('detHistPeriod').value,hUnit);
+  $('detHistPeriod').addEventListener('change',()=>renderHistChart('detHistChart',entries,clr,isMeas,$('detHistPeriod').value,hUnit));
   renderDetCal(cSet,clr,isMeas,habit);
   renderDetStreaks(cSet,clr);
   renderDetFreq(cSet,clr);
@@ -1107,48 +1108,7 @@ window.openHabitDetail=async function(key,isDefault){
       $('detMoreBtn').disabled=true;$('detMoreBtn').textContent='Carregando...';
       try{
         const snap=await db.collection('sessions').where('userId','==',currentUser.uid).where('type','==',key==='test'?'test':(key==='audio'?'audio':'breathe')).get();
-        const counts={};
-        snap.forEach(doc=>{const d=doc.data();
-          let label='';
-          if(key==='breathe') label=d.protocolName||d.protocol||'Desconhecido';
-          else if(key==='audio') label=`Nível ${d.level||'?'} — ${d.audioTitle||'Desconhecido'}`;
-          else if(key==='test') label=d.testLabel||d.testName||'Desconhecido';
-          if(!counts[label])counts[label]=0;counts[label]++;
-        });
-        const sorted=Object.entries(counts).sort((a,b)=>b[1]-a[1]);
-        const mx=sorted.length>0?sorted[0][1]:1;
-        let mh=`<div class="card no-tap" style="margin-bottom:1.2rem"><div class="detail-section-title" style="color:${clr}">Ranking — ${key==='breathe'?'Protocolos':key==='audio'?'Áudios':'Testes'}</div>`;
-        if(sorted.length===0) mh+=`<div style="font-size:.8rem;color:var(--text-dim);padding:.5rem 0">Nenhum registro ainda.</div>`;
-        else sorted.forEach(([label,count],i)=>{
-          const w=Math.max(Math.round((count/mx)*100),15);
-          mh+=`<div style="margin-top:.6rem"><div style="font-size:.78rem;color:var(--text);margin-bottom:.25rem">${i+1}. ${label}</div><div style="display:flex;align-items:center;gap:.5rem"><div style="flex:1;height:20px;background:rgba(255,255,255,.06);border-radius:6px;overflow:hidden"><div style="height:100%;width:${w}%;background:${clr};border-radius:6px"></div></div><span style="font-size:.75rem;font-weight:600;color:${clr};min-width:30px;text-align:right">${count}x</span></div></div>`;
-        });
-        mh+='</div>';
-
-        // Sub-detail: each option with its own chart
-        sorted.forEach(([label,count])=>{
-          const subEntries=[];
-          snap.forEach(doc=>{const d=doc.data();
-            let lbl='';
-            if(key==='breathe') lbl=d.protocolName||d.protocol||'Desconhecido';
-            else if(key==='audio') lbl=`Nível ${d.level||'?'} — ${d.audioTitle||'Desconhecido'}`;
-            else if(key==='test') lbl=d.testLabel||d.testName||'Desconhecido';
-            if(lbl===label){const ts=d.startedAt||d.completedAt;if(ts){const dt=ts.toDate?ts.toDate():new Date(ts);subEntries.push({date:dateStr(dt),value:key==='test'?(d.average||0):1});}}
-          });
-          // Monthly bar chart for this option
-          const now=new Date();const MN=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
-          const months=[];for(let i=5;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);months.push({key:d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'),label:MN[d.getMonth()],val:0});}
-          subEntries.forEach(e=>{const mk=e.date.slice(0,7);const g=months.find(m=>m.key===mk);if(g)g.val+=(key==='test'?1:e.value);});
-          const smx=Math.max(...months.map(m=>m.val),1);
-          mh+=`<div class="card no-tap" style="margin-bottom:.8rem"><div style="font-size:.82rem;font-weight:500;color:${clr};margin-bottom:.5rem">${label}</div>`;
-          mh+='<div style="display:flex;align-items:flex-end;gap:4px;height:60px">';
-          months.forEach(m=>{const pct=smx>0?(m.val/smx)*100:0;mh+=`<div style="flex:1;display:flex;flex-direction:column;align-items:center;height:100%;justify-content:flex-end"><div style="font-size:.55rem;color:var(--text-dim);margin-bottom:2px">${m.val||''}</div><div style="width:100%;height:${pct}%;background:${clr};border-radius:3px;min-height:${m.val>0?2:0}px"></div><div style="font-size:.5rem;color:var(--text-dim);margin-top:2px">${m.label}</div></div>`;});
-          mh+='</div></div>';
-        });
-
-        $('detMoreContent').innerHTML=mh;
-        $('detMoreContent').style.display='';
-        $('detMoreBtn').style.display='none';
+        renderMoreDetails(snap,key,clr,$('detMoreContent'),$('detMoreBtn'));
       }catch(e){console.error(e);$('detMoreBtn').disabled=false;$('detMoreBtn').textContent='📊 Mais Detalhes';}
     });
   }
@@ -1156,39 +1116,39 @@ window.openHabitDetail=async function(key,isDefault){
 
 $('habitDetailBack').addEventListener('click',()=>loadDashboard());
 
-function renderDetHist(entries,clr,isMeas){
-  const period=$('detHistPeriod').value;
+function renderHistChart(targetId,entries,clr,isMeas,period,unit){
   const groups=[];
   const now=new Date();
   const MN=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
-  const DN=['dom','seg','ter','qua','qui','sex','sáb'];
   if(period==='day'){
-    for(let i=29;i>=0;i--){const d=new Date(now);d.setDate(d.getDate()-i);const k=dateStr(d);const m=d.getMonth();groups.push({key:k,label:''+d.getDate(),month:m,val:0});}
-    entries.forEach(e=>{const g=groups.find(x=>x.key===e.date);if(g)g.val+=(isMeas&&e.value?e.value:1);});
+    for(let i=29;i>=0;i--){const d=new Date(now);d.setDate(d.getDate()-i);groups.push({key:dateStr(d),label:''+d.getDate(),month:d.getMonth(),val:0,cnt:0});}
+    entries.forEach(e=>{const g=groups.find(x=>x.key===e.date);if(g){g.val+=(isMeas&&e.value?e.value:1);g.cnt++;}});
   }else if(period==='week'){
-    for(let i=25;i>=0;i--){const d=new Date(now);d.setDate(d.getDate()-i*7);const dow=d.getDay();const mo=dow===0?-6:1-dow;const mon=new Date(d);mon.setDate(d.getDate()+mo);const k=dateStr(mon);if(!groups.find(g=>g.key===k))groups.push({key:k,label:mon.getDate()+'/'+String(mon.getMonth()+1),val:0});}
-    entries.forEach(e=>{const d=new Date(e.date+'T12:00:00');const dow=d.getDay();const mo=dow===0?-6:1-dow;const mon=new Date(d);mon.setDate(d.getDate()+mo);const k=dateStr(mon);const g=groups.find(x=>x.key===k);if(g)g.val+=(isMeas&&e.value?e.value:1);});
+    for(let i=25;i>=0;i--){const d=new Date(now);d.setDate(d.getDate()-i*7);const dow=d.getDay();const mo=dow===0?-6:1-dow;const mon=new Date(d);mon.setDate(d.getDate()+mo);const k=dateStr(mon);if(!groups.find(g=>g.key===k))groups.push({key:k,label:mon.getDate()+'/'+String(mon.getMonth()+1),val:0,cnt:0});}
+    entries.forEach(e=>{const d=new Date(e.date+'T12:00:00');const dow=d.getDay();const mo=dow===0?-6:1-dow;const mon=new Date(d);mon.setDate(d.getDate()+mo);const k=dateStr(mon);const g=groups.find(x=>x.key===k);if(g){g.val+=(isMeas&&e.value?e.value:1);g.cnt++;}});
   }else if(period==='month'){
-    for(let i=23;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);const k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');groups.push({key:k,label:MN[d.getMonth()]+' '+String(d.getFullYear()).slice(2),val:0});}
-    entries.forEach(e=>{const k=e.date.slice(0,7);const g=groups.find(x=>x.key===k);if(g)g.val+=(isMeas&&e.value?e.value:1);});
+    for(let i=23;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);groups.push({key:d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'),label:MN[d.getMonth()]+' '+String(d.getFullYear()).slice(2),val:0,cnt:0});}
+    entries.forEach(e=>{const k=e.date.slice(0,7);const g=groups.find(x=>x.key===k);if(g){g.val+=(isMeas&&e.value?e.value:1);g.cnt++;}});
   }else if(period==='quarter'){
-    for(let i=11;i>=0;i--){const qm=now.getMonth()-i*3;const d=new Date(now.getFullYear(),qm,1);const q=Math.floor(d.getMonth()/3)+1;const k=d.getFullYear()+'Q'+q;const label='T'+q+'/'+String(d.getFullYear()).slice(2);if(!groups.find(g=>g.key===k))groups.push({key:k,label,val:0});}
-    entries.forEach(e=>{const d=new Date(e.date+'T12:00:00');const q=Math.floor(d.getMonth()/3)+1;const k=d.getFullYear()+'Q'+q;const g=groups.find(x=>x.key===k);if(g)g.val+=(isMeas&&e.value?e.value:1);});
+    for(let i=11;i>=0;i--){const qm=now.getMonth()-i*3;const d=new Date(now.getFullYear(),qm,1);const q=Math.floor(d.getMonth()/3)+1;const k=d.getFullYear()+'Q'+q;const label='T'+q+'/'+String(d.getFullYear()).slice(2);if(!groups.find(g=>g.key===k))groups.push({key:k,label,val:0,cnt:0});}
+    entries.forEach(e=>{const d=new Date(e.date+'T12:00:00');const q=Math.floor(d.getMonth()/3)+1;const k=d.getFullYear()+'Q'+q;const g=groups.find(x=>x.key===k);if(g){g.val+=(isMeas&&e.value?e.value:1);g.cnt++;}});
   }else{
-    for(let i=9;i>=0;i--){const y=now.getFullYear()-i;groups.push({key:''+y,label:''+y,val:0});}
-    entries.forEach(e=>{const k=e.date.slice(0,4);const g=groups.find(x=>x.key===k);if(g)g.val+=(isMeas&&e.value?e.value:1);});
+    for(let i=9;i>=0;i--){const y=now.getFullYear()-i;groups.push({key:''+y,label:''+y,val:0,cnt:0});}
+    entries.forEach(e=>{const k=e.date.slice(0,4);const g=groups.find(x=>x.key===k);if(g){g.val+=(isMeas&&e.value?e.value:1);g.cnt++;}});
   }
+  // Average for measurable when grouped (not daily)
+  if(isMeas&&period!=='day'){groups.forEach(g=>{if(g.cnt>0)g.val=parseFloat((g.val/g.cnt).toFixed(1));});}
   const mx=Math.max(...groups.map(g=>g.val),1);
   const colW=period==='day'?28:30;
   const chartW=Math.max(groups.length*colW,280);
+  const u=isMeas&&unit?unit:'';
   let bh='<div style="overflow-x:auto;overflow-y:visible;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.15) transparent"><div class="bar-wrap" style="min-width:'+chartW+'px"><div class="bar-chart">';
   groups.forEach(g=>{
     const pct=mx>0?(g.val/mx)*100:0;
-    const displayVal=g.val>0?g.val:'';
+    const displayVal=g.val>0?(g.val+u):'';
     bh+=`<div class="bar-col"><div class="bar-val" style="color:${clr}">${displayVal}</div><div class="bar-track"><div class="bar-fill" style="height:${pct}%;background:${clr}"></div></div><div class="bar-label">${g.label}</div></div>`;
   });
   bh+='</div>';
-  // Month reference row for "day" period
   if(period==='day'){
     bh+='<div class="bar-month-refs">';
     let prevMonth=-1;
@@ -1203,9 +1163,48 @@ function renderDetHist(entries,clr,isMeas){
     bh+='</div>';
   }
   bh+='</div></div>';
-  $('detHistChart').innerHTML=bh;
-  const histScroll=$('detHistChart').firstElementChild;
-  if(histScroll)histScroll.scrollLeft=histScroll.scrollWidth;
+  $(targetId).innerHTML=bh;
+  const scrollEl=$(targetId).firstElementChild;
+  if(scrollEl)scrollEl.scrollLeft=scrollEl.scrollWidth;
+}
+
+function renderMoreDetails(snap,key,clr,contentEl,btnEl){
+  const isTest=(key==='test');
+  const counts={},sums={},allSub={};
+  snap.forEach(doc=>{const d=doc.data();
+    let label='';
+    if(key==='breathe')label=d.protocolName||d.protocol||'Desconhecido';
+    else if(key==='audio')label=`Nível ${d.level||'?'} — ${d.audioTitle||'Desconhecido'}`;
+    else if(key==='test')label=d.testLabel||d.testName||'Desconhecido';
+    if(!counts[label]){counts[label]=0;sums[label]=0;allSub[label]=[];}
+    counts[label]++;
+    if(isTest)sums[label]+=(d.average||0);
+    const ts=d.startedAt||d.completedAt;
+    if(ts){const dt=ts.toDate?ts.toDate():new Date(ts);allSub[label].push({date:dateStr(dt),value:isTest?(d.average||0):1});}
+  });
+  const sorted=Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+  const mx=sorted.length>0?sorted[0][1]:1;
+  let mh=`<div class="card no-tap" style="margin-bottom:1.2rem"><div class="detail-section-title" style="color:${clr}">Ranking — ${key==='breathe'?'Protocolos':key==='audio'?'Áudios':'Testes'}</div>`;
+  if(sorted.length===0)mh+=`<div style="font-size:.8rem;color:var(--text-dim);padding:.5rem 0">Nenhum registro ainda.</div>`;
+  else sorted.forEach(([label,count],i)=>{
+    const w=Math.max(Math.round((count/mx)*100),15);
+    const avgStr=isTest?` · Média: ${(sums[label]/count).toFixed(1)}s`:'';
+    mh+=`<div style="margin-top:.6rem"><div style="font-size:.78rem;color:var(--text);margin-bottom:.25rem">${i+1}. ${label}</div><div style="display:flex;align-items:center;gap:.5rem"><div style="flex:1;height:20px;background:rgba(255,255,255,.06);border-radius:6px;overflow:hidden"><div style="height:100%;width:${w}%;background:${clr};border-radius:6px"></div></div><span style="font-size:.75rem;font-weight:600;color:${clr};min-width:${isTest?'100px':'30px'};text-align:right;white-space:nowrap">${count}x${avgStr}</span></div></div>`;
+  });
+  mh+='</div>';
+  // Sub-detail: each option with full history chart + period filter
+  sorted.forEach(([label],idx)=>{
+    mh+=`<div class="card no-tap" style="margin-bottom:.8rem"><div style="display:flex;justify-content:space-between;align-items:center"><div style="font-size:.82rem;font-weight:500;color:${clr}">${label}</div><select class="input" style="width:auto;padding:.2rem .5rem;font-size:.68rem;margin:0" id="subHP_${idx}">${isTest?'<option value="day" selected>Dia</option><option value="week">Semana</option>':'<option value="week" selected>Semana</option>'}<option value="month">Mês</option><option value="quarter">Trimestre</option><option value="year">Ano</option></select></div><div id="subHC_${idx}" style="margin-top:.5rem"></div></div>`;
+  });
+  contentEl.innerHTML=mh;
+  contentEl.style.display='';
+  btnEl.style.display='none';
+  // Wire up sub-charts
+  sorted.forEach(([label],idx)=>{
+    const sub=allSub[label];const subMeas=isTest;const u=isTest?'s':'';
+    renderHistChart('subHC_'+idx,sub,clr,subMeas,$('subHP_'+idx).value,u);
+    $('subHP_'+idx).addEventListener('change',()=>renderHistChart('subHC_'+idx,sub,clr,subMeas,$('subHP_'+idx).value,u));
+  });
 }
 
 function renderDetCal(cSet,clr,isMeas,habit){
@@ -1751,10 +1750,11 @@ window.adminHabitDetail=async function(key,isDefault){
     $('adminContent').innerHTML=h;
     // Set globals for render functions (read-only, no calendar editing)
     detailHabitKey=key;detailIsDefault=true;detailIsMeas=isMeas;detailClr=clr;detailEntries=entries;detailCSet=cSet;detailHabit=habit;calEditMode=false;
+    const hUnit=isMeas?(habit.unit||''):'';
     renderDetStability(entries,clr);
     $('detStabPeriod').addEventListener('change',()=>renderDetStability(entries,clr));
-    renderDetHist(entries,clr,isMeas);
-    $('detHistPeriod').addEventListener('change',()=>renderDetHist(entries,clr,isMeas));
+    renderHistChart('detHistChart',entries,clr,isMeas,$('detHistPeriod').value,hUnit);
+    $('detHistPeriod').addEventListener('change',()=>renderHistChart('detHistChart',entries,clr,isMeas,$('detHistPeriod').value,hUnit));
     renderDetCal(cSet,clr,isMeas,habit);
     renderDetStreaks(cSet,clr);
     renderDetFreq(cSet,clr);
@@ -1764,47 +1764,7 @@ window.adminHabitDetail=async function(key,isDefault){
         $('admDetMoreBtn').disabled=true;$('admDetMoreBtn').textContent='Carregando...';
         try{
           const snap=await db.collection('sessions').where('userId','==',uid).where('type','==',key==='test'?'test':(key==='audio'?'audio':'breathe')).get();
-          const counts={};
-          snap.forEach(doc=>{const d=doc.data();
-            let label='';
-            if(key==='breathe') label=d.protocolName||d.protocol||'Desconhecido';
-            else if(key==='audio') label=`Nível ${d.level||'?'} — ${d.audioTitle||'Desconhecido'}`;
-            else if(key==='test') label=d.testLabel||d.testName||'Desconhecido';
-            if(!counts[label])counts[label]=0;counts[label]++;
-          });
-          const sorted=Object.entries(counts).sort((a,b)=>b[1]-a[1]);
-          const mx=sorted.length>0?sorted[0][1]:1;
-          let mh=`<div class="card no-tap" style="margin-bottom:1.2rem"><div class="detail-section-title" style="color:${clr}">Ranking — ${key==='breathe'?'Protocolos':key==='audio'?'Áudios':'Testes'}</div>`;
-          if(sorted.length===0) mh+=`<div style="font-size:.8rem;color:var(--text-dim);padding:.5rem 0">Nenhum registro ainda.</div>`;
-          else sorted.forEach(([label,count],i)=>{
-            const w=Math.max(Math.round((count/mx)*100),15);
-            mh+=`<div style="margin-top:.6rem"><div style="font-size:.78rem;color:var(--text);margin-bottom:.25rem">${i+1}. ${label}</div><div style="display:flex;align-items:center;gap:.5rem"><div style="flex:1;height:20px;background:rgba(255,255,255,.06);border-radius:6px;overflow:hidden"><div style="height:100%;width:${w}%;background:${clr};border-radius:6px"></div></div><span style="font-size:.75rem;font-weight:600;color:${clr};min-width:30px;text-align:right">${count}x</span></div></div>`;
-          });
-          mh+='</div>';
-
-          const MN=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
-          const nowM=new Date();
-          sorted.forEach(([label,count])=>{
-            const subEntries=[];
-            snap.forEach(doc=>{const d=doc.data();
-              let lbl='';
-              if(key==='breathe') lbl=d.protocolName||d.protocol||'Desconhecido';
-              else if(key==='audio') lbl=`Nível ${d.level||'?'} — ${d.audioTitle||'Desconhecido'}`;
-              else if(key==='test') lbl=d.testLabel||d.testName||'Desconhecido';
-              if(lbl===label){const ts=d.startedAt||d.completedAt;if(ts){const dt=ts.toDate?ts.toDate():new Date(ts);subEntries.push({date:dateStr(dt),value:key==='test'?(d.average||0):1});}}
-            });
-            const months=[];for(let i=5;i>=0;i--){const d=new Date(nowM.getFullYear(),nowM.getMonth()-i,1);months.push({key:d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'),label:MN[d.getMonth()],val:0});}
-            subEntries.forEach(e=>{const mk=e.date.slice(0,7);const g=months.find(m=>m.key===mk);if(g)g.val+=(key==='test'?1:e.value);});
-            const smx=Math.max(...months.map(m=>m.val),1);
-            mh+=`<div class="card no-tap" style="margin-bottom:.8rem"><div style="font-size:.82rem;font-weight:500;color:${clr};margin-bottom:.5rem">${label}</div>`;
-            mh+='<div style="display:flex;align-items:flex-end;gap:4px;height:60px">';
-            months.forEach(m=>{const pct=smx>0?(m.val/smx)*100:0;mh+=`<div style="flex:1;display:flex;flex-direction:column;align-items:center;height:100%;justify-content:flex-end"><div style="font-size:.55rem;color:var(--text-dim);margin-bottom:2px">${m.val||''}</div><div style="width:100%;height:${pct}%;background:${clr};border-radius:3px;min-height:${m.val>0?2:0}px"></div><div style="font-size:.5rem;color:var(--text-dim);margin-top:2px">${m.label}</div></div>`;});
-            mh+='</div></div>';
-          });
-
-          $('admDetMoreContent').innerHTML=mh;
-          $('admDetMoreContent').style.display='';
-          $('admDetMoreBtn').style.display='none';
+          renderMoreDetails(snap,key,clr,$('admDetMoreContent'),$('admDetMoreBtn'));
         }catch(e){console.error(e);$('admDetMoreBtn').disabled=false;$('admDetMoreBtn').textContent='📊 Mais Detalhes';}
       });
     }
