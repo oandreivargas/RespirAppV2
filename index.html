@@ -1653,6 +1653,8 @@ window.viewUserProgress=async function(uid,userName){
 
 window.adminHabitDetail=async function(key,isDefault){
   const uid=adminViewUid,userName=adminViewUserName;
+  // Clear user habit detail to avoid duplicate element IDs
+  $('habitDetailContent').innerHTML='';
   $('adminContent').innerHTML='<div class="loader">Carregando detalhes...</div>';
   try{
     let habit;
@@ -1741,6 +1743,11 @@ window.adminHabitDetail=async function(key,isDefault){
     h+=`<div class="card no-tap" style="margin-bottom:1.2rem"><div class="detail-section-title" style="color:${clr}">Correntes mais longas</div><div id="detStreaks" style="margin-top:.6rem"></div></div>`;
     h+=`<div class="card no-tap" style="margin-bottom:1.5rem"><div class="detail-section-title" style="color:${clr}">Frequência</div><div id="detFreq" style="margin-top:.6rem;overflow-x:auto"></div></div>`;
 
+    if(isDefault){
+      h+=`<button class="btn btn-s" style="margin-bottom:1.5rem" id="admDetMoreBtn">📊 Mais Detalhes</button>`;
+      h+=`<div id="admDetMoreContent" style="display:none;width:100%"></div>`;
+    }
+
     $('adminContent').innerHTML=h;
     // Set globals for render functions (read-only, no calendar editing)
     detailHabitKey=key;detailIsDefault=true;detailIsMeas=isMeas;detailClr=clr;detailEntries=entries;detailCSet=cSet;detailHabit=habit;calEditMode=false;
@@ -1751,6 +1758,56 @@ window.adminHabitDetail=async function(key,isDefault){
     renderDetCal(cSet,clr,isMeas,habit);
     renderDetStreaks(cSet,clr);
     renderDetFreq(cSet,clr);
+
+    if(isDefault&&$('admDetMoreBtn')){
+      $('admDetMoreBtn').addEventListener('click',async()=>{
+        $('admDetMoreBtn').disabled=true;$('admDetMoreBtn').textContent='Carregando...';
+        try{
+          const snap=await db.collection('sessions').where('userId','==',uid).where('type','==',key==='test'?'test':(key==='audio'?'audio':'breathe')).get();
+          const counts={};
+          snap.forEach(doc=>{const d=doc.data();
+            let label='';
+            if(key==='breathe') label=d.protocolName||d.protocol||'Desconhecido';
+            else if(key==='audio') label=`Nível ${d.level||'?'} — ${d.audioTitle||'Desconhecido'}`;
+            else if(key==='test') label=d.testLabel||d.testName||'Desconhecido';
+            if(!counts[label])counts[label]=0;counts[label]++;
+          });
+          const sorted=Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+          const mx=sorted.length>0?sorted[0][1]:1;
+          let mh=`<div class="card no-tap" style="margin-bottom:1.2rem"><div class="detail-section-title" style="color:${clr}">Ranking — ${key==='breathe'?'Protocolos':key==='audio'?'Áudios':'Testes'}</div>`;
+          if(sorted.length===0) mh+=`<div style="font-size:.8rem;color:var(--text-dim);padding:.5rem 0">Nenhum registro ainda.</div>`;
+          else sorted.forEach(([label,count],i)=>{
+            const w=Math.max(Math.round((count/mx)*100),15);
+            mh+=`<div style="margin-top:.6rem"><div style="font-size:.78rem;color:var(--text);margin-bottom:.25rem">${i+1}. ${label}</div><div style="display:flex;align-items:center;gap:.5rem"><div style="flex:1;height:20px;background:rgba(255,255,255,.06);border-radius:6px;overflow:hidden"><div style="height:100%;width:${w}%;background:${clr};border-radius:6px"></div></div><span style="font-size:.75rem;font-weight:600;color:${clr};min-width:30px;text-align:right">${count}x</span></div></div>`;
+          });
+          mh+='</div>';
+
+          const MN=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+          const nowM=new Date();
+          sorted.forEach(([label,count])=>{
+            const subEntries=[];
+            snap.forEach(doc=>{const d=doc.data();
+              let lbl='';
+              if(key==='breathe') lbl=d.protocolName||d.protocol||'Desconhecido';
+              else if(key==='audio') lbl=`Nível ${d.level||'?'} — ${d.audioTitle||'Desconhecido'}`;
+              else if(key==='test') lbl=d.testLabel||d.testName||'Desconhecido';
+              if(lbl===label){const ts=d.startedAt||d.completedAt;if(ts){const dt=ts.toDate?ts.toDate():new Date(ts);subEntries.push({date:dateStr(dt),value:key==='test'?(d.average||0):1});}}
+            });
+            const months=[];for(let i=5;i>=0;i--){const d=new Date(nowM.getFullYear(),nowM.getMonth()-i,1);months.push({key:d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'),label:MN[d.getMonth()],val:0});}
+            subEntries.forEach(e=>{const mk=e.date.slice(0,7);const g=months.find(m=>m.key===mk);if(g)g.val+=(key==='test'?1:e.value);});
+            const smx=Math.max(...months.map(m=>m.val),1);
+            mh+=`<div class="card no-tap" style="margin-bottom:.8rem"><div style="font-size:.82rem;font-weight:500;color:${clr};margin-bottom:.5rem">${label}</div>`;
+            mh+='<div style="display:flex;align-items:flex-end;gap:4px;height:60px">';
+            months.forEach(m=>{const pct=smx>0?(m.val/smx)*100:0;mh+=`<div style="flex:1;display:flex;flex-direction:column;align-items:center;height:100%;justify-content:flex-end"><div style="font-size:.55rem;color:var(--text-dim);margin-bottom:2px">${m.val||''}</div><div style="width:100%;height:${pct}%;background:${clr};border-radius:3px;min-height:${m.val>0?2:0}px"></div><div style="font-size:.5rem;color:var(--text-dim);margin-top:2px">${m.label}</div></div>`;});
+            mh+='</div></div>';
+          });
+
+          $('admDetMoreContent').innerHTML=mh;
+          $('admDetMoreContent').style.display='';
+          $('admDetMoreBtn').style.display='none';
+        }catch(e){console.error(e);$('admDetMoreBtn').disabled=false;$('admDetMoreBtn').textContent='📊 Mais Detalhes';}
+      });
+    }
   }catch(e){$('adminContent').innerHTML=`<div class="error-msg">Erro: ${e.message}</div>`;}
 };
 
