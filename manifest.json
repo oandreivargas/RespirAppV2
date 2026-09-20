@@ -1,21 +1,22 @@
 {
-  "name": "Respira 4×4",
-  "short_name": "Respira",
-  "description": "Exercício guiado de respiração para regulação do sistema nervoso",
-  "start_url": "/index.html",
+  "name": "RespirApp - Regulação pela Respiração",
+  "short_name": "RespirApp",
+  "description": "App de respiração guiada para regulação do sistema nervoso",
+  "start_url": "/RespirAppV2/",
+  "scope": "/RespirAppV2/",
   "display": "standalone",
+  "background_color": "#0d1117",
+  "theme_color": "#80cbc4",
   "orientation": "portrait",
-  "background_color": "#0a0f1a",
-  "theme_color": "#0a0f1a",
   "icons": [
     {
-      "src": "icon-192.png",
+      "src": "./icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "icon-512.png",
+      "src": "./icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
