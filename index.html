@@ -193,8 +193,21 @@ select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
   <div class="card main-card" id="btnProtocolosAudio"><div class="card-icon">🎧</div><div class="t">Protocolos Respiratórios</div><div class="d">Sessões guiadas com áudio</div></div>
   <div class="card main-card" id="btnTreinos"><div class="card-icon">⏱️</div><div class="t">Treinos e Testes de Respiração</div><div class="d">Bolt Score · TELL Score · TILL Score</div></div>
   <div class="card main-card" id="btnDashboard"><div class="card-icon">📊</div><div class="t">Meu Progresso</div><div class="d">Acompanhe seus hábitos e evolução</div></div>
+  <div class="card main-card" id="btnProntuario" style="display:none"><div class="card-icon">📋</div><div class="t">Prontuário</div><div class="d">Anamnese e Avaliação Respiratória</div></div>
   <button class="btn btn-o" id="logoutBtn" style="margin-top:1.5rem;font-size:.82rem">Sair da conta</button>
   <div class="link" id="adminLink" style="display:none;margin-top:.5rem">Painel Admin</div>
+</div>
+
+<!-- PRONTUARIO -->
+<div class="screen scroll" id="prontuarioScreen">
+  <div class="top-bar"><button class="back-btn" id="prontuarioBack">‹ Voltar</button><div class="badge">Prontuário</div></div>
+  <div class="section-title" id="prontuarioTitle">Anamnese e Avaliação Respiratória</div>
+  <div id="prontuarioStepIndicator" style="font-size:.72rem;color:var(--text-dim);margin-bottom:.8rem;text-align:center"></div>
+  <div id="prontuarioContainer" style="width:100%"></div>
+  <div style="display:flex;gap:.5rem;width:100%;margin-top:1rem">
+    <button class="btn btn-o" id="prontuarioPrev" style="flex:1">Anterior</button>
+    <button class="btn btn-p" id="prontuarioNext" style="flex:2">Próximo</button>
+  </div>
 </div>
 
 <!-- RESPIRE AGORA -->
@@ -528,6 +541,8 @@ function showHome(){
     dashCard.style.opacity='';dashCard.style.pointerEvents='';
     dashCard.querySelector('.d').textContent='Acompanhe seus hábitos e evolução';
   }
+  // Prontuário: only for mentoria
+  $('btnProntuario').style.display=lvl==='mentoria'?'':'none';
   // Show test mode indicator for admin
   let testBanner=document.getElementById('adminTestBanner');
   if(isAdmin&&adminTestLevel){
@@ -1504,7 +1519,9 @@ async function loadAdmin(tab){
           const isCur=uLvl===lv;
           h+=`<button class="btn ${isCur?'btn-p':'btn-o'}" style="flex:1;padding:.35rem;font-size:.7rem;${isCur?'':'opacity:.6'}" onclick="setUserAccess('${doc.id}','${lv}')">${ACCESS_LABELS[lv]}</button>`;
         });
-        h+=`</div><div style="display:flex;gap:.4rem;margin-top:.4rem"><button class="btn btn-s" style="flex:1;font-size:.72rem;padding:.35rem" onclick="viewQuestionnaire('${doc.id}')">Ver respostas</button><button class="btn btn-s" style="flex:1;font-size:.72rem;padding:.35rem" onclick="viewUserProgress('${doc.id}','${(u.name||'').replace(/'/g,"\\'")}')">📊 Ver progresso</button></div></div>`;
+        h+=`</div><div style="display:flex;gap:.4rem;margin-top:.4rem"><button class="btn btn-s" style="flex:1;font-size:.72rem;padding:.35rem" onclick="viewQuestionnaire('${doc.id}')">Ver respostas</button><button class="btn btn-s" style="flex:1;font-size:.72rem;padding:.35rem" onclick="viewUserProgress('${doc.id}','${(u.name||'').replace(/'/g,"\\'")}')">📊 Ver progresso</button></div>`;
+        if(uLvl==='mentoria'){h+=`<div style="display:flex;gap:.4rem;margin-top:.4rem"><button class="btn btn-s" style="flex:1;font-size:.72rem;padding:.35rem" onclick="viewProntuario('${doc.id}')">📋 Ver prontuário</button><button class="btn btn-s" style="flex:1;font-size:.72rem;padding:.35rem" onclick="toggleLockProntuario('${doc.id}')">🔒 Bloquear/Desbloquear</button></div>`;}
+        h+=`</div>`;
       });
       $('adminContent').innerHTML=h||'<div class="loader">Nenhum usuário.</div>';
     }else if(tab==='sessions'){
@@ -1802,6 +1819,316 @@ window.setUserAccess=async function(uid,level){
     await db.collection('users').doc(uid).update({accessLevel:level});
     // If changing own access, update local
     if(currentUser&&uid===currentUser.uid)currentAccessLevel=level;
+    loadAdmin('users');
+  }catch(e){alert('Erro: '+e.message);}
+};
+
+// ═══ PRONTUÁRIO ═══
+const PRONTUARIO_SECTIONS=[
+{id:'s0',title:'Confidencialidade',type:'info',html:'<div class="card no-tap" style="font-size:.82rem;line-height:1.5"><p style="margin-bottom:.8rem"><b>Mente sem Caos</b></p><p>Este formulário é sigiloso. As informações coletadas são exclusivamente para fins de acompanhamento e personalização do programa de respiração.</p><p style="margin-top:.6rem">Nenhuma informação será compartilhada com terceiros.</p></div>'},
+{id:'s1',title:'1. Identificação',fields:[
+  {id:'nome',label:'Nome completo',type:'text'},
+  {id:'dataNascimento',label:'Data de nascimento',type:'date'},
+  {id:'whatsapp',label:'WhatsApp',type:'tel'},
+  {id:'email',label:'Email',type:'email'},
+  {id:'ocupacao',label:'Ocupação profissional',type:'text'},
+  {id:'falaMuito',label:'No trabalho, você fala muito?',type:'radio',options:['Sim','Não']},
+  {id:'esforcoFisico',label:'Sua atividade exige esforço físico?',type:'radio',options:['Sim','Não']}
+]},
+{id:'s3',title:'2. Objetivo e Motivação',fields:[
+  {id:'problemaPrincipal',label:'Qual o principal problema que te trouxe aqui?',type:'textarea'},
+  {id:'problemasSecundarios',label:'Existe algum problema secundário?',type:'textarea'},
+  {id:'expectativas',label:'Quais suas expectativas com o programa?',type:'textarea'},
+  {id:'perguntaFechamento',label:'Se pudesse resolver um único problema com a respiração, qual seria?',type:'textarea'}
+]},
+{id:'s4',title:'3. Saúde Geral',fields:[
+  {id:'doencas',label:'Possui alguma doença diagnosticada?',type:'textarea',placeholder:'Descreva ou escreva "nenhuma"'},
+  {id:'medicamentos',label:'Faz uso de algum medicamento?',type:'textarea',placeholder:'Quais e dosagens'},
+  {id:'alergias',label:'Possui alguma alergia?',type:'textarea'},
+  {id:'cirurgias',label:'Já realizou alguma cirurgia?',type:'textarea'},
+  {id:'tabagismo',label:'Tabagismo',type:'textarea',placeholder:'Fumante? Há quanto tempo? Quantos por dia?'},
+  {id:'alcool',label:'Consumo de álcool',type:'textarea',placeholder:'Frequência e quantidade'}
+]},
+{id:'s5',title:'4. Histórico Respiratório e Sono',fields:[
+  {id:'terapiaResp',label:'Já fez alguma terapia respiratória?',type:'radio',options:['Sim','Não']},
+  {id:'terapiaRespDetalhe',label:'Se sim, qual?',type:'text',conditional:'terapiaResp:Sim'},
+  {id:'condicaoResp',label:'Possui alguma condição respiratória?',type:'textarea',placeholder:'Asma, rinite, desvio de septo, etc.'},
+  {id:'dispositivoResp',label:'Usa algum dispositivo respiratório?',type:'text',placeholder:'CPAP, inalador, etc.'},
+  {id:'sonoQualidade',label:'Qualidade do sono (0 a 10)',type:'range',min:0,max:10},
+  {id:'horaDormir',label:'Que horas costuma dormir?',type:'time'},
+  {id:'horaAcordar',label:'Que horas costuma acordar?',type:'time'},
+  {id:'problemaSono',label:'Problemas de sono',type:'checkbox',options:['Ronco','Apneia do sono','Dorme de boca aberta','Acorda durante a noite','Insônia','Bruxismo']},
+  {id:'sonoDetalhes',label:'Detalhes adicionais sobre o sono',type:'textarea'}
+]},
+{id:'s6',title:'5. Estilo de Vida',fields:[
+  {id:'atividadeFisica',label:'Pratica atividade física regular?',type:'radio',options:['Sim','Não']},
+  {id:'horasExercicio',label:'Horas de exercício por semana',type:'radio',options:['0-1h','1-2h','2-3h','3-5h','5-7h','7-10h','10-15h','+15h']},
+  {id:'alimentacao',label:'Como é sua alimentação?',type:'textarea'},
+  {id:'estresse',label:'Nível de estresse no dia a dia',type:'range',min:0,max:10},
+  {id:'cafeinaConsumo',label:'Consome cafeína?',type:'radio',options:['Sim','Não']},
+  {id:'cafeinaFontes',label:'Fontes de cafeína',type:'checkbox',options:['Café','Energético','Chimarrão','Chá preto','Chá verde','Outro'],conditional:'cafeinaConsumo:Sim'},
+  {id:'cafeinaHorario',label:'Horário da última cafeína do dia',type:'time',conditional:'cafeinaConsumo:Sim'},
+  {id:'medEstimulante',label:'Usa medicamento estimulante?',type:'radio',options:['Sim','Não']},
+  {id:'medDormir',label:'Usa medicamento para dormir?',type:'radio',options:['Sim','Não']}
+]},
+{id:'s7',title:'6. Experiências Prévias',fields:[
+  {id:'expPrevias',label:'Já praticou alguma dessas atividades?',type:'checkbox',options:['Yoga','Meditação','Relaxamento intenso','Respiração guiada','Nenhuma']},
+  {id:'expDetalhes',label:'Detalhes sobre a experiência',type:'textarea'}
+]},
+{id:'s8',title:'7. Triagem de Segurança',fields:[
+  {id:'medicoEvitar',label:'Algum médico já aconselhou evitar exercícios respiratórios?',type:'radio',options:['Sim','Não']},
+  {id:'medicoEvitarQual',label:'Se sim, qual motivo?',type:'textarea',conditional:'medicoEvitar:Sim'},
+  {id:'condicaoPreocupacao',label:'Possui alguma condição ou preocupação que devamos saber?',type:'textarea'}
+]},
+{id:'s10',title:'8. Sintomas',fields:[
+  {id:'s10info',label:'',type:'info',html:'<div style="font-size:.78rem;color:var(--text-dim);margin-bottom:.6rem">Classifique a intensidade de cada sintoma:</div>'},
+  {id:'sint1',label:'Dor de cabeça',type:'radio',options:['Nenhum','1-Leve','2-Moderado','3-Grave']},
+  {id:'sint2',label:'Tensão muscular',type:'radio',options:['Nenhum','1-Leve','2-Moderado','3-Grave']},
+  {id:'sint3',label:'Dor no peito',type:'radio',options:['Nenhum','1-Leve','2-Moderado','3-Grave']},
+  {id:'sint4',label:'Palpitações',type:'radio',options:['Nenhum','1-Leve','2-Moderado','3-Grave']},
+  {id:'sint5',label:'Tontura ou vertigem',type:'radio',options:['Nenhum','1-Leve','2-Moderado','3-Grave']},
+  {id:'sint6',label:'Formigamento nas mãos/pés',type:'radio',options:['Nenhum','1-Leve','2-Moderado','3-Grave']},
+  {id:'sint7',label:'Dificuldade de concentração',type:'radio',options:['Nenhum','1-Leve','2-Moderado','3-Grave']},
+  {id:'sint8',label:'Fadiga / cansaço',type:'radio',options:['Nenhum','1-Leve','2-Moderado','3-Grave']},
+  {id:'sint9',label:'Problemas digestivos',type:'radio',options:['Nenhum','1-Leve','2-Moderado','3-Grave']},
+  {id:'sint10',label:'Boca seca',type:'radio',options:['Nenhum','1-Leve','2-Moderado','3-Grave']},
+  {id:'sint11',label:'Mãos/pés frios',type:'radio',options:['Nenhum','1-Leve','2-Moderado','3-Grave']},
+  {id:'sint12',label:'Sudorese excessiva',type:'radio',options:['Nenhum','1-Leve','2-Moderado','3-Grave']},
+  {id:'sint13',label:'Ansiedade',type:'radio',options:['Nenhum','1-Leve','2-Moderado','3-Grave']},
+  {id:'sint14',label:'Insônia',type:'radio',options:['Nenhum','1-Leve','2-Moderado','3-Grave']},
+  {id:'sint15',label:'Irritabilidade',type:'radio',options:['Nenhum','1-Leve','2-Moderado','3-Grave']},
+  {id:'sint16',label:'Falta de ar',type:'radio',options:['Nenhum','1-Leve','2-Moderado','3-Grave']},
+  {id:'sint17',label:'Sensação de nó na garganta',type:'radio',options:['Nenhum','1-Leve','2-Moderado','3-Grave']}
+]},
+{id:'s11',title:'9. Questionário de Nijmegen',fields:[
+  {id:'s11info',label:'',type:'info',html:'<div style="font-size:.78rem;color:var(--text-dim);margin-bottom:.6rem">Marque a intensidade com que você sente cada item:</div>'},
+  {id:'nij1',label:'Dor no peito',type:'radio',options:['Nunca','Raramente','Às vezes','Frequentemente','Muito frequente']},
+  {id:'nij2',label:'Tensão',type:'radio',options:['Nunca','Raramente','Às vezes','Frequentemente','Muito frequente']},
+  {id:'nij3',label:'Visão borrada',type:'radio',options:['Nunca','Raramente','Às vezes','Frequentemente','Muito frequente']},
+  {id:'nij4',label:'Tontura',type:'radio',options:['Nunca','Raramente','Às vezes','Frequentemente','Muito frequente']},
+  {id:'nij5',label:'Confusão mental',type:'radio',options:['Nunca','Raramente','Às vezes','Frequentemente','Muito frequente']},
+  {id:'nij6',label:'Respiração rápida ou profunda',type:'radio',options:['Nunca','Raramente','Às vezes','Frequentemente','Muito frequente']},
+  {id:'nij7',label:'Falta de ar',type:'radio',options:['Nunca','Raramente','Às vezes','Frequentemente','Muito frequente']},
+  {id:'nij8',label:'Aperto no peito',type:'radio',options:['Nunca','Raramente','Às vezes','Frequentemente','Muito frequente']},
+  {id:'nij9',label:'Distensão abdominal',type:'radio',options:['Nunca','Raramente','Às vezes','Frequentemente','Muito frequente']},
+  {id:'nij10',label:'Formigamento nos dedos',type:'radio',options:['Nunca','Raramente','Às vezes','Frequentemente','Muito frequente']},
+  {id:'nij11',label:'Dificuldade em respirar ou suspiro',type:'radio',options:['Nunca','Raramente','Às vezes','Frequentemente','Muito frequente']},
+  {id:'nij12',label:'Rigidez nos dedos ou braços',type:'radio',options:['Nunca','Raramente','Às vezes','Frequentemente','Muito frequente']},
+  {id:'nij13',label:'Rigidez ao redor da boca',type:'radio',options:['Nunca','Raramente','Às vezes','Frequentemente','Muito frequente']},
+  {id:'nij14',label:'Mãos e pés frios',type:'radio',options:['Nunca','Raramente','Às vezes','Frequentemente','Muito frequente']},
+  {id:'nij15',label:'Palpitações',type:'radio',options:['Nunca','Raramente','Às vezes','Frequentemente','Muito frequente']},
+  {id:'nij16',label:'Ansiedade',type:'radio',options:['Nunca','Raramente','Às vezes','Frequentemente','Muito frequente']}
+]},
+{id:'s12',title:'10. Outros Sintomas',fields:[
+  {id:'outrosSintomas',label:'Existe algum outro sintoma ou desconforto que não foi mencionado?',type:'textarea',placeholder:'Descreva aqui'}
+]},
+{id:'s13',title:'11. Observações',type:'info',html:'<div class="card no-tap" style="font-size:.82rem;line-height:1.5"><p style="margin-bottom:.6rem"><b>Notas importantes:</b></p><p>• Em caso de gestante: consultar médico antes de iniciar exercícios respiratórios intensos.</p><p style="margin-top:.4rem">• Em caso de menor de idade: necessário consentimento do responsável legal.</p></div>'},
+{id:'s14',title:'12. Termo de Responsabilidade',fields:[
+  {id:'termoInfo',label:'',type:'info',html:'<div style="font-size:.82rem;line-height:1.5;margin-bottom:.8rem">Declaro que as informações acima são verdadeiras e que fui informado(a) sobre o caráter do programa de respiração. Entendo que este programa <b>não substitui</b> tratamento médico ou psicológico e que devo consultar um profissional de saúde para qualquer condição médica.</div>'},
+  {id:'termoNome',label:'Nome completo',type:'text'},
+  {id:'termoAceite',label:'Declaro que li e concordo com o termo de responsabilidade',type:'radio',options:['Sim']}
+]}
+];
+
+let prontuarioStep=0;
+let prontuarioData={};
+let prontuarioLocked=false;
+
+$('btnProntuario').addEventListener('click',async()=>{
+  prontuarioStep=0;prontuarioData={};prontuarioLocked=false;
+  // Try loading existing data
+  if(currentUser){
+    try{
+      const doc=await db.collection('prontuarios').doc(currentUser.uid).get();
+      if(doc.exists){
+        prontuarioData=doc.data().data||{};
+        prontuarioLocked=!!doc.data().locked;
+      }
+    }catch(e){console.error(e);}
+  }
+  renderProntuarioStep();
+  show('prontuarioScreen');
+});
+$('prontuarioBack').addEventListener('click',()=>showHome());
+
+function renderProntuarioStep(){
+  const sec=PRONTUARIO_SECTIONS[prontuarioStep];
+  $('prontuarioTitle').textContent=sec.title;
+  $('prontuarioStepIndicator').textContent=`Etapa ${prontuarioStep+1} de ${PRONTUARIO_SECTIONS.length}`;
+  let h='';
+  if(sec.type==='info'){
+    h=sec.html;
+  }else{
+    sec.fields.forEach(f=>{
+      // Check conditional visibility
+      if(f.conditional){
+        const [depId,depVal]=f.conditional.split(':');
+        if(prontuarioData[depId]!==depVal){return;}
+      }
+      if(f.type==='info'){h+=f.html;return;}
+      const val=prontuarioData[f.id];
+      const dis=prontuarioLocked?'disabled':'';
+      h+=`<div class="card no-tap" style="margin-bottom:.6rem;padding:.8rem">`;
+      if(f.label)h+=`<div style="font-size:.82rem;font-weight:500;margin-bottom:.5rem;color:var(--text)">${f.label}</div>`;
+      if(f.type==='text'||f.type==='email'||f.type==='tel'||f.type==='date'||f.type==='time'||f.type==='number'){
+        h+=`<input class="input" type="${f.type}" data-fid="${f.id}" value="${val||''}" placeholder="${f.placeholder||''}" ${dis} style="margin:0">`;
+      }else if(f.type==='textarea'){
+        h+=`<textarea class="input" data-fid="${f.id}" placeholder="${f.placeholder||''}" ${dis} style="margin:0;min-height:70px;resize:vertical">${val||''}</textarea>`;
+      }else if(f.type==='range'){
+        const rv=val!=null?val:5;
+        h+=`<div style="display:flex;align-items:center;gap:.6rem"><span style="font-size:.75rem;color:var(--text-dim)">${f.min}</span><input type="range" data-fid="${f.id}" min="${f.min}" max="${f.max}" value="${rv}" ${dis} style="flex:1;accent-color:var(--accent)"><span style="font-size:.75rem;color:var(--text-dim)">${f.max}</span><span data-rv="${f.id}" style="font-size:1rem;font-weight:600;color:var(--accent);min-width:22px;text-align:center">${rv}</span></div>`;
+      }else if(f.type==='radio'){
+        h+=`<div style="display:flex;flex-wrap:wrap;gap:.4rem">`;
+        f.options.forEach(o=>{
+          const sel=val===o;
+          h+=`<label style="display:flex;align-items:center;gap:.35rem;font-size:.8rem;padding:.35rem .6rem;border-radius:.5rem;border:1px solid ${sel?'var(--accent)':'rgba(255,255,255,.12)'};background:${sel?'rgba(128,203,196,.15)':'transparent'};cursor:pointer;transition:all .2s"><input type="radio" name="pf_${f.id}" value="${o}" ${sel?'checked':''} ${dis} style="display:none"><span>${o}</span></label>`;
+        });
+        h+=`</div>`;
+      }else if(f.type==='checkbox'){
+        const checked=val||[];
+        h+=`<div style="display:flex;flex-wrap:wrap;gap:.4rem">`;
+        f.options.forEach(o=>{
+          const sel=checked.includes(o);
+          h+=`<label style="display:flex;align-items:center;gap:.35rem;font-size:.8rem;padding:.35rem .6rem;border-radius:.5rem;border:1px solid ${sel?'var(--accent)':'rgba(255,255,255,.12)'};background:${sel?'rgba(128,203,196,.15)':'transparent'};cursor:pointer;transition:all .2s"><input type="checkbox" data-fid="${f.id}" value="${o}" ${sel?'checked':''} ${dis} style="display:none"><span>${o}</span></label>`;
+        });
+        h+=`</div>`;
+      }
+      h+=`</div>`;
+    });
+  }
+  if(prontuarioLocked){
+    h=`<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:1rem;padding:.5rem .8rem;border-radius:.6rem;background:rgba(128,203,196,.1);border:1px solid rgba(128,203,196,.3)"><span style="font-size:1rem">🔒</span><span style="font-size:.78rem;color:var(--accent)">Prontuário preenchido — somente leitura</span></div>`+h;
+  }
+  $('prontuarioContainer').innerHTML=h;
+  // Range value display
+  $('prontuarioContainer').querySelectorAll('input[type="range"]').forEach(inp=>{
+    inp.addEventListener('input',()=>{
+      const rv=document.querySelector(`[data-rv="${inp.dataset.fid}"]`);
+      if(rv)rv.textContent=inp.value;
+    });
+  });
+  // Radio/checkbox visual toggle
+  $('prontuarioContainer').querySelectorAll('input[type="radio"]').forEach(inp=>{
+    inp.addEventListener('change',()=>{
+      const name=inp.name;
+      document.querySelectorAll(`input[name="${name}"]`).forEach(r=>{
+        const lbl=r.closest('label');
+        if(lbl){lbl.style.borderColor=r.checked?'var(--accent)':'rgba(255,255,255,.12)';lbl.style.background=r.checked?'rgba(128,203,196,.15)':'transparent';}
+      });
+    });
+  });
+  $('prontuarioContainer').querySelectorAll('input[type="checkbox"]').forEach(inp=>{
+    inp.addEventListener('change',()=>{
+      const lbl=inp.closest('label');
+      if(lbl){lbl.style.borderColor=inp.checked?'var(--accent)':'rgba(255,255,255,.12)';lbl.style.background=inp.checked?'rgba(128,203,196,.15)':'transparent';}
+    });
+  });
+  // Nav buttons
+  $('prontuarioPrev').style.display=prontuarioStep===0?'none':'';
+  if(prontuarioStep===PRONTUARIO_SECTIONS.length-1){
+    $('prontuarioNext').textContent=prontuarioLocked?'Fechar':'Salvar Prontuário';
+  }else{
+    $('prontuarioNext').textContent='Próximo';
+  }
+}
+
+function collectProntuarioStepData(){
+  const sec=PRONTUARIO_SECTIONS[prontuarioStep];
+  if(sec.type==='info'||prontuarioLocked)return;
+  if(!sec.fields)return;
+  sec.fields.forEach(f=>{
+    if(f.type==='info')return;
+    if(f.type==='text'||f.type==='email'||f.type==='tel'||f.type==='date'||f.type==='time'||f.type==='number'){
+      const el=$('prontuarioContainer').querySelector(`[data-fid="${f.id}"]`);
+      if(el)prontuarioData[f.id]=el.value;
+    }else if(f.type==='textarea'){
+      const el=$('prontuarioContainer').querySelector(`[data-fid="${f.id}"]`);
+      if(el)prontuarioData[f.id]=el.value;
+    }else if(f.type==='range'){
+      const el=$('prontuarioContainer').querySelector(`[data-fid="${f.id}"]`);
+      if(el)prontuarioData[f.id]=parseInt(el.value);
+    }else if(f.type==='radio'){
+      const checked=$('prontuarioContainer').querySelector(`input[name="pf_${f.id}"]:checked`);
+      if(checked)prontuarioData[f.id]=checked.value;
+    }else if(f.type==='checkbox'){
+      const checks=[];
+      $('prontuarioContainer').querySelectorAll(`input[data-fid="${f.id}"]:checked`).forEach(c=>checks.push(c.value));
+      prontuarioData[f.id]=checks;
+    }
+  });
+}
+
+$('prontuarioNext').addEventListener('click',async()=>{
+  collectProntuarioStepData();
+  if(prontuarioStep<PRONTUARIO_SECTIONS.length-1){
+    prontuarioStep++;
+    renderProntuarioStep();
+    $('prontuarioScreen').scrollTop=0;
+  }else{
+    // Last step — save or close
+    if(prontuarioLocked){showHome();return;}
+    if(!currentUser)return;
+    $('prontuarioNext').disabled=true;$('prontuarioNext').textContent='Salvando...';
+    try{
+      await db.collection('prontuarios').doc(currentUser.uid).set({
+        userId:currentUser.uid,
+        data:prontuarioData,
+        locked:false,
+        updatedAt:firebase.firestore.FieldValue.serverTimestamp(),
+        createdAt:firebase.firestore.FieldValue.serverTimestamp()
+      },{merge:true});
+      alert('Prontuário salvo com sucesso!');
+      showHome();
+    }catch(e){
+      alert('Erro ao salvar: '+e.message);
+    }finally{
+      $('prontuarioNext').disabled=false;$('prontuarioNext').textContent='Salvar Prontuário';
+    }
+  }
+});
+$('prontuarioPrev').addEventListener('click',()=>{
+  collectProntuarioStepData();
+  if(prontuarioStep>0){prontuarioStep--;renderProntuarioStep();$('prontuarioScreen').scrollTop=0;}
+});
+
+// Admin: view user prontuário
+window.viewProntuario=async function(uid){
+  try{
+    const doc=await db.collection('prontuarios').doc(uid).get();
+    if(!doc.exists){alert('Prontuário não preenchido.');return;}
+    const data=doc.data().data||{};
+    const locked=doc.data().locked;
+    let msg='══ PRONTUÁRIO ══\n';
+    if(locked)msg+='[🔒 Bloqueado]\n';
+    msg+='\n';
+    PRONTUARIO_SECTIONS.forEach(sec=>{
+      if(sec.type==='info'){msg+=sec.title+'\n(informativo)\n\n';return;}
+      msg+=sec.title+'\n';
+      if(!sec.fields)return;
+      sec.fields.forEach(f=>{
+        if(f.type==='info')return;
+        const v=data[f.id];
+        if(v===undefined||v===null||v==='')return;
+        if(Array.isArray(v)){
+          if(v.length>0)msg+=`  ${f.label}: ${v.join(', ')}\n`;
+        }else{
+          msg+=`  ${f.label}: ${v}\n`;
+        }
+      });
+      msg+='\n';
+    });
+    alert(msg);
+  }catch(e){alert('Erro: '+e.message);}
+};
+
+// Admin: toggle lock prontuário
+window.toggleLockProntuario=async function(uid){
+  try{
+    const doc=await db.collection('prontuarios').doc(uid).get();
+    if(!doc.exists){alert('Prontuário não encontrado.');return;}
+    const newLocked=!doc.data().locked;
+    await db.collection('prontuarios').doc(uid).update({locked:newLocked});
+    alert(newLocked?'Prontuário bloqueado.':'Prontuário desbloqueado para edição.');
     loadAdmin('users');
   }catch(e){alert('Erro: '+e.message);}
 };
