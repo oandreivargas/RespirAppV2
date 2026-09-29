@@ -1933,9 +1933,13 @@ const PRONTUARIO_SECTIONS=[
 let prontuarioStep=0;
 let prontuarioData={};
 let prontuarioLocked=false;
+let adminProntuarioViewUid=null;
 
 $('btnProntuario').addEventListener('click',async()=>{
+  adminProntuarioViewUid=null;
   prontuarioStep=0;prontuarioData={};prontuarioLocked=false;
+  // Restore normal next button behavior
+  $('prontuarioNext').onclick=null;
   // Try loading existing data
   if(currentUser){
     try{
@@ -1949,7 +1953,10 @@ $('btnProntuario').addEventListener('click',async()=>{
   renderProntuarioStep();
   show('prontuarioScreen');
 });
-$('prontuarioBack').addEventListener('click',()=>showHome());
+$('prontuarioBack').addEventListener('click',()=>{
+  if(adminProntuarioViewUid){adminProntuarioViewUid=null;loadAdmin('users');show('adminScreen');return;}
+  showHome();
+});
 
 function renderProntuarioStep(){
   const sec=PRONTUARIO_SECTIONS[prontuarioStep];
@@ -2059,6 +2066,7 @@ function collectProntuarioStepData(){
 }
 
 $('prontuarioNext').addEventListener('click',async()=>{
+  if(adminProntuarioViewUid)return;// admin view uses onclick override
   collectProntuarioStepData();
   if(prontuarioStep<PRONTUARIO_SECTIONS.length-1){
     prontuarioStep++;
@@ -2096,30 +2104,50 @@ window.viewProntuario=async function(uid){
   try{
     const doc=await db.collection('prontuarios').doc(uid).get();
     if(!doc.exists){alert('Prontuário não preenchido.');return;}
-    const data=doc.data().data||{};
+    const pData=doc.data().data||{};
     const locked=doc.data().locked;
-    let msg='══ PRONTUÁRIO ══\n';
-    if(locked)msg+='[🔒 Bloqueado]\n';
-    msg+='\n';
-    PRONTUARIO_SECTIONS.forEach(sec=>{
-      if(sec.type==='info'){msg+=sec.title+'\n(informativo)\n\n';return;}
-      msg+=sec.title+'\n';
-      if(!sec.fields)return;
+    // Get user name
+    const userName=await getUserName(uid);
+    adminProntuarioViewUid=uid;
+    prontuarioData=pData;
+    prontuarioLocked=true;// always read-only for admin
+    prontuarioStep=0;
+    // Override back button to return to admin
+    $('prontuarioBack').onclick=()=>{$('prontuarioBack').onclick=null;loadAdmin('users');show('adminScreen');};
+    // Override title
+    $('prontuarioTitle').textContent=userName+' — Prontuário';
+    // Override next/prev to show all sections in one page
+    renderAdminProntuarioFull(pData,locked,userName);
+    show('prontuarioScreen');
+  }catch(e){alert('Erro: '+e.message);}
+};
+
+function renderAdminProntuarioFull(data,locked,userName){
+  $('prontuarioTitle').textContent=userName+' — Prontuário';
+  $('prontuarioStepIndicator').textContent=locked?'🔒 Bloqueado':'✏️ Editável';
+  $('prontuarioPrev').style.display='none';
+  $('prontuarioNext').textContent='Voltar ao Admin';
+  $('prontuarioNext').onclick=()=>{$('prontuarioNext').onclick=null;loadAdmin('users');show('adminScreen');};
+  let h='';
+  PRONTUARIO_SECTIONS.forEach(sec=>{
+    h+=`<div style="margin-bottom:1.2rem">`;
+    h+=`<div style="font-size:.92rem;font-weight:600;color:var(--accent);margin-bottom:.5rem;padding-bottom:.3rem;border-bottom:1px solid rgba(128,203,196,.2)">${sec.title}</div>`;
+    if(sec.type==='info'){
+      h+=sec.html;
+    }else if(sec.fields){
       sec.fields.forEach(f=>{
         if(f.type==='info')return;
         const v=data[f.id];
         if(v===undefined||v===null||v==='')return;
-        if(Array.isArray(v)){
-          if(v.length>0)msg+=`  ${f.label}: ${v.join(', ')}\n`;
-        }else{
-          msg+=`  ${f.label}: ${v}\n`;
-        }
+        if(Array.isArray(v)&&v.length===0)return;
+        const display=Array.isArray(v)?v.join(', '):v;
+        h+=`<div style="padding:.4rem 0;font-size:.82rem"><span style="color:var(--text-dim)">${f.label}:</span> <span style="color:var(--text);font-weight:500">${display}</span></div>`;
       });
-      msg+='\n';
-    });
-    alert(msg);
-  }catch(e){alert('Erro: '+e.message);}
-};
+    }
+    h+=`</div>`;
+  });
+  $('prontuarioContainer').innerHTML=h;
+}
 
 // Admin: toggle lock prontuário
 window.toggleLockProntuario=async function(uid){
