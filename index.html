@@ -603,7 +603,7 @@ document.querySelectorAll('.level-card').forEach(c=>c.addEventListener('click',(
     $('audioDurationBadge').textContent=lvl.name+' · '+grp.name;
     if(!grp.audios||grp.audios.length===0){$('audioDurationContent').innerHTML='<div class="coming-soon">Os áudios serão adicionados em breve.</div>';show('audioDurationScreen');return;}
     let ah='';
-    grp.audios.forEach((a,ai)=>{const locked=accessLvl==='gratuito'&&a.title!=='Suspiro Fisiológico';if(locked){ah+=`<div class="card no-tap" style="opacity:.4"><div class="t">🔒 ${a.title}</div><div class="d" style="font-size:.7rem;color:var(--text-dim)">Disponível nos planos Grupo e Mentoria</div></div>`;}else{ah+=`<div class="card" data-audio-idx="${ai}"><div class="t">🎵 ${a.title}</div></div>`;}});
+    grp.audios.forEach((a,ai)=>{const locked=accessLvl==='gratuito'&&a.title!=='Suspiro Fisiológico'&&a.title!=='3X3 Coerente';if(locked){ah+=`<div class="card no-tap" style="opacity:.4"><div class="t">🔒 ${a.title}</div><div class="d" style="font-size:.7rem;color:var(--text-dim)">Disponível nos planos Grupo e Mentoria</div></div>`;}else{ah+=`<div class="card" data-audio-idx="${ai}"><div class="t">🎵 ${a.title}</div></div>`;}});
     $('audioDurationContent').innerHTML=ah;
     $('audioDurationContent').querySelectorAll('.card[data-audio-idx]').forEach(ac=>ac.addEventListener('click',()=>{const ai=parseInt(ac.dataset.audioIdx);const a=grp.audios[ai];
       audioSessionData={level:currentAudioLevel,audioTitle:a.title,audioFile:a.file,levelName:lvl.name,groupName:grp.name};
