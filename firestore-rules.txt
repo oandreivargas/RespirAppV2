@@ -14,8 +14,8 @@ service cloud.firestore {
     // OPCIONAL, mais forte: troque por  request.auth.uid == 'UID_DO_ADMIN'
     // (Console Firebase > Authentication > copie o "UID de usuário" do admin).
     function isAdmin() {
-      return signedIn() && request.auth.token.email == 'admin@removido';
-    }
+     return signedIn() && request.auth.uid == 'fs5Prj7mqyaMR0BYRVJFT7zjqWr1';
+   }
 
     function isOwner(uid) { return signedIn() && request.auth.uid == uid; }
 
