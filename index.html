@@ -1493,6 +1493,19 @@ $('adminLink').addEventListener('click',()=>{show('adminScreen');loadAdmin('over
 $('adminBack').addEventListener('click',()=>showHome());
 document.querySelectorAll('.tab').forEach(tab=>tab.addEventListener('click',()=>{document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));tab.classList.add('active');loadAdmin(tab.dataset.tab);}));
 
+// Busca de clientes (aba Usuários): ignora acentos e maiúsculas; filtra na própria tela
+function adminNorm(t){return String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();}
+let adminUserSearchTerm='';
+function adminApplyUserSearch(){
+  const q=adminNorm(adminUserSearchTerm);const cards=document.querySelectorAll('#adminContent .adminUserCard');let shown=0;
+  cards.forEach(c=>{const ok=!q||(c.dataset.search||'').includes(q);c.style.display=ok?'':'none';if(ok)shown++;});
+  const info=$('adminUserSearchInfo');if(info)info.textContent=q?(shown===0?'Nenhum cliente encontrado.':shown+' de '+cards.length+' clientes'):cards.length+' clientes';
+}
+function adminBindUserSearch(){
+  const inp=$('adminUserSearch');if(!inp)return;
+  inp.value=adminUserSearchTerm;inp.addEventListener('input',()=>{adminUserSearchTerm=inp.value;adminApplyUserSearch();});
+  adminApplyUserSearch();
+}
 async function loadAdmin(tab){
   if(!isAdminUser()){show('homeScreen');return;}
   $('adminContent').innerHTML='<div class="loader">Carregando...</div>';
@@ -1525,8 +1538,9 @@ async function loadAdmin(tab){
       h+=`<div style="display:flex;gap:.5rem;margin-bottom:1rem">`;
       ['gratuito','grupo','mentoria'].forEach(lv=>{h+=`<div style="flex:1;text-align:center;padding:.5rem;background:var(--bg-card);border-radius:.6rem"><div style="font-size:1.1rem;font-weight:600;color:${ACCESS_COLORS[lv]}">${counts[lv]}</div><div style="font-size:.65rem;color:var(--text-dim)">${ACCESS_LABELS[lv]}</div></div>`;});
       h+='</div>';
+      h+='<input class="input" id="adminUserSearch" type="search" placeholder="🔍 Buscar cliente por nome, e-mail ou WhatsApp" autocomplete="off" maxlength="80" style="margin-bottom:.4rem"><div id="adminUserSearchInfo" style="font-size:.72rem;color:var(--text-dim);margin-bottom:.8rem"></div>';
       snap.forEach(doc=>{const u=doc.data();const dt=u.createdAt?(u.createdAt.toDate?u.createdAt.toDate().toLocaleDateString('pt-BR'):''):'';const uLvl=ACCESS_LABELS[u.accessLevel]?u.accessLevel:'gratuito';
-        h+=`<div class="card no-tap" style="margin-bottom:.6rem"><div style="display:flex;justify-content:space-between;align-items:center"><div class="t">${esc(u.name||'')}</div><span style="font-size:.7rem;padding:.15rem .5rem;border-radius:1rem;background:${ACCESS_COLORS[uLvl]}22;color:${ACCESS_COLORS[uLvl]};border:1px solid ${ACCESS_COLORS[uLvl]}44">${ACCESS_LABELS[uLvl]}</span></div><div class="d">${esc(u.email||'')}<br>${esc(u.whatsapp||'')}<br>Cadastro: ${esc(dt)}</div>`;
+        h+=`<div class="card no-tap adminUserCard" data-search="${esc(adminNorm((u.name||'')+' '+(u.email||'')+' '+(u.whatsapp||'')))}" style="margin-bottom:.6rem"><div style="display:flex;justify-content:space-between;align-items:center"><div class="t">${esc(u.name||'')}</div><span style="font-size:.7rem;padding:.15rem .5rem;border-radius:1rem;background:${ACCESS_COLORS[uLvl]}22;color:${ACCESS_COLORS[uLvl]};border:1px solid ${ACCESS_COLORS[uLvl]}44">${ACCESS_LABELS[uLvl]}</span></div><div class="d">${esc(u.email||'')}<br>${esc(u.whatsapp||'')}<br>Cadastro: ${esc(dt)}</div>`;
         h+=`<div style="display:flex;gap:.4rem;margin-top:.5rem">`;
         ['gratuito','grupo','mentoria'].forEach(lv=>{
           const isCur=uLvl===lv;
@@ -1537,6 +1551,7 @@ async function loadAdmin(tab){
         h+=`</div>`;
       });
       $('adminContent').innerHTML=h||'<div class="loader">Nenhum usuário.</div>';
+      adminBindUserSearch();
     }else if(tab==='sessions'){
       const snap=await db.collection('sessions').limit(50).get();let h='';for(const doc of snap.docs){const s=doc.data();const userName=await getUserName(s.userId);const ts=s.startedAt||s.completedAt;const dt=ts?(ts.toDate?ts.toDate().toLocaleString('pt-BR'):''):'';
         h+='<div class="card no-tap">';h+=`<div class="t">${esc(userName)}</div>`;
