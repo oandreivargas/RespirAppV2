@@ -7,6 +7,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="RespirApp">
 <meta name="theme-color" content="#0a0f1a">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self' data:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://www.gstatic.com; frame-src https://respirapp-58d2b.firebaseapp.com https://accounts.google.com; object-src 'none'; base-uri 'self'; form-action 'self'; manifest-src 'self'; worker-src 'self'">
+<meta name="referrer" content="no-referrer">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="description" content="Exercício guiado de respiração para regulação do sistema nervoso">
 <link rel="manifest" href="./manifest.json">
@@ -423,6 +425,16 @@ let currentAccessLevel='gratuito'; // gratuito | grupo | mentoria
 let adminTestLevel=null; // admin override for testing
 firebase.initializeApp({apiKey:"AIzaSyC5Fa-qRDTLyVbC_N-y3lP7o4NSJqTcewc",authDomain:"respirapp-58d2b.firebaseapp.com",projectId:"respirapp-58d2b",storageBucket:"respirapp-58d2b.firebasestorage.app",messagingSenderId:"565648433343",appId:"1:565648433343:web:1939a62510bc3af509660a"});
 const auth=firebase.auth(),db=firebase.firestore();
+// ═══ SEGURANÇA ═══
+// esc(): escapa texto antes de entrar em innerHTML (bloqueia XSS armazenado)
+const esc=s=>String(s==null?'':s).replace(/[&<>"'`]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','`':'&#96;'}[c]));
+// jsq(): argumento string seguro para handlers inline onclick="fn(${jsq(x)})"
+const jsq=s=>esc(JSON.stringify(String(s==null?'':s)));
+// safeColor(): aceita apenas cores hexadecimais (bloqueia injeção de CSS)
+const safeColor=c=>(typeof c==='string'&&/^#[0-9a-fA-F]{3,8}$/.test(c))?c:'#80cbc4';
+// Anti-clickjacking: se o app for carregado dentro de um iframe de outro site, esconde a página
+if(window.top!==window.self){try{window.top.location=window.self.location;}catch(e){document.documentElement.style.display='none';}}
+const isAdminUser=()=>!!(auth.currentUser&&auth.currentUser.email===ADMIN_EMAIL);
 
 const PROTOCOLS={equilibrio:{name:'4 × 4',subtitle:'Foco',cycles:7,desc:'4s inspira · 4s expira · 7 ciclos · 56s',phases:[{label:'Inspire',duration:4,scaleFrom:0,scaleTo:1},{label:'Expire',duration:4,scaleFrom:1,scaleTo:0}]},coerente:{name:'3 × 3',subtitle:'Coerente',cycles:10,desc:'3s inspira · 3s expira · 10 ciclos · 60s',phases:[{label:'Inspire',duration:3,scaleFrom:0,scaleTo:1},{label:'Expire',duration:3,scaleFrom:1,scaleTo:0}]},ansiedade:{name:'2 × 4',subtitle:'Anti-ansiedade',cycles:9,desc:'2s inspira · 4s expira · 9 ciclos · 54s',phases:[{label:'Inspire',duration:2,scaleFrom:0,scaleTo:.5},{label:'Expire',duration:4,scaleFrom:.5,scaleTo:0}]},suspiro:{name:'Suspiro',subtitle:'Fisiológico',cycles:8,desc:'2s inspira · 1s suspiro · 4s expira · 8 ciclos · 56s',phases:[{label:'Inspire',duration:2,scaleFrom:0,scaleTo:.65},{label:'Suspiro',duration:1,scaleFrom:.65,scaleTo:1},{label:'Expire',duration:4,scaleFrom:1,scaleTo:0}]}};
 const QUESTIONS=[{id:'q1',type:'multi',label:'Você tem algum tipo dessas situações de saúde?',options:['Problemas de Pressão','Problemas no Coração','Glaucoma ou Pressão nos Olhos','Esquizofrenia','Bipolaridade','Gravidez'],hasOther:true},{id:'q2',type:'text',label:'Qual o seu atual desafio com estresse, ansiedade, hiperatividade ou outro?'},{id:'q3',type:'text',label:'O que você já tentou para resolver esse problema ou desafio?'},{id:'q4',type:'multi',label:'Esse problema ou desafio tem interferido em qual(is) áreas da sua vida?',options:['Financeiro','Relacionamento afetivo','Ambiente profissional','Bem-estar pessoal','Ambientes sociais/amizades']},{id:'q5',type:'text',label:'Se gerenciar melhor seu estresse te ajudasse a melhorar 1 única coisa importante na sua vida, o que seria?'},{id:'q7',type:'multi',label:'Nos últimos 12 meses, você tentou alguma dessas soluções?',options:['Suplementos','Academia ou Outros Esportes','Yoga','Meditação','Remédios','Terapias'],hasOther:true}];
@@ -508,22 +520,22 @@ function buildGoalChecker(hab,logSource){
 // ═══ AUTH ═══
 let isLogin=false;
 $('authToggle').addEventListener('click',()=>{isLogin=!isLogin;$('authTitle').textContent=isLogin?'Entrar':'Criar conta';$('authBtn').textContent=isLogin?'Entrar':'Criar conta';$('authToggle').textContent=isLogin?'Não tenho conta → Criar':'Já tenho conta → Entrar';$('authName').style.display=isLogin?'none':'';$('authWhatsapp').style.display=isLogin?'none':'';$('authError').textContent='';});
-$('authBtn').addEventListener('click',async()=>{const email=$('authEmail').value.trim(),pass=$('authPass').value,name=$('authName').value.trim(),wpp=$('authWhatsapp').value.trim();$('authError').textContent='';if(!email||!pass){$('authError').textContent='Preencha e-mail e senha.';return;}if(!isLogin&&(!name||!wpp)){$('authError').textContent='Preencha todos os campos.';return;}if(pass.length<6){$('authError').textContent='Senha mínima: 6 caracteres.';return;}$('authBtn').disabled=true;try{if(isLogin)await auth.signInWithEmailAndPassword(email,pass);else{const c=await auth.createUserWithEmailAndPassword(email,pass);await db.collection('users').doc(c.user.uid).set({name,email,whatsapp:wpp,createdAt:firebase.firestore.FieldValue.serverTimestamp(),consentAccepted:false,questionnaireCompleted:false});}}catch(e){const m={'auth/email-already-in-use':'E-mail já cadastrado.','auth/invalid-email':'E-mail inválido.','auth/user-not-found':'Usuário não encontrado.','auth/wrong-password':'Senha incorreta.','auth/invalid-credential':'E-mail ou senha incorretos.'};$('authError').textContent=m[e.code]||e.message;}$('authBtn').disabled=false;});
+$('authBtn').addEventListener('click',async()=>{const email=$('authEmail').value.trim(),pass=$('authPass').value,name=$('authName').value.trim(),wpp=$('authWhatsapp').value.trim();$('authError').textContent='';if(!email||!pass){$('authError').textContent='Preencha e-mail e senha.';return;}if(!isLogin&&(!name||!wpp)){$('authError').textContent='Preencha todos os campos.';return;}if(pass.length<6){$('authError').textContent='Senha mínima: 6 caracteres.';return;}if(!isLogin&&pass.length<8){$('authError').textContent='Para criar a conta, use no mínimo 8 caracteres na senha.';return;}if(!isLogin&&(name.length>80||wpp.length>25||email.length>120)){$('authError').textContent='Dados muito longos. Revise nome, e-mail e WhatsApp.';return;}if(!isLogin&&!/^[0-9+()\-\s]{8,25}$/.test(wpp)){$('authError').textContent='WhatsApp inválido. Use apenas números, +, ( ) e -.';return;}$('authBtn').disabled=true;try{if(isLogin)await auth.signInWithEmailAndPassword(email,pass);else{const c=await auth.createUserWithEmailAndPassword(email,pass);await db.collection('users').doc(c.user.uid).set({name:name.slice(0,80),email:email.slice(0,120),whatsapp:wpp.slice(0,25),createdAt:firebase.firestore.FieldValue.serverTimestamp(),consentAccepted:false,questionnaireCompleted:false});}}catch(e){const m={'auth/email-already-in-use':'E-mail já cadastrado.','auth/invalid-email':'E-mail inválido.','auth/user-not-found':'Usuário não encontrado.','auth/wrong-password':'Senha incorreta.','auth/invalid-credential':'E-mail ou senha incorretos.','auth/too-many-requests':'Muitas tentativas. Aguarde alguns minutos e tente novamente.','auth/weak-password':'Senha fraca. Use no mínimo 8 caracteres.'};$('authError').textContent=m[e.code]||e.message;}$('authBtn').disabled=false;});
 $('logoutBtn').addEventListener('click',()=>auth.signOut());
-auth.onAuthStateChanged(async user=>{if(!user){show('authScreen');currentUser=null;return;}currentUser=user;try{const doc=await db.collection('users').doc(user.uid).get();if(!doc.exists){show('authScreen');return;}const d=doc.data();currentAccessLevel=d.accessLevel||'gratuito';adminTestLevel=null;if(!d.consentAccepted){show('consentScreen');return;}if(!d.questionnaireCompleted){qIndex=0;renderQuestion();show('questionnaireScreen');return;}showHome();}catch(e){console.error(e);show('authScreen');}});
+auth.onAuthStateChanged(async user=>{if(!user){show('authScreen');currentUser=null;adminTestLevel=null;currentAccessLevel='gratuito';try{prontuarioData={};adminProntuarioViewUid=null;for(const k in userNameCache)delete userNameCache[k];['adminContent','prontuarioContainer','habitDetailContent'].forEach(i=>{const el=$(i);if(el)el.innerHTML='';});}catch(e){}return;}currentUser=user;try{const doc=await db.collection('users').doc(user.uid).get();if(!doc.exists){show('authScreen');return;}const d=doc.data();currentAccessLevel=d.accessLevel||'gratuito';adminTestLevel=null;if(!d.consentAccepted){show('consentScreen');return;}if(!d.questionnaireCompleted){qIndex=0;renderQuestion();show('questionnaireScreen');return;}showHome();}catch(e){console.error(e);show('authScreen');}});
 
 // ═══ CONSENT ═══
 $('consentBtn').addEventListener('click',async()=>{await db.collection('users').doc(currentUser.uid).update({consentAccepted:true,consentAt:firebase.firestore.FieldValue.serverTimestamp()});qIndex=0;renderQuestion();show('questionnaireScreen');});
 $('consentDecline').addEventListener('click',()=>auth.signOut());
 
 // ═══ QUESTIONNAIRE ═══
-function renderQuestion(){const q=QUESTIONS[qIndex];$('qStep').textContent=`Pergunta ${qIndex+1} de ${QUESTIONS.length}`;$('qBack').style.visibility=qIndex===0?'hidden':'visible';$('qNext').textContent=qIndex===QUESTIONS.length-1?'Finalizar':'Próxima';let h=`<div class="section-title" style="font-size:1rem">${q.label}</div>`;const prev=qAnswers[q.id]||{};if(q.type==='multi'){h+='<div class="chips">';q.options.forEach(o=>{const s=(prev.selected||[]).includes(o);h+=`<div class="chip ${s?'sel':''}" data-val="${o}">${o}</div>`;});h+='</div>';if(q.hasOther)h+=`<input class="input" id="qOther" placeholder="Outro (especifique)" value="${prev.other||''}">`;}else h+=`<textarea class="input" id="qText" placeholder="Escreva sua resposta...">${prev.text||''}</textarea>`;$('qContainer').innerHTML=h;$('qContainer').querySelectorAll('.chip').forEach(c=>c.addEventListener('click',()=>c.classList.toggle('sel')));}
+function renderQuestion(){const q=QUESTIONS[qIndex];$('qStep').textContent=`Pergunta ${qIndex+1} de ${QUESTIONS.length}`;$('qBack').style.visibility=qIndex===0?'hidden':'visible';$('qNext').textContent=qIndex===QUESTIONS.length-1?'Finalizar':'Próxima';let h=`<div class="section-title" style="font-size:1rem">${q.label}</div>`;const prev=qAnswers[q.id]||{};if(q.type==='multi'){h+='<div class="chips">';q.options.forEach(o=>{const s=(prev.selected||[]).includes(o);h+=`<div class="chip ${s?'sel':''}" data-val="${o}">${o}</div>`;});h+='</div>';if(q.hasOther)h+=`<input class="input" id="qOther" placeholder="Outro (especifique)" value="${esc(prev.other||'')}">`;}else h+=`<textarea class="input" id="qText" placeholder="Escreva sua resposta...">${esc(prev.text||'')}</textarea>`;$('qContainer').innerHTML=h;$('qContainer').querySelectorAll('.chip').forEach(c=>c.addEventListener('click',()=>c.classList.toggle('sel')));}
 function saveCurrentAnswer(){const q=QUESTIONS[qIndex];if(q.type==='multi'){const s=[...$('qContainer').querySelectorAll('.chip.sel')].map(c=>c.dataset.val);const o=q.hasOther&&$('qOther')?$('qOther').value.trim():'';qAnswers[q.id]={selected:s,other:o};}else qAnswers[q.id]={text:$('qText')?$('qText').value.trim():''};}
 $('qNext').addEventListener('click',async()=>{saveCurrentAnswer();if(qIndex<QUESTIONS.length-1){qIndex++;renderQuestion();}else{await db.collection('questionnaires').doc(currentUser.uid).set({...qAnswers,submittedAt:firebase.firestore.FieldValue.serverTimestamp()});await db.collection('users').doc(currentUser.uid).update({questionnaireCompleted:true});showHome();}});
 $('qBack').addEventListener('click',()=>{if(qIndex>0){saveCurrentAnswer();qIndex--;renderQuestion();}});
 
 // ═══ ACCESS LEVELS ═══
-function getLevel(){return adminTestLevel||currentAccessLevel;}
+function getLevel(){return(adminTestLevel&&isAdminUser())?adminTestLevel:currentAccessLevel;}
 const ACCESS_LABELS={gratuito:'Gratuito',grupo:'Grupo',mentoria:'Mentoria'};
 const ACCESS_COLORS={gratuito:'var(--text-dim)',grupo:'var(--warn)',mentoria:'var(--green)'};
 
@@ -726,8 +738,8 @@ function renderHabitTable(days){
   });
   const showCustom=getLevel()==='mentoria';
   if(showCustom) userHabits.forEach(hab=>{
-    const hc=hab.color||'#80cbc4';
-    h+=`<tr><td class="h-name" style="min-width:150px"><div class="habit-name-cell" onclick="openHabitDetail('${hab.id}',false)" style="cursor:pointer;color:${hc}"><div class="habit-dot" style="background:${hc}"></div>${hab.name}<span onclick="event.stopPropagation();deleteHabit('${hab.id}','${hab.name}')" style="margin-left:auto;color:var(--danger);font-size:.7rem;opacity:.5;cursor:pointer;padding:0 .3rem">✕</span></div></td>`;
+    const hc=safeColor(hab.color);
+    h+=`<tr><td class="h-name" style="min-width:150px"><div class="habit-name-cell" onclick="openHabitDetail('${hab.id}',false)" style="cursor:pointer;color:${hc}"><div class="habit-dot" style="background:${hc}"></div>${esc(hab.name)}<span onclick="event.stopPropagation();deleteHabit('${hab.id}',${jsq(hab.name)})" style="margin-left:auto;color:var(--danger);font-size:.7rem;opacity:.5;cursor:pointer;padding:0 .3rem">✕</span></div></td>`;
     const goalCheck=buildGoalChecker(hab,habitLogs);
     days.forEach(day=>{
       const log=habitLogs[hab.id+'_'+day];
@@ -737,7 +749,7 @@ function renderHabitTable(days){
         if(log&&log.completed)h+=`<td class="h-day" style="${goalHighlight}"><span class="h-check" style="color:${hc}" onclick="toggleHabitLog('${hab.id}','${day}',true)">✓</span></td>`;
         else h+=`<td class="h-day" style="${goalHighlight}"><span class="h-cross" onclick="toggleHabitLog('${hab.id}','${day}',false)">✗</span></td>`;
       }else{
-        if(log&&log.value!=null){const cls=hab.target&&log.value>=hab.target?'good':'low';h+=`<td class="h-day"><span class="h-val ${cls}" style="${cls==='good'?'color:'+hc:''}" onclick="showInlineInput('${hab.id}','${day}',this)">${log.value}<br><span style="font-size:.6rem">${hab.unit||''}</span></span></td>`;}
+        if(log&&log.value!=null){const cls=hab.target&&log.value>=hab.target?'good':'low';h+=`<td class="h-day"><span class="h-val ${cls}" style="${cls==='good'?'color:'+hc:''}" onclick="showInlineInput('${hab.id}','${day}',this)">${esc(log.value)}<br><span style="font-size:.6rem">${esc(hab.unit||'')}</span></span></td>`;}
         else h+=`<td class="h-day"><span class="h-cross" onclick="showInlineInput('${hab.id}','${day}',this)">0</span></td>`;
       }
     });
@@ -877,7 +889,7 @@ window.editHabit=function(habitId){
   $('habitQuestion').value=hab.question||'';
   $('habitNotes').value=hab.notes||'';
   // Set color
-  const hc=hab.color||'#4fc3f7';
+  const hc=(typeof hab.color==='string'&&/^#[0-9a-fA-F]{3,8}$/.test(hab.color))?hab.color:'#4fc3f7';
   selectedColor=hc;
   document.querySelectorAll('#colorPicker .chip').forEach(c=>{c.classList.remove('sel');c.style.borderColor='transparent';});
   const colorChip=document.querySelector(`#colorPicker .chip[data-color="${hc}"]`);
@@ -917,10 +929,10 @@ function getFrequencyData(){
 }
 
 $('saveHabitBtn').addEventListener('click',async()=>{
-  const name=$('habitName').value.trim();if(!name){alert('Informe o nome do hábito.');return;}
+  const name=$('habitName').value.trim().slice(0,60);if(!name){alert('Informe o nome do hábito.');return;}
   const freqData=getFrequencyData();
-  const data={name,type:newHabitType,question:$('habitQuestion').value.trim(),...freqData,notes:$('habitNotes').value.trim(),color:selectedColor,isDefault:false};
-  if(newHabitType==='measurable'){data.unit=$('habitUnit').value.trim();data.target=parseFloat($('habitTarget').value)||0;data.targetType=$('habitTargetType').value;}
+  const data={name,type:newHabitType,question:$('habitQuestion').value.trim().slice(0,200),...freqData,notes:$('habitNotes').value.trim().slice(0,1000),color:selectedColor,isDefault:false};
+  if(newHabitType==='measurable'){data.unit=$('habitUnit').value.trim().slice(0,20);data.target=parseFloat($('habitTarget').value)||0;data.targetType=$('habitTargetType').value;}
   try{
     if(editingHabitId){
       data.updatedAt=firebase.firestore.FieldValue.serverTimestamp();
@@ -972,7 +984,7 @@ window.openHabitDetail=async function(key,isDefault){
   entries.sort((a,b)=>a.date.localeCompare(b.date));
   const cSet=new Set(entries.map(e=>e.date));
   const isMeas=habit.type==='measurable';
-  const clr=habit.color||'#80cbc4';
+  const clr=safeColor(habit.color);
 
   const now=new Date();
   const ym=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
@@ -1482,6 +1494,7 @@ $('adminBack').addEventListener('click',()=>showHome());
 document.querySelectorAll('.tab').forEach(tab=>tab.addEventListener('click',()=>{document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));tab.classList.add('active');loadAdmin(tab.dataset.tab);}));
 
 async function loadAdmin(tab){
+  if(!isAdminUser()){show('homeScreen');return;}
   $('adminContent').innerHTML='<div class="loader">Carregando...</div>';
   try{
     if(tab==='overview'){
@@ -1495,7 +1508,7 @@ async function loadAdmin(tab){
       h+=`<div class="stat-box"><div class="n">${audio}</div><div class="l">Com Áudio</div></div>`;
       h+=`<div class="stat-box"><div class="n">${test}</div><div class="l">Testes</div></div>`;
       h+='</div></div>';
-      if(Object.keys(protoCounts).length){h+='<div class="admin-section"><div class="h2">Protocolos mais usados</div>';Object.entries(protoCounts).sort((a,b)=>b[1]-a[1]).forEach(([k,v])=>{const p=PROTOCOLS[k];const name=p?p.name+' '+p.subtitle:k;h+=`<div style="display:flex;justify-content:space-between;padding:.4rem 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:.85rem"><span>${name}</span><span style="color:var(--accent)">${v}</span></div>`;});h+='</div>';}
+      if(Object.keys(protoCounts).length){h+='<div class="admin-section"><div class="h2">Protocolos mais usados</div>';Object.entries(protoCounts).sort((a,b)=>b[1]-a[1]).forEach(([k,v])=>{const p=PROTOCOLS[k];const name=p?p.name+' '+p.subtitle:k;h+=`<div style="display:flex;justify-content:space-between;padding:.4rem 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:.85rem"><span>${esc(name)}</span><span style="color:var(--accent)">${esc(v)}</span></div>`;});h+='</div>';}
       $('adminContent').innerHTML=h;
     }else if(tab==='users'){
       // Admin test level switcher
@@ -1508,32 +1521,32 @@ async function loadAdmin(tab){
       const snap=await db.collection('users').get();
       // Count by level
       const counts={gratuito:0,grupo:0,mentoria:0};
-      snap.forEach(doc=>{const lv=doc.data().accessLevel||'gratuito';counts[lv]=(counts[lv]||0)+1;});
+      snap.forEach(doc=>{const lv=ACCESS_LABELS[doc.data().accessLevel]?doc.data().accessLevel:'gratuito';counts[lv]=(counts[lv]||0)+1;});
       h+=`<div style="display:flex;gap:.5rem;margin-bottom:1rem">`;
       ['gratuito','grupo','mentoria'].forEach(lv=>{h+=`<div style="flex:1;text-align:center;padding:.5rem;background:var(--bg-card);border-radius:.6rem"><div style="font-size:1.1rem;font-weight:600;color:${ACCESS_COLORS[lv]}">${counts[lv]}</div><div style="font-size:.65rem;color:var(--text-dim)">${ACCESS_LABELS[lv]}</div></div>`;});
       h+='</div>';
-      snap.forEach(doc=>{const u=doc.data();const dt=u.createdAt?(u.createdAt.toDate?u.createdAt.toDate().toLocaleDateString('pt-BR'):''):'';const uLvl=u.accessLevel||'gratuito';
-        h+=`<div class="card no-tap" style="margin-bottom:.6rem"><div style="display:flex;justify-content:space-between;align-items:center"><div class="t">${u.name||''}</div><span style="font-size:.7rem;padding:.15rem .5rem;border-radius:1rem;background:${ACCESS_COLORS[uLvl]}22;color:${ACCESS_COLORS[uLvl]};border:1px solid ${ACCESS_COLORS[uLvl]}44">${ACCESS_LABELS[uLvl]}</span></div><div class="d">${u.email||''}<br>${u.whatsapp||''}<br>Cadastro: ${dt}</div>`;
+      snap.forEach(doc=>{const u=doc.data();const dt=u.createdAt?(u.createdAt.toDate?u.createdAt.toDate().toLocaleDateString('pt-BR'):''):'';const uLvl=ACCESS_LABELS[u.accessLevel]?u.accessLevel:'gratuito';
+        h+=`<div class="card no-tap" style="margin-bottom:.6rem"><div style="display:flex;justify-content:space-between;align-items:center"><div class="t">${esc(u.name||'')}</div><span style="font-size:.7rem;padding:.15rem .5rem;border-radius:1rem;background:${ACCESS_COLORS[uLvl]}22;color:${ACCESS_COLORS[uLvl]};border:1px solid ${ACCESS_COLORS[uLvl]}44">${ACCESS_LABELS[uLvl]}</span></div><div class="d">${esc(u.email||'')}<br>${esc(u.whatsapp||'')}<br>Cadastro: ${esc(dt)}</div>`;
         h+=`<div style="display:flex;gap:.4rem;margin-top:.5rem">`;
         ['gratuito','grupo','mentoria'].forEach(lv=>{
           const isCur=uLvl===lv;
           h+=`<button class="btn ${isCur?'btn-p':'btn-o'}" style="flex:1;padding:.35rem;font-size:.7rem;${isCur?'':'opacity:.6'}" onclick="setUserAccess('${doc.id}','${lv}')">${ACCESS_LABELS[lv]}</button>`;
         });
-        h+=`</div><div style="display:flex;gap:.4rem;margin-top:.4rem"><button class="btn btn-s" style="flex:1;font-size:.72rem;padding:.35rem" onclick="viewQuestionnaire('${doc.id}')">Ver respostas</button><button class="btn btn-s" style="flex:1;font-size:.72rem;padding:.35rem" onclick="viewUserProgress('${doc.id}','${(u.name||'').replace(/'/g,"\\'")}')">📊 Ver progresso</button></div>`;
+        h+=`</div><div style="display:flex;gap:.4rem;margin-top:.4rem"><button class="btn btn-s" style="flex:1;font-size:.72rem;padding:.35rem" onclick="viewQuestionnaire('${doc.id}')">Ver respostas</button><button class="btn btn-s" style="flex:1;font-size:.72rem;padding:.35rem" onclick="viewUserProgress('${doc.id}',${jsq(u.name||'')})">📊 Ver progresso</button></div>`;
         if(uLvl==='mentoria'){h+=`<div style="display:flex;gap:.4rem;margin-top:.4rem"><button class="btn btn-s" style="flex:1;font-size:.72rem;padding:.35rem" onclick="viewProntuario('${doc.id}')">📋 Ver prontuário</button><button class="btn btn-s" style="flex:1;font-size:.72rem;padding:.35rem" onclick="toggleLockProntuario('${doc.id}')">🔒 Bloquear/Desbloquear</button></div>`;}
         h+=`</div>`;
       });
       $('adminContent').innerHTML=h||'<div class="loader">Nenhum usuário.</div>';
     }else if(tab==='sessions'){
       const snap=await db.collection('sessions').limit(50).get();let h='';for(const doc of snap.docs){const s=doc.data();const userName=await getUserName(s.userId);const ts=s.startedAt||s.completedAt;const dt=ts?(ts.toDate?ts.toDate().toLocaleString('pt-BR'):''):'';
-        h+='<div class="card no-tap">';h+=`<div class="t">${userName}</div>`;
-        if(s.type==='breathe')h+=`<div class="d">🌬️ ${s.protocolName||s.protocol} · ${s.totalCycles||0} ciclos · ${dt}</div>`;
-        else if(s.type==='audio')h+=`<div class="d">🎧 ${s.audioTitle||''} · Nível ${s.level||''} · ${dt}</div>`;
-        else if(s.type==='test')h+=`<div class="d">⏱️ ${s.testLabel||s.testName} · Média: ${s.average||0}s · ${dt}</div>`;
-        else h+=`<div class="d">${dt}</div>`;h+='</div>';}
+        h+='<div class="card no-tap">';h+=`<div class="t">${esc(userName)}</div>`;
+        if(s.type==='breathe')h+=`<div class="d">🌬️ ${esc(s.protocolName||s.protocol)} · ${esc(s.totalCycles||0)} ciclos · ${esc(dt)}</div>`;
+        else if(s.type==='audio')h+=`<div class="d">🎧 ${esc(s.audioTitle||'')} · Nível ${esc(s.level||'')} · ${esc(dt)}</div>`;
+        else if(s.type==='test')h+=`<div class="d">⏱️ ${esc(s.testLabel||s.testName)} · Média: ${esc(s.average||0)}s · ${esc(dt)}</div>`;
+        else h+=`<div class="d">${esc(dt)}</div>`;h+='</div>';}
       $('adminContent').innerHTML=h||'<div class="loader">Nenhuma sessão.</div>';
     }
-  }catch(e){$('adminContent').innerHTML='<div class="error-msg">Erro: '+e.message+'</div>';}
+  }catch(e){$('adminContent').innerHTML='<div class="error-msg">Erro: '+esc(e.message)+'</div>';}
 }
 
 const userNameCache={};
@@ -1541,12 +1554,13 @@ async function getUserName(uid){if(!uid)return'Desconhecido';if(userNameCache[ui
 window.viewQuestionnaire=async function(uid){try{const d=await db.collection('questionnaires').doc(uid).get();if(!d.exists){alert('Questionário não preenchido.');return;}const data=d.data();let msg='';QUESTIONS.forEach(q=>{const a=data[q.id];msg+=q.label+'\n';if(a&&a.selected)msg+='→ '+a.selected.join(', ')+(a.other?', Outro: '+a.other:'')+'\n\n';else if(a&&a.text)msg+='→ '+a.text+'\n\n';else msg+='→ (sem resposta)\n\n';});alert(msg);}catch(e){alert('Erro: '+e.message);}};
 
 window.viewUserProgress=async function(uid,userName){
+  if(!isAdminUser())return;
   adminViewUid=uid;adminViewUserName=userName;
   $('adminContent').innerHTML='<div class="loader">Carregando progresso...</div>';
   try{
     // Back button
     let h=`<div style="margin-bottom:1rem"><button class="btn btn-o" style="padding:.4rem .8rem;font-size:.78rem;width:auto" onclick="loadAdmin('users')">‹ Voltar aos usuários</button></div>`;
-    h+=`<div class="section-title" style="margin-top:0">${userName}</div>`;
+    h+=`<div class="section-title" style="margin-top:0">${esc(userName)}</div>`;
 
     // Load sessions
     const sessSnap=await db.collection('sessions').where('userId','==',uid).get();
@@ -1587,8 +1601,8 @@ window.viewUserProgress=async function(uid,userName){
 
     // Custom habits
     uHabits.forEach(hab=>{
-      const hc=hab.color||'#80cbc4';
-      h+=`<tr style="cursor:pointer" onclick="adminHabitDetail('${hab.id}',false)"><td class="h-name" style="min-width:150px"><div class="habit-name-cell" style="color:${hc}"><div class="habit-dot" style="background:${hc}"></div>${hab.name}</div></td>`;
+      const hc=safeColor(hab.color);
+      h+=`<tr style="cursor:pointer" onclick="adminHabitDetail('${hab.id}',false)"><td class="h-name" style="min-width:150px"><div class="habit-name-cell" style="color:${hc}"><div class="habit-dot" style="background:${hc}"></div>${esc(hab.name)}</div></td>`;
       const goalCheck=buildGoalChecker(hab,uLogs);
       days.forEach(day=>{
         const log=uLogs[hab.id+'_'+day];
@@ -1598,7 +1612,7 @@ window.viewUserProgress=async function(uid,userName){
           if(log&&log.completed)h+=`<td class="h-day" style="${goalHighlight}"><span class="h-check" style="color:${hc}">✓</span></td>`;
           else h+=`<td class="h-day" style="${goalHighlight}"><span class="h-cross">✗</span></td>`;
         }else{
-          if(log&&log.value!=null){const cls=hab.target&&log.value>=hab.target?'good':'low';h+=`<td class="h-day"><span class="h-val ${cls}" style="${cls==='good'?'color:'+hc:''}">${log.value}<br><span style="font-size:.6rem">${hab.unit||''}</span></span></td>`;}
+          if(log&&log.value!=null){const cls=hab.target&&log.value>=hab.target?'good':'low';h+=`<td class="h-day"><span class="h-val ${cls}" style="${cls==='good'?'color:'+hc:''}">${esc(log.value)}<br><span style="font-size:.6rem">${esc(hab.unit||'')}</span></span></td>`;}
           else h+=`<td class="h-day"><span class="h-cross">✗</span></td>`;
         }
       });
@@ -1690,7 +1704,7 @@ window.viewUserProgress=async function(uid,userName){
         document.querySelectorAll('.adminWbPanel').forEach(p=>{p.style.display=p.getAttribute('data-wbtype')===t?'':'none';});
       });
     });
-  }catch(e){$('adminContent').innerHTML=`<div class="error-msg">Erro: ${e.message}</div>`;}
+  }catch(e){$('adminContent').innerHTML=`<div class="error-msg">Erro: ${esc(e.message)}</div>`;}
 };
 
 window.adminHabitDetail=async function(key,isDefault){
@@ -1726,7 +1740,7 @@ window.adminHabitDetail=async function(key,isDefault){
     entries.sort((a,b)=>a.date.localeCompare(b.date));
     const cSet=new Set(entries.map(e=>e.date));
     const isMeas=habit.type==='measurable';
-    const clr=habit.color||'#80cbc4';
+    const clr=safeColor(habit.color);
 
     const now=new Date();
     const ym=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
@@ -1758,8 +1772,8 @@ window.adminHabitDetail=async function(key,isDefault){
     else if(habit.frequency==='per_month')freqLabel=(habit.freqPerMonth||10)+' vezes por mês';
     else if(habit.frequency==='custom')freqLabel=(habit.freqCustomTimes||3)+' vezes em '+(habit.freqCustomDays||14)+' dias';
 
-    let h=`<div style="margin-bottom:1rem"><button class="btn btn-o" style="padding:.4rem .8rem;font-size:.78rem;width:auto" onclick="viewUserProgress('${uid}','${userName.replace(/'/g,"\\'")}')">‹ Voltar ao progresso</button></div>`;
-    h+=`<div class="section-title" style="margin-top:0">${userName} · ${habit.name}</div>`;
+    let h=`<div style="margin-bottom:1rem"><button class="btn btn-o" style="padding:.4rem .8rem;font-size:.78rem;width:auto" onclick="viewUserProgress('${uid}',${jsq(userName)})">‹ Voltar ao progresso</button></div>`;
+    h+=`<div class="section-title" style="margin-top:0">${esc(userName)} · ${esc(habit.name)}</div>`;
     h+=`<div style="font-size:.78rem;color:var(--text-dim);margin-bottom:1rem"><span>📅 ${freqLabel}</span></div>`;
 
     if(isMeas){
@@ -1811,10 +1825,11 @@ window.adminHabitDetail=async function(key,isDefault){
         }catch(e){console.error(e);$('admDetMoreBtn').disabled=false;$('admDetMoreBtn').textContent='📊 Mais Detalhes';}
       });
     }
-  }catch(e){$('adminContent').innerHTML=`<div class="error-msg">Erro: ${e.message}</div>`;}
+  }catch(e){$('adminContent').innerHTML=`<div class="error-msg">Erro: ${esc(e.message)}</div>`;}
 };
 
 window.setUserAccess=async function(uid,level){
+  if(!isAdminUser()||!ACCESS_LABELS[level])return;
   try{
     await db.collection('users').doc(uid).update({accessLevel:level});
     // If changing own access, update local
@@ -1978,9 +1993,9 @@ function renderProntuarioStep(){
       h+=`<div class="card no-tap" style="margin-bottom:.6rem;padding:.8rem">`;
       if(f.label)h+=`<div style="font-size:.82rem;font-weight:500;margin-bottom:.5rem;color:var(--text)">${f.label}</div>`;
       if(f.type==='text'||f.type==='email'||f.type==='tel'||f.type==='date'||f.type==='time'||f.type==='number'){
-        h+=`<input class="input" type="${f.type}" data-fid="${f.id}" value="${val||''}" placeholder="${f.placeholder||''}" ${dis} style="margin:0">`;
+        h+=`<input class="input" type="${f.type}" data-fid="${f.id}" value="${esc(val||'')}" placeholder="${esc(f.placeholder||'')}" ${dis} style="margin:0">`;
       }else if(f.type==='textarea'){
-        h+=`<textarea class="input" data-fid="${f.id}" placeholder="${f.placeholder||''}" ${dis} style="margin:0;min-height:70px;resize:vertical">${val||''}</textarea>`;
+        h+=`<textarea class="input" data-fid="${f.id}" placeholder="${f.placeholder||''}" ${dis} style="margin:0;min-height:70px;resize:vertical">${esc(val||'')}</textarea>`;
       }else if(f.type==='range'){
         const rv=val!=null?val:5;
         h+=`<div style="display:flex;align-items:center;gap:.6rem"><span style="font-size:.75rem;color:var(--text-dim)">${f.min}</span><input type="range" data-fid="${f.id}" min="${f.min}" max="${f.max}" value="${rv}" ${dis} style="flex:1;accent-color:var(--accent)"><span style="font-size:.75rem;color:var(--text-dim)">${f.max}</span><span data-rv="${f.id}" style="font-size:1rem;font-weight:600;color:var(--accent);min-width:22px;text-align:center">${rv}</span></div>`;
@@ -2101,6 +2116,7 @@ $('prontuarioPrev').addEventListener('click',()=>{
 
 // Admin: view user prontuário
 window.viewProntuario=async function(uid){
+  if(!isAdminUser())return;
   try{
     const doc=await db.collection('prontuarios').doc(uid).get();
     if(!doc.exists){alert('Prontuário não preenchido.');return;}
@@ -2141,7 +2157,7 @@ function renderAdminProntuarioFull(data,locked,userName){
         if(v===undefined||v===null||v==='')return;
         if(Array.isArray(v)&&v.length===0)return;
         const display=Array.isArray(v)?v.join(', '):v;
-        h+=`<div style="padding:.4rem 0;font-size:.82rem"><span style="color:var(--text-dim)">${f.label}:</span> <span style="color:var(--text);font-weight:500">${display}</span></div>`;
+        h+=`<div style="padding:.4rem 0;font-size:.82rem"><span style="color:var(--text-dim)">${f.label}:</span> <span style="color:var(--text);font-weight:500">${esc(display)}</span></div>`;
       });
     }
     h+=`</div>`;
@@ -2151,6 +2167,7 @@ function renderAdminProntuarioFull(data,locked,userName){
 
 // Admin: toggle lock prontuário
 window.toggleLockProntuario=async function(uid){
+  if(!isAdminUser())return;
   try{
     const doc=await db.collection('prontuarios').doc(uid).get();
     if(!doc.exists){alert('Prontuário não encontrado.');return;}
