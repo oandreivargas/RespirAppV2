@@ -1,4 +1,4 @@
-const CACHE_NAME = 'respira-v42';
+const CACHE_NAME = 'respira-v43';
 const ASSETS = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
  
 self.addEventListener('install', e => {
@@ -18,11 +18,16 @@ self.addEventListener('fetch', e => {
     e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
     return;
   }
+  // Segurança: o cache só guarda GET do próprio app (nunca POST nem domínios de terceiros)
+  if (e.request.method !== 'GET' || url.origin !== self.location.origin) return;
   // Network-first for app files, fallback to cache
   e.respondWith(
     fetch(e.request).then(r => {
-      const rc = r.clone();
-      caches.open(CACHE_NAME).then(c => c.put(e.request, rc));
+      // Só armazena respostas válidas (evita cachear erros/redirecionamentos)
+      if (r && r.ok && r.type === 'basic') {
+        const rc = r.clone();
+        caches.open(CACHE_NAME).then(c => c.put(e.request, rc));
+      }
       return r;
     }).catch(() => caches.match(e.request))
   );
