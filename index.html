@@ -624,7 +624,7 @@ let adminTestLevel=null; // admin override for testing
 firebase.initializeApp({apiKey:"AIzaSyC5Fa-qRDTLyVbC_N-y3lP7o4NSJqTcewc",authDomain:"respirapp-58d2b.firebaseapp.com",projectId:"respirapp-58d2b",storageBucket:"respirapp-58d2b.firebasestorage.app",messagingSenderId:"565648433343",appId:"1:565648433343:web:1939a62510bc3af509660a"});
 // ═══ APP CHECK (anti-robôs) ═══
 // Cole aqui a "chave do site" do reCAPTCHA v3 (passo a passo no guia). Vazio = desativado.
-const APPCHECK_SITE_KEY='';
+const APPCHECK_SITE_KEY='6LcDSO4tAAAAAG4DIuNSddpI9Tiw9M7_-pX3r9C2';
 if(APPCHECK_SITE_KEY){try{firebase.appCheck().activate(new firebase.appCheck.ReCaptchaV3Provider(APPCHECK_SITE_KEY),true);}catch(e){console.error('App Check',e);}}
 const auth=firebase.auth(),db=firebase.firestore();
 // ═══ SEGURANÇA ═══
