@@ -1,4 +1,4 @@
-const CACHE_NAME = 'respira-v50';
+const CACHE_NAME = 'respira-v51';
 const ASSETS = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
  
 self.addEventListener('install', e => {
