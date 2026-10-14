@@ -650,8 +650,8 @@ let adminViewUid=null,adminViewUserName=null;
 const $=id=>document.getElementById(id);
 const screens=document.querySelectorAll('.screen');
 function show(id){screens.forEach(s=>s.classList.remove('active'));$(id).classList.add('active');$(id).scrollTop=0;}
-function todayStr(){return new Date().toISOString().slice(0,10);}
-function dateStr(d){return d.toISOString().slice(0,10);}
+function todayStr(){return dateStr(new Date());}
+function dateStr(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function getDayLabel(ds){const d=new Date(ds+'T12:00:00');const days=['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];return days[d.getDay()]+'.';}
 function getDayNum(ds){return ds.slice(8,10);}
 function getISOWeekKey(d){const t=new Date(d);t.setHours(12,0,0,0);const day=t.getDay()||7;t.setDate(t.getDate()+4-day);const yearStart=new Date(t.getFullYear(),0,1);const wn=Math.ceil(((t-yearStart)/86400000+1)/7);return t.getFullYear()+'W'+String(wn).padStart(2,'0');}
@@ -1653,7 +1653,7 @@ window.calCellClick=async function(ds){
       }
       renderDetCal(detailCSet,detailClr,detailIsMeas,detailHabit);
       renderDetStability(detailEntries,detailClr);
-      renderDetHist(detailEntries,detailClr,detailIsMeas);
+      renderHistChart('detHistChart',detailEntries,detailClr,detailIsMeas,$('detHistPeriod').value,detailIsMeas?(detailHabit.unit||''):'');
       renderDetStreaks(detailCSet,detailClr);
       renderDetFreq(detailCSet,detailClr);
     }catch(e){console.error(e);}
@@ -1674,7 +1674,7 @@ $('calMeasSave').addEventListener('click',async()=>{
     detailCSet.add(calMeasDate);
     renderDetCal(detailCSet,detailClr,detailIsMeas,detailHabit);
     renderDetStability(detailEntries,detailClr);
-    renderDetHist(detailEntries,detailClr,detailIsMeas);
+    renderHistChart('detHistChart',detailEntries,detailClr,detailIsMeas,$('detHistPeriod').value,detailIsMeas?(detailHabit.unit||''):'');
     renderDetStreaks(detailCSet,detailClr);
     renderDetFreq(detailCSet,detailClr);
   }catch(e){console.error(e);}
