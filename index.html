@@ -214,7 +214,7 @@ audio{width:100%;margin-top:1rem;filter:hue-rotate(120deg) saturate(.6)}
 .bar-val{font-size:.66rem;font-weight:600;margin-bottom:.2rem;min-height:.85rem}
 .bar-track{width:100%;max-width:26px;height:120px;display:flex;flex-direction:column;justify-content:flex-end}
 .bar-fill{border-radius:4px 4px 0 0;min-height:2px;transition:height .3s}
-.bar-label{font-size:.6rem;color:var(--text-dim);margin-top:.3rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;text-align:center}
+.bar-label{font-size:.8rem;color:var(--text-dim);margin-top:.3rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;text-align:center}
 .bar-month-refs{display:flex;gap:3px;margin-top:.1rem}
 .bar-month-ref{font-size:.58rem;color:var(--text-dim);text-align:left;white-space:nowrap;opacity:.8}
 .streak-row{display:flex;align-items:center;gap:.4rem;padding:.3rem 0;font-size:.75rem}
@@ -287,6 +287,54 @@ html{background:#06235C}
 .cal-modal{background:#0B3480}
 /* Exercício: água azul com brilho sutil */
 .tide-level .tide-body{background:linear-gradient(180deg,#0E3D91 0,#0B3480 100%)}
+
+/* ═══ Meu Progresso: estilo Loop na Maré azul ═══ */
+.habit-scroll{padding:.35rem .6rem .25rem}
+.habit-table th{padding:.55rem .2rem .7rem;vertical-align:bottom}
+.habit-table th .h-dw{display:block;font-size:.72rem;font-weight:400;color:var(--text-dim);text-transform:lowercase}
+.habit-table th .h-dn{display:block;font-size:.95rem;font-weight:600;color:var(--text)}
+.habit-table td{height:62px;border-top:1px solid rgba(221,235,255,.08)}
+.habit-table tbody tr:first-child td{border-top:1px solid rgba(221,235,255,.12)}
+.habit-name-cell{gap:.6rem;font-size:.95rem;font-weight:600;color:var(--text);white-space:normal;line-height:1.25;padding-right:.4rem}
+.habit-dot{width:10px;height:10px}
+.h-check{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:0;vertical-align:middle;cursor:pointer}
+.h-cross{width:26px;height:26px;border-radius:50%;border:1.5px solid rgba(221,235,255,.2);box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;font-size:.7rem;color:var(--text-dim);vertical-align:middle;cursor:pointer}
+.h-val{min-width:36px;height:36px;padding:0 4px;box-sizing:border-box;border-radius:18px;border:1.5px solid rgba(221,235,255,.2);display:inline-flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.05;font-size:.82rem;font-weight:600;color:var(--text) !important;vertical-align:middle}
+.h-val span{color:var(--text-dim)}
+/* Visão geral */
+.vg-ring{position:relative;width:104px;height:104px;flex-shrink:0}
+.vg-ring svg{display:block}
+.vg-ring-c{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
+.vg-ring-c b{font-family:var(--serif);font-weight:400;font-size:1.6rem;color:var(--text)}
+.vg-ring-c small{font-size:.7rem;color:var(--text-dim);margin-top:.3rem}
+.vg-stats{flex:1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.9rem .6rem}
+.vg-stats > div:first-child{display:none}
+.vg-stats > div:last-child:nth-child(4){grid-column:span 1}
+#habitDetailContent .card.no-tap,#adminContent .card.no-tap{padding:1.25rem 1.2rem;border-radius:1.25rem;background:#0B3480;border:1px solid rgba(221,235,255,.1)}
+.detail-section-title{font-size:1.25rem;color:var(--foam);margin-bottom:.2rem}
+#habitDetailContent select.input,#adminContent select.input{min-height:36px;border-radius:999px !important;background-color:transparent;border-color:rgba(221,235,255,.22);font-size:.85rem !important}
+/* Histórico */
+.bar-chart{height:190px;gap:5px}
+.bar-val{color:var(--text);font-size:.72rem}
+.bar-track{max-width:22px}
+.bar-fill{border-radius:4px 4px 0 0}
+.bar-label{font-size:.62rem;margin-top:.35rem}
+.bar-col{cursor:default}
+/* Estabilidade */
+.stab-grid-line{stroke:rgba(221,235,255,.08)}
+.stab-axis-label{font-size:10px}
+.stab-line{stroke-width:2.2}
+.stab-dot{stroke-width:2}
+.stab-last{fill:var(--text);font-size:12px;font-weight:600;font-family:var(--sans)}
+/* Calendário */
+.cal-legend{position:sticky;left:0;display:flex;flex-wrap:wrap;gap:.4rem 1rem;margin-top:.9rem;font-size:.78rem;color:var(--text-dim)}
+.cal-legend span{display:inline-flex;align-items:center;gap:.4rem}
+.cal-legend i{display:inline-block;width:12px;height:12px;border-radius:3px;background:rgba(221,235,255,.07)}
+/* Sequências */
+.streak-row{display:grid;grid-template-columns:78px minmax(0,1fr) 78px;gap:.5rem;padding:.25rem 0}
+.streak-row .streak-bar{justify-self:center;height:24px;border-radius:12px;font-size:.8rem}
+.streak-row:not(:first-child) .streak-bar{opacity:.7}
+.streak-date{min-width:0;font-size:.7rem;line-height:1.25;white-space:normal}
 
 @media (prefers-reduced-motion:reduce){
   .home-tide .wave-back,.home-tide .wave-front,.home-tide-rise,.tide-level .wave,.screen.active{animation:none}
@@ -863,20 +911,20 @@ function renderHabitTable(days){
   // Single table: sticky name column + scrollable day columns
   // Calculate day column width so exactly 5 fit in the available space
   // Container is max 440px, name col ~150px, so day area ~290px => 58px per col for 5
-  const dayW=58;
+  const dayW=46;
   let h='<table class="habit-table" style="min-width:calc(150px + '+days.length+'*'+dayW+'px)">';
-  h+='<thead><tr><th class="h-name" style="min-width:150px">&nbsp;</th>';
-  days.forEach(d=>{h+=`<th class="h-day" style="min-width:${dayW}px;width:${dayW}px">${getDayLabel(d)}<br>${getDayNum(d)}</th>`;});
+  h+='<thead><tr><th class="h-name" style="min-width:136px">&nbsp;</th>';
+  days.forEach(d=>{h+=`<th class="h-day" style="min-width:${dayW}px;width:${dayW}px"><span class="h-dw">${getDayLabel(d)}</span><span class="h-dn">${getDayNum(d)}</span></th>`;});
   h+='</tr></thead><tbody>';
   DEFAULT_HABITS.forEach(dh=>{
-    h+=`<tr><td class="h-name" style="min-width:150px"><div class="habit-name-cell" onclick="openHabitDetail('${dh.key}',true)" style="cursor:pointer;color:${dh.color}"><div class="habit-dot" style="background:${dh.color}"></div>${dh.name}</div></td>`;
+    h+=`<tr><td class="h-name" style="min-width:136px"><div class="habit-name-cell" onclick="openHabitDetail('${dh.key}',true)" style="cursor:pointer"><div class="habit-dot" style="background:${dh.color}"></div>${dh.name}</div></td>`;
     days.forEach(day=>{
       const sd=sessionsByDay[day]||{breathe:false,audio:false,test:[]};
-      if(dh.key==='breathe'){h+=`<td class="h-day">${sd.breathe?`<span class="h-check" style="color:${dh.color}">✓</span>`:'<span class="h-cross">✗</span>'}</td>`;}
-      else if(dh.key==='audio'){h+=`<td class="h-day">${sd.audio?`<span class="h-check" style="color:${dh.color}">✓</span>`:'<span class="h-cross">✗</span>'}</td>`;}
+      if(dh.key==='breathe'){h+=`<td class="h-day">${sd.breathe?`<span class="h-check" style="background:${dh.color}" role="img" aria-label="feito"><svg viewBox="0 0 14 14" width="14" height="14" fill="none" aria-hidden="true"><path d="M3 7.5l2.6 2.5L11 4.5" stroke="#072A6B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>`:'<span class="h-cross" role="img" aria-label="não feito"></span>'}</td>`;}
+      else if(dh.key==='audio'){h+=`<td class="h-day">${sd.audio?`<span class="h-check" style="background:${dh.color}" role="img" aria-label="feito"><svg viewBox="0 0 14 14" width="14" height="14" fill="none" aria-hidden="true"><path d="M3 7.5l2.6 2.5L11 4.5" stroke="#072A6B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>`:'<span class="h-cross" role="img" aria-label="não feito"></span>'}</td>`;}
       else if(dh.key==='test'){
-        if(sd.test.length>0){const avg=parseFloat((sd.test.reduce((a,b)=>a+b,0)/sd.test.length).toFixed(0));const cls=avg>=25?'good':'low';h+=`<td class="h-day"><span class="h-val ${cls}" style="${cls==='good'?'color:'+dh.color:''}">${avg}s</span></td>`;}
-        else h+=`<td class="h-day"><span class="h-cross">✗</span></td>`;
+        if(sd.test.length>0){const avg=parseFloat((sd.test.reduce((a,b)=>a+b,0)/sd.test.length).toFixed(0));const cls=avg>=25?'good':'low';h+=`<td class="h-day"><span class="h-val ${cls}" style="${cls==='good'?'border-color:'+dh.color:''}">${avg}s</span></td>`;}
+        else h+=`<td class="h-day"><span class="h-cross" role="img" aria-label="não feito"></span></td>`;
       }
     });
     h+='</tr>';
@@ -884,17 +932,17 @@ function renderHabitTable(days){
   const showCustom=getLevel()==='mentoria';
   if(showCustom) userHabits.forEach(hab=>{
     const hc=safeColor(hab.color);
-    h+=`<tr><td class="h-name" style="min-width:150px"><div class="habit-name-cell" onclick="openHabitDetail('${hab.id}',false)" style="cursor:pointer;color:${hc}"><div class="habit-dot" style="background:${hc}"></div>${esc(hab.name)}<span onclick="event.stopPropagation();deleteHabit('${hab.id}',${jsq(hab.name)})" style="margin-left:auto;color:var(--danger);font-size:.7rem;opacity:.5;cursor:pointer;padding:0 .3rem">✕</span></div></td>`;
+    h+=`<tr><td class="h-name" style="min-width:136px"><div class="habit-name-cell" onclick="openHabitDetail('${hab.id}',false)" style="cursor:pointer"><div class="habit-dot" style="background:${hc}"></div>${esc(hab.name)}<span onclick="event.stopPropagation();deleteHabit('${hab.id}',${jsq(hab.name)})" style="margin-left:auto;color:var(--danger);font-size:.7rem;opacity:.5;cursor:pointer;padding:0 .3rem">✕</span></div></td>`;
     const goalCheck=buildGoalChecker(hab,habitLogs);
     days.forEach(day=>{
       const log=habitLogs[hab.id+'_'+day];
       if(hab.type==='boolean'){
         const goalMet=goalCheck?goalCheck(day):false;
-        const goalHighlight=goalMet?`border:1.5px solid ${hc};border-radius:4px;`:'';
-        if(log&&log.completed)h+=`<td class="h-day" style="${goalHighlight}"><span class="h-check" style="color:${hc}" onclick="toggleHabitLog('${hab.id}','${day}',true)">✓</span></td>`;
-        else h+=`<td class="h-day" style="${goalHighlight}"><span class="h-cross" onclick="toggleHabitLog('${hab.id}','${day}',false)">✗</span></td>`;
+        const goalHighlight=goalMet?`background:${hc}1f;border-radius:14px;`:'';
+        if(log&&log.completed)h+=`<td class="h-day" style="${goalHighlight}"><span class="h-check" style="background:${hc}" role="img" aria-label="feito" onclick="toggleHabitLog('${hab.id}','${day}',true)"><svg viewBox="0 0 14 14" width="14" height="14" fill="none" aria-hidden="true"><path d="M3 7.5l2.6 2.5L11 4.5" stroke="#072A6B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></td>`;
+        else h+=`<td class="h-day" style="${goalHighlight}"><span class="h-cross" role="img" aria-label="não feito" onclick="toggleHabitLog('${hab.id}','${day}',false)"></span></td>`;
       }else{
-        if(log&&log.value!=null){const cls=hab.target&&log.value>=hab.target?'good':'low';h+=`<td class="h-day"><span class="h-val ${cls}" style="${cls==='good'?'color:'+hc:''}" onclick="showInlineInput('${hab.id}','${day}',this)">${esc(log.value)}<br><span style="font-size:.6rem">${esc(hab.unit||'')}</span></span></td>`;}
+        if(log&&log.value!=null){const cls=hab.target&&log.value>=hab.target?'good':'low';h+=`<td class="h-day"><span class="h-val ${cls}" style="${cls==='good'?'border-color:'+hc:''}" onclick="showInlineInput('${hab.id}','${day}',this)">${esc(log.value)}<br><span style="font-size:.6rem">${esc(hab.unit||'')}</span></span></td>`;}
         else h+=`<td class="h-day"><span class="h-cross" onclick="showInlineInput('${hab.id}','${day}',this)">0</span></td>`;
       }
     });
@@ -1197,15 +1245,15 @@ window.openHabitDetail=async function(key,isDefault){
       const fmtTgt=tgt>0?(tgt>=1000?(tgt/1000).toFixed(1).replace(/\.0$/,'')+'k':Math.round(tgt)):'';
       return `<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.45rem">
         <div style="width:60px;font-size:.75rem;color:var(--text-dim);text-align:right">${label}</div>
-        <div style="flex:1;height:22px;background:rgba(255,255,255,.06);border-radius:6px;position:relative;overflow:hidden">
-          <div style="height:100%;width:${pct}%;background:${c};border-radius:6px;transition:width .3s"></div>
+        <div style="flex:1;height:22px;background:rgba(221,235,255,.08);border-radius:11px;position:relative;overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:${c};border-radius:11px;transition:width .3s"></div>
           <span style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:.7rem;font-weight:600;color:var(--text)">${fmtVal}</span>
         </div>
         ${fmtTgt?`<div style="width:32px;font-size:.7rem;color:var(--text-dim)">${fmtTgt}</div>`:`<div style="width:32px"></div>`}
       </div>`;
     }
     h+=`<div class="card no-tap" style="margin-bottom:1.2rem">
-      <div class="detail-section-title" style="color:${clr}">Alvo</div>
+      <div class="detail-section-title">Alvo</div>
       <div style="margin-top:.6rem">
         ${alvoBar('Hoje',todayVal,tDay,clr)}
         ${alvoBar('Semana',weekVal,tWeek,clr)}
@@ -1216,22 +1264,22 @@ window.openHabitDetail=async function(key,isDefault){
   }else{
     // ═══ Visão Geral for boolean habits ═══
     h+=`<div class="card no-tap" style="margin-bottom:1.2rem">
-      <div class="detail-section-title" style="color:${clr}">Visão geral</div>
+      <div class="detail-section-title">Visão geral</div>
       <div style="display:flex;align-items:center;gap:1rem;margin-top:.6rem">
-        <svg viewBox="0 0 36 36" width="52" height="52"><path d="M18 2.0845a15.9155 15.9155 0 0 1 0 31.831a15.9155 15.9155 0 0 1 0-31.831" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="3"/><path d="M18 2.0845a15.9155 15.9155 0 0 1 0 31.831a15.9155 15.9155 0 0 1 0-31.831" fill="none" stroke="${clr}" stroke-width="3" stroke-dasharray="${stabAll},100" stroke-linecap="round"/></svg>
-        <div style="display:flex;gap:1rem;flex:1;flex-wrap:wrap">
-          <div><div style="font-size:1.05rem;font-weight:600;color:${clr}">${stabAll}%</div><div style="font-size:.6rem;color:var(--text-dim)">Estabilidade</div></div>
-          <div><div style="font-size:1.05rem;font-weight:600;color:${chg>=0?'var(--green)':'var(--danger)'}">${chg>=0?'+':''}${chg}%</div><div style="font-size:.6rem;color:var(--text-dim)">Mês</div></div>
-          <div><div style="font-size:1.05rem;font-weight:600;color:${chgY>=0?'var(--green)':'var(--danger)'}">${chgY>=0?'+':''}${chgY}%</div><div style="font-size:.6rem;color:var(--text-dim)">Ano</div></div>
-          <div><div style="font-size:1.05rem;font-weight:600;color:${clr}">${entries.length}</div><div style="font-size:.6rem;color:var(--text-dim)">Total</div></div>
-          ${isDefault&&(key==='audio'||key==='breathe')?`<div id="detTotalTime"><div style="font-size:1.05rem;font-weight:600;color:${clr}">⏳</div><div style="font-size:.6rem;color:var(--text-dim)">Tempo</div></div>`:''}
+        <div class="vg-ring"><svg viewBox="0 0 36 36" width="104" height="104"><path d="M18 2.0845a15.9155 15.9155 0 0 1 0 31.831a15.9155 15.9155 0 0 1 0-31.831" fill="none" stroke="rgba(221,235,255,.12)" stroke-width="3"/><path d="M18 2.0845a15.9155 15.9155 0 0 1 0 31.831a15.9155 15.9155 0 0 1 0-31.831" fill="none" stroke="${clr}" stroke-width="3" stroke-dasharray="${stabAll},100" stroke-linecap="round"/></svg><div class="vg-ring-c"><b>${stabAll}%</b><small>estabilidade</small></div></div>
+        <div class="vg-stats">
+          <div><div style="font-size:1.3rem;font-weight:600;color:var(--text)">${stabAll}%</div><div style="font-size:.8rem;color:var(--text-dim)">Estabilidade</div></div>
+          <div><div style="font-size:1.05rem;font-weight:600;color:${chg>=0?'var(--green)':'var(--danger)'}">${chg>=0?'+':''}${chg}%</div><div style="font-size:.8rem;color:var(--text-dim)">Mês</div></div>
+          <div><div style="font-size:1.05rem;font-weight:600;color:${chgY>=0?'var(--green)':'var(--danger)'}">${chgY>=0?'+':''}${chgY}%</div><div style="font-size:.8rem;color:var(--text-dim)">Ano</div></div>
+          <div><div style="font-size:1.3rem;font-weight:600;color:var(--text)">${entries.length}</div><div style="font-size:.8rem;color:var(--text-dim)">Total</div></div>
+          ${isDefault&&(key==='audio'||key==='breathe')?`<div id="detTotalTime"><div style="font-size:1.3rem;font-weight:600;color:var(--text)">…</div><div style="font-size:.8rem;color:var(--text-dim)">Tempo</div></div>`:''}
         </div>
       </div></div>`;
   }
 
   h+=`<div class="card no-tap" style="margin-bottom:1.2rem">
     <div style="display:flex;justify-content:space-between;align-items:center">
-      <div class="detail-section-title" style="color:${clr}">Estabilidade</div>
+      <div class="detail-section-title">Estabilidade</div>
       <select class="input" style="width:auto;padding:.3rem .7rem;font-size:.72rem;margin:0" id="detStabPeriod">
         <option value="day" selected>Dia</option><option value="week">Semana</option><option value="month">Mês</option><option value="quarter">Trimestre</option><option value="year">Ano</option>
       </select>
@@ -1241,7 +1289,7 @@ window.openHabitDetail=async function(key,isDefault){
 
   h+=`<div class="card no-tap" style="margin-bottom:1.2rem">
     <div style="display:flex;justify-content:space-between;align-items:center">
-      <div class="detail-section-title" style="color:${clr}">Histórico</div>
+      <div class="detail-section-title">Histórico</div>
       <select class="input" style="width:auto;padding:.3rem .7rem;font-size:.72rem;margin:0" id="detHistPeriod">
         ${isMeas?'<option value="day" selected>Dia</option><option value="week">Semana</option>':'<option value="week" selected>Semana</option>'}<option value="month">Mês</option><option value="quarter">Trimestre</option><option value="year">Ano</option>
       </select>
@@ -1250,17 +1298,17 @@ window.openHabitDetail=async function(key,isDefault){
   </div>`;
 
   h+=`<div class="card no-tap" style="margin-bottom:1.2rem">
-    <div class="detail-section-title" style="color:${clr}">Calendário</div>
+    <div class="detail-section-title">Calendário</div>
     <div id="detCalendar" style="margin-top:.6rem;overflow-x:auto"></div>
   </div>`;
 
   h+=`<div class="card no-tap" style="margin-bottom:1.2rem">
-    <div class="detail-section-title" style="color:${clr}">Correntes mais longas</div>
+    <div class="detail-section-title">Melhores sequências</div>
     <div id="detStreaks" style="margin-top:.6rem"></div>
   </div>`;
 
   h+=`<div class="card no-tap" style="margin-bottom:1.5rem">
-    <div class="detail-section-title" style="color:${clr}">Frequência</div>
+    <div class="detail-section-title">Frequência</div>
     <div id="detFreq" style="margin-top:.6rem;overflow-x:auto"></div>
   </div>`;
 
@@ -1335,10 +1383,11 @@ function renderHistChart(targetId,entries,clr,isMeas,period,unit){
   const chartW=Math.max(groups.length*colW,280);
   const u=isMeas&&unit?unit:'';
   let bh='<div style="overflow-x:auto;overflow-y:visible;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.15) transparent"><div class="bar-wrap" style="min-width:'+chartW+'px"><div class="bar-chart">';
-  groups.forEach(g=>{
+  groups.forEach((g,gi)=>{
     const pct=mx>0?(g.val/mx)*100:0;
-    const displayVal=g.val>0?g.val:'';
-    bh+=`<div class="bar-col"><div class="bar-val" style="color:${clr}">${displayVal}</div><div class="bar-track"><div class="bar-fill" style="height:${pct}%;background:${clr}"></div></div><div class="bar-label">${g.label}</div></div>`;
+    const isLast=gi===groups.length-1;
+    const displayVal=g.val>0&&(g.val===mx||isLast)?g.val:'';
+    bh+=`<div class="bar-col" title="${g.label}: ${g.val}${u?' '+u:''}"><div class="bar-val">${displayVal}</div><div class="bar-track"><div class="bar-fill" style="height:${pct}%;background:${clr};opacity:${isLast?1:.55}"></div></div><div class="bar-label">${g.label}</div></div>`;
   });
   bh+='</div>';
   if(period==='day'){
@@ -1380,7 +1429,7 @@ function renderMoreDetails(snap,key,clr,contentEl,btnEl){
   if(isTest){Object.keys(allSub).forEach(label=>{const byD={};allSub[label].forEach(e=>{if(!byD[e.date])byD[e.date]={s:0,c:0};byD[e.date].s+=e.value;byD[e.date].c++;});allSub[label]=Object.entries(byD).map(([date,d])=>({date,value:parseFloat((d.s/d.c).toFixed(1))}));});}
   const sorted=Object.entries(counts).sort((a,b)=>b[1]-a[1]);
   const mx=sorted.length>0?sorted[0][1]:1;
-  let mh=`<div class="card no-tap" style="margin-bottom:1.2rem"><div class="detail-section-title" style="color:${clr}">Ranking — ${key==='breathe'?'Protocolos':key==='audio'?'Áudios':'Testes'}</div>`;
+  let mh=`<div class="card no-tap" style="margin-bottom:1.2rem"><div class="detail-section-title">Ranking — ${key==='breathe'?'Protocolos':key==='audio'?'Áudios':'Testes'}</div>`;
   if(sorted.length===0)mh+=`<div style="font-size:.8rem;color:var(--text-dim);padding:.5rem 0">Nenhum registro ainda.</div>`;
   else sorted.forEach(([label,count],i)=>{
     const w=Math.max(Math.round((count/mx)*100),15);
@@ -1421,13 +1470,13 @@ function renderDetCal(cSet,clr,isMeas,habit){
   // Build goal checker for all frequency types
   const calGoalCheck=buildGoalChecker(habit,function(ds){return cSet.has(ds);});
   const isEdit=calEditMode;
-  let ch='<div style="display:inline-flex;flex-direction:column;gap:2px">';
-  ch+='<div style="display:flex;gap:2px;height:14px">';
+  let ch='<div style="display:inline-flex;flex-direction:column;gap:3px">';
+  ch+='<div style="display:flex;gap:3px;height:16px">';
   let pm=-1;
-  weeks.forEach(w=>{const ref=w[3]||w[0];if(ref.m!==pm){pm=ref.m;ch+=`<div style="width:18px;font-size:.5rem;color:var(--text-dim);white-space:nowrap;overflow:visible">${ref.y>now.getFullYear()-1?MN[ref.m]:MN[ref.m]+' '+ref.y}</div>`;}else ch+='<div style="width:18px"></div>';});
+  weeks.forEach(w=>{const ref=w[3]||w[0];if(ref.m!==pm){pm=ref.m;ch+=`<div style="width:21px;font-size:.66rem;color:var(--text-dim);white-space:nowrap;overflow:visible">${ref.y>now.getFullYear()-1?MN[ref.m]:MN[ref.m]+' '+ref.y}</div>`;}else ch+='<div style="width:21px"></div>';});
   ch+='<div style="width:26px"></div></div>';
   for(let dow=0;dow<7;dow++){
-    ch+='<div style="display:flex;gap:2px;align-items:center">';
+    ch+='<div style="display:flex;gap:3px;align-items:center">';
     weeks.forEach(w=>{
       const c=w[dow];
       const goalMet=calGoalCheck&&c.ok?calGoalCheck(c.ds):false;
@@ -1435,16 +1484,17 @@ function renderDetCal(cSet,clr,isMeas,habit){
       let bg,tc;
       if(c.done){bg=clr;tc='var(--bg)';}
       else if(goalMet){bg=clr+'30';tc='var(--text-dim)';}
-      else{bg='rgba(255,255,255,.05)';tc='var(--text-dim)';}
+      else{bg='rgba(221,235,255,.07)';tc='var(--text-dim)';}
       const op=c.ok?'1':'.2';
       const editCls=isEdit&&c.ok?' cal-cell-edit':'';
       const editClick=isEdit&&c.ok?` onclick="calCellClick('${c.ds}')"`:'' ;
-      ch+=`<div class="${editCls}" ${editClick} style="width:18px;height:18px;border-radius:3px;background:${bg};opacity:${op};display:flex;align-items:center;justify-content:center;font-size:.48rem;color:${tc};flex-shrink:0${isEdit&&c.ok?';outline:1px solid rgba(255,255,255,.15)':''}">${c.ok?c.day:''}</div>`;
+      ch+=`<div class="${editCls}" ${editClick} style="width:21px;height:21px;border-radius:6px;background:${bg};opacity:${op};display:flex;align-items:center;justify-content:center;font-size:.66rem;color:${tc};flex-shrink:0${isEdit&&c.ok?';outline:1px solid rgba(255,255,255,.15)':''}">${c.ok?c.day:''}</div>`;
     });
-    ch+=`<div style="font-size:.48rem;color:var(--text-dim);margin-left:.3rem;width:26px;flex-shrink:0">${DN[dow]}</div></div>`;
+    ch+=`<div style="font-size:.66rem;color:var(--text-dim);margin-left:.3rem;width:26px;flex-shrink:0">${DN[dow]}</div></div>`;
   }
   ch+='</div>';
-  if(!detailIsDefault) ch+=`<button class="cal-edit-btn ${isEdit?'active':''}" id="calEditBtn">${isEdit?'CONCLUIR':'EDITAR'}</button>`;
+  ch+=`<div class="cal-legend"><span><i style="background:${clr}"></i>Feito</span><span><i style="background:${clr}30"></i>Meta cumprida no período</span><span><i></i>Sem registro</span></div>`;
+  if(!detailIsDefault) ch+=`<button class="cal-edit-btn ${isEdit?'active':''}" id="calEditBtn">${isEdit?'Concluir':'Editar dias'}</button>`;
   $('detCalendar').innerHTML=ch;
   $('detCalendar').scrollLeft=$('detCalendar').scrollWidth;
   if($('calEditBtn')) $('calEditBtn').addEventListener('click',()=>{calEditMode=!calEditMode;renderDetCal(detailCSet,detailClr,detailIsMeas,detailHabit);});
@@ -1477,12 +1527,12 @@ function renderDetFreq(cSet,clr){
   let mx=0;grid.forEach(row=>row.forEach(v=>{if(v>mx)mx=v;}));if(mx===0)mx=1;
   let fh='<div style="overflow-x:auto;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.15) transparent"><div style="display:inline-flex;flex-direction:column;gap:4px">';
   fh+='<div style="display:flex;gap:4px;padding-left:0">';
-  months.forEach(m=>{fh+=`<div style="width:24px;text-align:center;font-size:.48rem;color:var(--text-dim)">${MN[m.getMonth()]}</div>`;});
+  months.forEach(m=>{fh+=`<div style="width:24px;text-align:center;font-size:.66rem;color:var(--text-dim)">${MN[m.getMonth()]}</div>`;});
   fh+='<div style="width:28px"></div></div>';
   for(let dow=0;dow<7;dow++){
     fh+='<div style="display:flex;gap:4px;align-items:center">';
     months.forEach((m,mi)=>{const v=grid[dow][mi];if(v>0){const sz=Math.max(8,Math.round((v/mx)*20));const op=Math.max(.3,v/mx);fh+=`<div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center"><div style="width:${sz}px;height:${sz}px;border-radius:50%;background:${clr};opacity:${op}"></div></div>`;}else fh+=`<div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center"><div style="width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,.08)"></div></div>`;});
-    fh+=`<div style="font-size:.48rem;color:var(--text-dim);width:28px;text-align:left;margin-left:.2rem">${DN[dow]}</div></div>`;
+    fh+=`<div style="font-size:.66rem;color:var(--text-dim);width:28px;text-align:left;margin-left:.2rem">${DN[dow]}</div></div>`;
   }
   fh+='</div></div>';
   $('detFreq').innerHTML=fh;
@@ -1564,9 +1614,9 @@ function renderDetStability(entries,clr){
   // Line
   let pathD='';
   points.forEach((p,i)=>{const x=i*stepX2;const y=PT+ch-ch*(p.value/100);pathD+=(i===0?'M':'L')+x.toFixed(1)+','+y.toFixed(1);});
-  chart+=`<path d="${pathD}" class="stab-line" stroke="${clr}"/>`;
+  chart+=`<path d="${pathD}L${((n-1)*stepX2).toFixed(1)},${PT+ch}L0,${PT+ch}Z" fill="${clr}" fill-opacity=".16" stroke="none"/>`;chart+=`<path d="${pathD}" class="stab-line" stroke="${clr}"/>`;
   // Dots
-  points.forEach((p,i)=>{const x=i*stepX2;const y=PT+ch-ch*(p.value/100);chart+=`<circle cx="${x}" cy="${y}" r="3.5" fill="${clr}" class="stab-dot"/>`;});
+  points.forEach((p,i)=>{const x=i*stepX2;const y=PT+ch-ch*(p.value/100);chart+=`${i===n-1?`<circle cx="${x}" cy="${y}" r="5" fill="${clr}" stroke="#0B3480" class="stab-dot"/><text x="${x-9}" y="${y<26?y+20:y-11}" text-anchor="end" class="stab-last">${p.value}%</text>`:''}<circle cx="${x}" cy="${y}" r="10" fill="transparent"><title>${p.label.replace('\n',' ')}: ${p.value}%</title></circle>`;});
   chart+='</svg>';
 
   const html=`<div style="display:flex;align-items:stretch">${yAxis}<div style="flex:1;overflow-x:auto;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.15) transparent">${chart}</div></div>`;
@@ -1737,23 +1787,23 @@ window.viewUserProgress=async function(uid,userName){
 
     // Build habit table (last 30 days)
     const days=[];for(let i=0;i<30;i++){const d=new Date();d.setDate(d.getDate()-i);days.push(dateStr(d));}
-    const dayW=58;
+    const dayW=46;
     h+='<div class="card no-tap" style="margin-bottom:1rem"><div class="detail-section-title" style="color:var(--accent)">Hábitos</div>';
     h+=`<div class="habit-scroll" style="margin-top:.5rem"><table class="habit-table" style="min-width:calc(150px + ${days.length}*${dayW}px)">`;
-    h+='<thead><tr><th class="h-name" style="min-width:150px">&nbsp;</th>';
-    days.forEach(d=>{h+=`<th class="h-day" style="min-width:${dayW}px;width:${dayW}px">${getDayLabel(d)}<br>${getDayNum(d)}</th>`;});
+    h+='<thead><tr><th class="h-name" style="min-width:136px">&nbsp;</th>';
+    days.forEach(d=>{h+=`<th class="h-day" style="min-width:${dayW}px;width:${dayW}px"><span class="h-dw">${getDayLabel(d)}</span><span class="h-dn">${getDayNum(d)}</span></th>`;});
     h+='</tr></thead><tbody>';
 
     // Default habits
     DEFAULT_HABITS.forEach(dh=>{
-      h+=`<tr style="cursor:pointer" onclick="adminHabitDetail('${dh.key}',true)"><td class="h-name" style="min-width:150px"><div class="habit-name-cell" style="color:${dh.color}"><div class="habit-dot" style="background:${dh.color}"></div>${dh.name}</div></td>`;
+      h+=`<tr style="cursor:pointer" onclick="adminHabitDetail('${dh.key}',true)"><td class="h-name" style="min-width:136px"><div class="habit-name-cell" style="color:${dh.color}"><div class="habit-dot" style="background:${dh.color}"></div>${dh.name}</div></td>`;
       days.forEach(day=>{
         const sd=sByDay[day]||{breathe:false,audio:false,test:[]};
-        if(dh.key==='breathe'){h+=`<td class="h-day">${sd.breathe?`<span class="h-check" style="color:${dh.color}">✓</span>`:'<span class="h-cross">✗</span>'}</td>`;}
-        else if(dh.key==='audio'){h+=`<td class="h-day">${sd.audio?`<span class="h-check" style="color:${dh.color}">✓</span>`:'<span class="h-cross">✗</span>'}</td>`;}
+        if(dh.key==='breathe'){h+=`<td class="h-day">${sd.breathe?`<span class="h-check" style="background:${dh.color}" role="img" aria-label="feito"><svg viewBox="0 0 14 14" width="14" height="14" fill="none" aria-hidden="true"><path d="M3 7.5l2.6 2.5L11 4.5" stroke="#072A6B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>`:'<span class="h-cross" role="img" aria-label="não feito"></span>'}</td>`;}
+        else if(dh.key==='audio'){h+=`<td class="h-day">${sd.audio?`<span class="h-check" style="background:${dh.color}" role="img" aria-label="feito"><svg viewBox="0 0 14 14" width="14" height="14" fill="none" aria-hidden="true"><path d="M3 7.5l2.6 2.5L11 4.5" stroke="#072A6B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>`:'<span class="h-cross" role="img" aria-label="não feito"></span>'}</td>`;}
         else if(dh.key==='test'){
-          if(sd.test.length>0){const avg=parseFloat((sd.test.reduce((a,b)=>a+b,0)/sd.test.length).toFixed(0));const cls=avg>=25?'good':'low';h+=`<td class="h-day"><span class="h-val ${cls}" style="${cls==='good'?'color:'+dh.color:''}">${avg}s</span></td>`;}
-          else h+=`<td class="h-day"><span class="h-cross">✗</span></td>`;
+          if(sd.test.length>0){const avg=parseFloat((sd.test.reduce((a,b)=>a+b,0)/sd.test.length).toFixed(0));const cls=avg>=25?'good':'low';h+=`<td class="h-day"><span class="h-val ${cls}" style="${cls==='good'?'border-color:'+dh.color:''}">${avg}s</span></td>`;}
+          else h+=`<td class="h-day"><span class="h-cross" role="img" aria-label="não feito"></span></td>`;
         }
       });
       h+='</tr>';
@@ -1762,18 +1812,18 @@ window.viewUserProgress=async function(uid,userName){
     // Custom habits
     uHabits.forEach(hab=>{
       const hc=safeColor(hab.color);
-      h+=`<tr style="cursor:pointer" onclick="adminHabitDetail('${hab.id}',false)"><td class="h-name" style="min-width:150px"><div class="habit-name-cell" style="color:${hc}"><div class="habit-dot" style="background:${hc}"></div>${esc(hab.name)}</div></td>`;
+      h+=`<tr style="cursor:pointer" onclick="adminHabitDetail('${hab.id}',false)"><td class="h-name" style="min-width:136px"><div class="habit-name-cell" style="color:${hc}"><div class="habit-dot" style="background:${hc}"></div>${esc(hab.name)}</div></td>`;
       const goalCheck=buildGoalChecker(hab,uLogs);
       days.forEach(day=>{
         const log=uLogs[hab.id+'_'+day];
         if(hab.type==='boolean'){
           const goalMet=goalCheck?goalCheck(day):false;
-          const goalHighlight=goalMet?`border:1.5px solid ${hc};border-radius:4px;`:'';
-          if(log&&log.completed)h+=`<td class="h-day" style="${goalHighlight}"><span class="h-check" style="color:${hc}">✓</span></td>`;
-          else h+=`<td class="h-day" style="${goalHighlight}"><span class="h-cross">✗</span></td>`;
+          const goalHighlight=goalMet?`background:${hc}1f;border-radius:14px;`:'';
+          if(log&&log.completed)h+=`<td class="h-day" style="${goalHighlight}"><span class="h-check" style="background:${hc}" role="img" aria-label="feito"><svg viewBox="0 0 14 14" width="14" height="14" fill="none" aria-hidden="true"><path d="M3 7.5l2.6 2.5L11 4.5" stroke="#072A6B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></td>`;
+          else h+=`<td class="h-day" style="${goalHighlight}"><span class="h-cross" role="img" aria-label="não feito"></span></td>`;
         }else{
-          if(log&&log.value!=null){const cls=hab.target&&log.value>=hab.target?'good':'low';h+=`<td class="h-day"><span class="h-val ${cls}" style="${cls==='good'?'color:'+hc:''}">${esc(log.value)}<br><span style="font-size:.6rem">${esc(hab.unit||'')}</span></span></td>`;}
-          else h+=`<td class="h-day"><span class="h-cross">✗</span></td>`;
+          if(log&&log.value!=null){const cls=hab.target&&log.value>=hab.target?'good':'low';h+=`<td class="h-day"><span class="h-val ${cls}" style="${cls==='good'?'border-color:'+hc:''}">${esc(log.value)}<br><span style="font-size:.6rem">${esc(hab.unit||'')}</span></span></td>`;}
+          else h+=`<td class="h-day"><span class="h-cross" role="img" aria-label="não feito"></span></td>`;
         }
       });
       h+='</tr>';
@@ -1947,17 +1997,17 @@ window.adminHabitDetail=async function(key,isDefault){
       const qVal=entries.filter(e=>e.date>=qStartStr+'-01'&&e.date<=todayStr).reduce((s,e)=>s+(e.value||0),0);
       const yearVal=entries.filter(e=>e.date>=yStart+'-01').reduce((s,e)=>s+(e.value||0),0);
       const tDay=target,tWeek=target*7,tMonth=target*30,tQuarter=target*90,tYear=target*365;
-      function alvoBar(label,val,tgt,c){const pct=tgt>0?Math.min(100,Math.round(val/tgt*100)):(val>0?100:0);const fmtVal=val>=1000?(val/1000).toFixed(1).replace(/\.0$/,'')+'k':Math.round(val);const fmtTgt=tgt>0?(tgt>=1000?(tgt/1000).toFixed(1).replace(/\.0$/,'')+'k':Math.round(tgt)):'';return `<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.45rem"><div style="width:60px;font-size:.75rem;color:var(--text-dim);text-align:right">${label}</div><div style="flex:1;height:22px;background:rgba(255,255,255,.06);border-radius:6px;position:relative;overflow:hidden"><div style="height:100%;width:${pct}%;background:${c};border-radius:6px;transition:width .3s"></div><span style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:.7rem;font-weight:600;color:var(--text)">${fmtVal}</span></div>${fmtTgt?`<div style="width:32px;font-size:.7rem;color:var(--text-dim)">${fmtTgt}</div>`:`<div style="width:32px"></div>`}</div>`;}
-      h+=`<div class="card no-tap" style="margin-bottom:1.2rem"><div class="detail-section-title" style="color:${clr}">Alvo</div><div style="margin-top:.6rem">${alvoBar('Hoje',todayVal,tDay,clr)}${alvoBar('Semana',weekVal,tWeek,clr)}${alvoBar('Mês',monthVal,tMonth,clr)}${alvoBar('Trimestre',qVal,tQuarter,clr)}${alvoBar('Ano',yearVal,tYear,clr)}</div></div>`;
+      function alvoBar(label,val,tgt,c){const pct=tgt>0?Math.min(100,Math.round(val/tgt*100)):(val>0?100:0);const fmtVal=val>=1000?(val/1000).toFixed(1).replace(/\.0$/,'')+'k':Math.round(val);const fmtTgt=tgt>0?(tgt>=1000?(tgt/1000).toFixed(1).replace(/\.0$/,'')+'k':Math.round(tgt)):'';return `<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.45rem"><div style="width:60px;font-size:.75rem;color:var(--text-dim);text-align:right">${label}</div><div style="flex:1;height:22px;background:rgba(221,235,255,.08);border-radius:11px;position:relative;overflow:hidden"><div style="height:100%;width:${pct}%;background:${c};border-radius:11px;transition:width .3s"></div><span style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:.7rem;font-weight:600;color:var(--text)">${fmtVal}</span></div>${fmtTgt?`<div style="width:32px;font-size:.7rem;color:var(--text-dim)">${fmtTgt}</div>`:`<div style="width:32px"></div>`}</div>`;}
+      h+=`<div class="card no-tap" style="margin-bottom:1.2rem"><div class="detail-section-title">Alvo</div><div style="margin-top:.6rem">${alvoBar('Hoje',todayVal,tDay,clr)}${alvoBar('Semana',weekVal,tWeek,clr)}${alvoBar('Mês',monthVal,tMonth,clr)}${alvoBar('Trimestre',qVal,tQuarter,clr)}${alvoBar('Ano',yearVal,tYear,clr)}</div></div>`;
     }else{
-      h+=`<div class="card no-tap" style="margin-bottom:1.2rem"><div class="detail-section-title" style="color:${clr}">Visão geral</div><div style="display:flex;align-items:center;gap:1rem;margin-top:.6rem"><svg viewBox="0 0 36 36" width="52" height="52"><path d="M18 2.0845a15.9155 15.9155 0 0 1 0 31.831a15.9155 15.9155 0 0 1 0-31.831" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="3"/><path d="M18 2.0845a15.9155 15.9155 0 0 1 0 31.831a15.9155 15.9155 0 0 1 0-31.831" fill="none" stroke="${clr}" stroke-width="3" stroke-dasharray="${stabAll},100" stroke-linecap="round"/></svg><div style="display:flex;gap:1rem;flex:1;flex-wrap:wrap"><div><div style="font-size:1.05rem;font-weight:600;color:${clr}">${stabAll}%</div><div style="font-size:.6rem;color:var(--text-dim)">Estabilidade</div></div><div><div style="font-size:1.05rem;font-weight:600;color:${chg>=0?'var(--green)':'var(--danger)'}">${chg>=0?'+':''}${chg}%</div><div style="font-size:.6rem;color:var(--text-dim)">Mês</div></div><div><div style="font-size:1.05rem;font-weight:600;color:${chgY>=0?'var(--green)':'var(--danger)'}">${chgY>=0?'+':''}${chgY}%</div><div style="font-size:.6rem;color:var(--text-dim)">Ano</div></div><div><div style="font-size:1.05rem;font-weight:600;color:${clr}">${entries.length}</div><div style="font-size:.6rem;color:var(--text-dim)">Total</div></div></div></div></div>`;
+      h+=`<div class="card no-tap" style="margin-bottom:1.2rem"><div class="detail-section-title">Visão geral</div><div style="display:flex;align-items:center;gap:1rem;margin-top:.6rem"><div class="vg-ring"><svg viewBox="0 0 36 36" width="104" height="104"><path d="M18 2.0845a15.9155 15.9155 0 0 1 0 31.831a15.9155 15.9155 0 0 1 0-31.831" fill="none" stroke="rgba(221,235,255,.12)" stroke-width="3"/><path d="M18 2.0845a15.9155 15.9155 0 0 1 0 31.831a15.9155 15.9155 0 0 1 0-31.831" fill="none" stroke="${clr}" stroke-width="3" stroke-dasharray="${stabAll},100" stroke-linecap="round"/></svg><div class="vg-ring-c"><b>${stabAll}%</b><small>estabilidade</small></div></div><div class="vg-stats"><div><div style="font-size:1.3rem;font-weight:600;color:var(--text)">${stabAll}%</div><div style="font-size:.8rem;color:var(--text-dim)">Estabilidade</div></div><div><div style="font-size:1.05rem;font-weight:600;color:${chg>=0?'var(--green)':'var(--danger)'}">${chg>=0?'+':''}${chg}%</div><div style="font-size:.8rem;color:var(--text-dim)">Mês</div></div><div><div style="font-size:1.05rem;font-weight:600;color:${chgY>=0?'var(--green)':'var(--danger)'}">${chgY>=0?'+':''}${chgY}%</div><div style="font-size:.8rem;color:var(--text-dim)">Ano</div></div><div><div style="font-size:1.3rem;font-weight:600;color:var(--text)">${entries.length}</div><div style="font-size:.8rem;color:var(--text-dim)">Total</div></div></div></div></div>`;
     }
 
-    h+=`<div class="card no-tap" style="margin-bottom:1.2rem"><div style="display:flex;justify-content:space-between;align-items:center"><div class="detail-section-title" style="color:${clr}">Estabilidade</div><select class="input" style="width:auto;padding:.3rem .7rem;font-size:.72rem;margin:0" id="detStabPeriod"><option value="day" selected>Dia</option><option value="week">Semana</option><option value="month">Mês</option><option value="quarter">Trimestre</option><option value="year">Ano</option></select></div><div id="detStabChart" style="margin-top:.8rem"></div></div>`;
-    h+=`<div class="card no-tap" style="margin-bottom:1.2rem"><div style="display:flex;justify-content:space-between;align-items:center"><div class="detail-section-title" style="color:${clr}">Histórico</div><select class="input" style="width:auto;padding:.3rem .7rem;font-size:.72rem;margin:0" id="detHistPeriod">${isMeas?'<option value="day" selected>Dia</option><option value="week">Semana</option>':'<option value="week" selected>Semana</option>'}<option value="month">Mês</option><option value="quarter">Trimestre</option><option value="year">Ano</option></select></div><div id="detHistChart" style="margin-top:.8rem"></div></div>`;
-    h+=`<div class="card no-tap" style="margin-bottom:1.2rem"><div class="detail-section-title" style="color:${clr}">Calendário</div><div id="detCalendar" style="margin-top:.6rem;overflow-x:auto"></div></div>`;
-    h+=`<div class="card no-tap" style="margin-bottom:1.2rem"><div class="detail-section-title" style="color:${clr}">Correntes mais longas</div><div id="detStreaks" style="margin-top:.6rem"></div></div>`;
-    h+=`<div class="card no-tap" style="margin-bottom:1.5rem"><div class="detail-section-title" style="color:${clr}">Frequência</div><div id="detFreq" style="margin-top:.6rem;overflow-x:auto"></div></div>`;
+    h+=`<div class="card no-tap" style="margin-bottom:1.2rem"><div style="display:flex;justify-content:space-between;align-items:center"><div class="detail-section-title">Estabilidade</div><select class="input" style="width:auto;padding:.3rem .7rem;font-size:.72rem;margin:0" id="detStabPeriod"><option value="day" selected>Dia</option><option value="week">Semana</option><option value="month">Mês</option><option value="quarter">Trimestre</option><option value="year">Ano</option></select></div><div id="detStabChart" style="margin-top:.8rem"></div></div>`;
+    h+=`<div class="card no-tap" style="margin-bottom:1.2rem"><div style="display:flex;justify-content:space-between;align-items:center"><div class="detail-section-title">Histórico</div><select class="input" style="width:auto;padding:.3rem .7rem;font-size:.72rem;margin:0" id="detHistPeriod">${isMeas?'<option value="day" selected>Dia</option><option value="week">Semana</option>':'<option value="week" selected>Semana</option>'}<option value="month">Mês</option><option value="quarter">Trimestre</option><option value="year">Ano</option></select></div><div id="detHistChart" style="margin-top:.8rem"></div></div>`;
+    h+=`<div class="card no-tap" style="margin-bottom:1.2rem"><div class="detail-section-title">Calendário</div><div id="detCalendar" style="margin-top:.6rem;overflow-x:auto"></div></div>`;
+    h+=`<div class="card no-tap" style="margin-bottom:1.2rem"><div class="detail-section-title">Melhores sequências</div><div id="detStreaks" style="margin-top:.6rem"></div></div>`;
+    h+=`<div class="card no-tap" style="margin-bottom:1.5rem"><div class="detail-section-title">Frequência</div><div id="detFreq" style="margin-top:.6rem;overflow-x:auto"></div></div>`;
 
     if(isDefault){
       h+=`<button class="btn btn-s" style="margin-bottom:1.5rem" id="admDetMoreBtn">Mais detalhes</button>`;
