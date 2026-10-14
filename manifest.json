@@ -5,8 +5,8 @@
   "start_url": "/RespirAppV2/",
   "scope": "/RespirAppV2/",
   "display": "standalone",
-  "background_color": "#0d1117",
-  "theme_color": "#80cbc4",
+  "background_color": "#072A6B",
+  "theme_color": "#072A6B",
   "orientation": "portrait",
   "icons": [
     {
