@@ -1,8 +1,11 @@
 rules_version = '2';
 // ═══════════════════════════════════════════════════════════════
-// RespirApp — Regras Firestore ENDURECIDAS (v43)
+// RespirApp — Regras Firestore ENDURECIDAS (v44)
 // Princípio: negar por padrão; cada usuário só enxerga e grava o que é dele;
 // o admin só faz o estritamente necessário; ninguém altera o próprio plano.
+// v44: valida formato e tamanho de tudo o que é gravado (métricas confiáveis,
+//      sem lixo nem documentos gigantes) e permite ao usuário excluir os
+//      próprios dados (LGPD — botão "Excluir minha conta").
 // ═══════════════════════════════════════════════════════════════
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -10,19 +13,37 @@ service cloud.firestore {
     // ── Funções auxiliares ──────────────────────────────────────
     function signedIn() { return request.auth != null; }
 
-    // Admin identificado pelo e-mail do token (mesmo e-mail usado no app).
-    // OPCIONAL, mais forte: troque por  request.auth.uid == 'UID_DO_ADMIN'
-    // (Console Firebase > Authentication > copie o "UID de usuário" do admin).
+    // Admin identificado pelo UID (não pode ser falsificado).
     function isAdmin() {
-     return signedIn() && request.auth.uid == 'fs5Prj7mqyaMR0BYRVJFT7zjqWr1';
-   }
+      return signedIn() && request.auth.uid == 'fs5Prj7mqyaMR0BYRVJFT7zjqWr1';
+    }
 
     function isOwner(uid) { return signedIn() && request.auth.uid == uid; }
 
     function strMax(v, n) { return v is string && v.size() <= n; }
+    function numIn(v, lo, hi) { return v is number && v >= lo && v <= hi; }
+    function intIn(v, lo, hi) { return v is int && v >= lo && v <= hi; }
 
     function userLevel() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('accessLevel', 'gratuito');
+    }
+
+    // Escala de bem-estar: exatamente os 5 parâmetros, notas inteiras de 0 a 5.
+    function validWellbeing(m) {
+      return m is map
+        && m.keys().hasOnly(['stress','anxiety','energy','clarity','emotional'])
+        && m.keys().hasAll(['stress','anxiety','energy','clarity','emotional'])
+        && intIn(m.stress, 0, 5) && intIn(m.anxiety, 0, 5) && intIn(m.energy, 0, 5)
+        && intIn(m.clarity, 0, 5) && intIn(m.emotional, 0, 5);
+    }
+
+    // Resposta do questionário: múltipla escolha ({selected, other}) ou texto ({text}).
+    function validAnswer(a) {
+      return a is map
+        && a.keys().hasOnly(['selected','other','text'])
+        && (!('selected' in a) || (a.selected is list && a.selected.size() <= 20))
+        && strMax(a.get('other', ''), 500)
+        && strMax(a.get('text', ''), 2000);
     }
 
     // ── users ───────────────────────────────────────────────────
@@ -46,24 +67,45 @@ service cloud.firestore {
       allow update: if
         (isOwner(userId)
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['consentAccepted','consentAt','questionnaireCompleted'])
-          && request.resource.data.consentAccepted == true)
+          && request.resource.data.consentAccepted == true
+          && request.resource.data.questionnaireCompleted is bool
+          && (!('consentAt' in request.resource.data.diff(resource.data).affectedKeys()) || request.resource.data.consentAt == request.time))
         ||
         // Admin: só pode mudar o plano, e apenas para valores válidos.
         (isAdmin()
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['accessLevel'])
           && request.resource.data.accessLevel in ['gratuito','grupo','mentoria']);
 
-      allow delete: if isAdmin();
+      // LGPD: o próprio usuário pode excluir o cadastro (botão "Excluir minha conta").
+      allow delete: if isOwner(userId) || isAdmin();
     }
 
     // ── questionnaires ──────────────────────────────────────────
     match /questionnaires/{userId} {
       allow create, update: if isOwner(userId)
-        && request.resource.data.keys().hasOnly(['q1','q2','q3','q4','q5','q7','submittedAt']);
+        && request.resource.data.keys().hasOnly(['q1','q2','q3','q4','q5','q6','q7','submittedAt'])
+        && validAnswer(request.resource.data.get('q1', {}))
+        && validAnswer(request.resource.data.get('q2', {}))
+        && validAnswer(request.resource.data.get('q3', {}))
+        && validAnswer(request.resource.data.get('q4', {}))
+        && validAnswer(request.resource.data.get('q5', {}))
+        && validAnswer(request.resource.data.get('q6', {}))
+        && validAnswer(request.resource.data.get('q7', {}))
+        && request.resource.data.submittedAt == request.time;
       allow read: if isOwner(userId) || isAdmin();
+      allow delete: if isOwner(userId) || isAdmin();
     }
 
     // ── prontuarios (somente plano Mentoria) ────────────────────
+    // O app grava os campos do formulário dentro de "data". Limita a quantidade
+    // de campos e obriga as escalas (0–10) a serem números.
+    function validProntuarioData(d) {
+      return d is map
+        && d.keys().size() <= 120
+        && (!('estresse' in d) || d.estresse is number)
+        && (!('sonoQualidade' in d) || d.sonoQualidade is number);
+    }
+
     match /prontuarios/{userId} {
       allow read: if isOwner(userId) || isAdmin();
 
@@ -71,7 +113,7 @@ service cloud.firestore {
         && (userLevel() == 'mentoria' || isAdmin())
         && request.resource.data.keys().hasOnly(['userId','data','locked','updatedAt','createdAt'])
         && request.resource.data.userId == request.auth.uid
-        && request.resource.data.data is map
+        && validProntuarioData(request.resource.data.data)
         && request.resource.data.locked == false;
 
       allow update: if
@@ -81,45 +123,98 @@ service cloud.firestore {
           && resource.data.get('locked', false) == false
           && request.resource.data.keys().hasOnly(['userId','data','locked','updatedAt','createdAt'])
           && request.resource.data.userId == request.auth.uid
-          && request.resource.data.data is map
+          && validProntuarioData(request.resource.data.data)
           && request.resource.data.locked == false)
         ||
         // Admin só alterna o bloqueio
         (isAdmin()
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['locked']));
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['locked'])
+          && request.resource.data.locked is bool);
+
+      // LGPD: o titular pode excluir o próprio prontuário (mesmo bloqueado).
+      allow delete: if isOwner(userId) || isAdmin();
     }
 
     // ── sessions ────────────────────────────────────────────────
-    // Antes: qualquer usuário logado lia as sessões de TODOS. Agora: só as próprias (admin lê tudo).
+    // Cada tipo de sessão só aceita os campos dele, com tipos e tamanhos válidos.
+    function validBreathe(d) {
+      return d.keys().hasOnly(['userId','type','protocol','protocolName','totalCycles','startedAt','endedAt','wellbeingBefore','wellbeingAfter'])
+        && strMax(d.protocol, 40)
+        && strMax(d.protocolName, 120)
+        && intIn(d.totalCycles, 0, 1000)
+        && d.startedAt is timestamp && d.endedAt is timestamp
+        && d.endedAt <= request.time + duration.value(5, 'm')
+        && validWellbeing(d.wellbeingBefore) && validWellbeing(d.wellbeingAfter);
+    }
+    function validAudio(d) {
+      return d.keys().hasOnly(['userId','type','level','audioTitle','wellbeingBefore','wellbeingAfter','startedAt','completedAt'])
+        && (d.level is int || strMax(d.level, 10))
+        && strMax(d.audioTitle, 120)
+        && d.startedAt is timestamp
+        && d.completedAt == request.time
+        && validWellbeing(d.wellbeingBefore) && validWellbeing(d.wellbeingAfter);
+    }
+    function validTest(d) {
+      return d.keys().hasOnly(['userId','type','testName','testLabel','times','average','completedAt'])
+        && strMax(d.testName, 40)
+        && strMax(d.testLabel, 80)
+        && d.times is list && d.times.size() >= 1 && d.times.size() <= 10
+        && numIn(d.average, 0, 3600)
+        && d.completedAt == request.time;
+    }
+
     match /sessions/{sessionId} {
       allow create: if signedIn()
         && request.resource.data.userId == request.auth.uid
-        && request.resource.data.type in ['breathe','audio','test']
-        && request.resource.data.keys().hasOnly([
-             'userId','type','protocol','protocolName','totalCycles','startedAt','endedAt','completedAt',
-             'wellbeingBefore','wellbeingAfter','level','audioTitle','testName','testLabel','times','average']);
+        && (
+          (request.resource.data.type == 'breathe' && validBreathe(request.resource.data))
+          || (request.resource.data.type == 'audio' && validAudio(request.resource.data))
+          || (request.resource.data.type == 'test' && validTest(request.resource.data))
+        );
       allow read: if signedIn() && (resource.data.userId == request.auth.uid || isAdmin());
-      allow update, delete: if false;
+      allow update: if false;
+      // LGPD: o próprio usuário pode excluir as suas sessões.
+      allow delete: if signedIn() && resource.data.userId == request.auth.uid;
     }
 
     // ── habits ──────────────────────────────────────────────────
+    function habitKeys() {
+      return ['userId','name','type','question','notes','color','isDefault','unit','target','targetType',
+              'frequency','freqEveryN','freqPerWeek','freqPerMonth','freqCustomTimes','freqCustomDays',
+              'createdAt','updatedAt'];
+    }
+    // Valida os campos que o usuário pode preencher (vale para criar e editar).
+    function validHabitFields(d) {
+      return d.name is string && d.name.size() > 0 && d.name.size() <= 60
+        && strMax(d.get('question', ''), 200)
+        && strMax(d.get('notes', ''), 1000)
+        && strMax(d.get('unit', ''), 20)
+        && strMax(d.get('targetType', ''), 20)
+        && d.get('type', 'boolean') in ['boolean','measurable']
+        && d.get('frequency', 'daily') in ['daily','weekly','monthly','every_n','per_week','per_month','custom']
+        && d.get('isDefault', false) == false
+        && (!('color' in d) || (d.color is string && d.color.matches('^#[0-9a-fA-F]{3,8}$')))
+        && (!('target' in d) || numIn(d.target, 0, 1000000))
+        && intIn(d.get('freqEveryN', 1), 1, 366)
+        && intIn(d.get('freqPerWeek', 1), 1, 7)
+        && intIn(d.get('freqPerMonth', 1), 1, 31)
+        && intIn(d.get('freqCustomTimes', 1), 1, 366)
+        && intIn(d.get('freqCustomDays', 1), 1, 366);
+    }
+
     match /habits/{habitId} {
       allow create: if signedIn()
         && request.resource.data.userId == request.auth.uid
-        && request.resource.data.name is string
-        && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 60
-        && strMax(request.resource.data.get('question', ''), 200)
-        && strMax(request.resource.data.get('notes', ''), 1000)
-        && strMax(request.resource.data.get('unit', ''), 20);
+        && request.resource.data.keys().hasOnly(habitKeys())
+        && request.resource.data.createdAt == request.time
+        && validHabitFields(request.resource.data);
       allow read: if signedIn() && (resource.data.userId == request.auth.uid || isAdmin());
       allow update: if signedIn()
         && resource.data.userId == request.auth.uid
         && request.resource.data.userId == request.auth.uid
-        && request.resource.data.name is string
-        && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 60
-        && strMax(request.resource.data.get('question', ''), 200)
-        && strMax(request.resource.data.get('notes', ''), 1000)
-        && strMax(request.resource.data.get('unit', ''), 20);
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(habitKeys())
+        && !('createdAt' in request.resource.data.diff(resource.data).affectedKeys())
+        && validHabitFields(request.resource.data);
       allow delete: if signedIn() && resource.data.userId == request.auth.uid;
     }
 
@@ -127,11 +222,20 @@ service cloud.firestore {
     match /habitLogs/{logId} {
       allow create: if signedIn()
         && request.resource.data.userId == request.auth.uid
-        && request.resource.data.keys().hasOnly(['userId','habitId','date','completed','value','timestamp']);
+        && request.resource.data.keys().hasOnly(['userId','habitId','date','completed','value','timestamp'])
+        && strMax(request.resource.data.habitId, 128) && request.resource.data.habitId.size() > 0
+        && request.resource.data.date is string
+        && request.resource.data.date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+        && request.resource.data.completed is bool
+        && (!('value' in request.resource.data) || request.resource.data.value is number)
+        && request.resource.data.timestamp == request.time;
       allow read: if signedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      // Edição: só o valor e a marcação de concluído.
       allow update: if signedIn()
         && resource.data.userId == request.auth.uid
-        && request.resource.data.userId == request.auth.uid;
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['value','completed'])
+        && (!('value' in request.resource.data) || request.resource.data.value is number)
+        && request.resource.data.completed is bool;
       allow delete: if signedIn() && resource.data.userId == request.auth.uid;
     }
 
