@@ -315,10 +315,13 @@ html{background:#06235C}
 #habitDetailContent select.input,#adminContent select.input{min-height:36px;border-radius:999px !important;background-color:transparent;border-color:rgba(221,235,255,.22);font-size:.85rem !important}
 /* Histórico */
 .bar-chart{height:190px;gap:5px}
-.bar-val{color:var(--text);font-size:.72rem}
+.bar-val{color:var(--text);font-size:.7rem;white-space:nowrap;position:absolute;left:-6px;right:-6px;text-align:center;margin:0;min-height:0;line-height:1}
+.bar-track{position:relative}
+.bar-chart{padding-top:1.1rem}
+.bar-val.zero{color:var(--text-dim);opacity:.6}
 .bar-track{max-width:22px}
 .bar-fill{border-radius:4px 4px 0 0}
-.bar-label{font-size:.62rem;margin-top:.35rem}
+.bar-label{font-size:.62rem;margin-top:.35rem;white-space:normal;overflow:visible;text-overflow:clip;line-height:1.2;word-break:keep-all;width:min-content;max-width:none;margin-left:auto;margin-right:auto}
 .bar-col{cursor:default}
 /* Estabilidade */
 .stab-grid-line{stroke:rgba(221,235,255,.08)}
@@ -1386,8 +1389,8 @@ function renderHistChart(targetId,entries,clr,isMeas,period,unit){
   groups.forEach((g,gi)=>{
     const pct=mx>0?(g.val/mx)*100:0;
     const isLast=gi===groups.length-1;
-    const displayVal=g.val>0&&(g.val===mx||isLast)?g.val:'';
-    bh+=`<div class="bar-col" title="${g.label}: ${g.val}${u?' '+u:''}"><div class="bar-val">${displayVal}</div><div class="bar-track"><div class="bar-fill" style="height:${pct}%;background:${clr};opacity:${isLast?1:.55}"></div></div><div class="bar-label">${g.label}</div></div>`;
+    const displayVal=g.val;
+    bh+=`<div class="bar-col" title="${g.label}: ${g.val}${u?' '+u:''}"><div class="bar-track"><div class="bar-val${g.val>0?'':' zero'}" style="bottom:calc(${pct}% + 4px)">${displayVal}</div><div class="bar-fill" style="height:${pct}%;background:${clr};opacity:${isLast?1:.55}"></div></div><div class="bar-label">${g.label}</div></div>`;
   });
   bh+='</div>';
   if(period==='day'){
