@@ -599,6 +599,7 @@ html{background:#06235C}
 </div>
 
 <!-- CALENDAR EDIT MODAL -->
+<div class="cal-modal-overlay" id="admDayOverlay"><div class="cal-modal" id="admDayBox" style="max-width:340px;max-height:85vh;overflow-y:auto"></div></div>
 <div class="cal-modal-overlay" id="calModalOverlay">
   <div class="cal-modal">
     <div class="cal-modal-title">Anotações</div>
@@ -652,7 +653,7 @@ let running=false,animFrame=null,qIndex=0,qAnswers={};
 let chronoInterval=null,chronoStart=0,chronoCycleNum=0,chronoTimes=[],currentTestKey=null;
 let currentAudioLevel=null,userHabits=[],habitLogs={},sessionsByDay={};
 let logMeasHabitId=null,logMeasDate=null;
-let detailHabitKey=null,detailIsDefault=false,detailIsMeas=false,detailClr='#8FDAFA',detailEntries=[],detailCSet=new Set(),detailHabit=null;
+let detailOwn=false,detailHabitKey=null,detailIsDefault=false,detailIsMeas=false,detailClr='#8FDAFA',detailEntries=[],detailCSet=new Set(),detailHabit=null;
 let calEditMode=false,calMeasDate=null;
 let adminViewUid=null,adminViewUserName=null;
 
@@ -931,6 +932,7 @@ async function loadDashboard(){
   try{
     const snap=await db.collection('sessions').where('userId','==',currentUser.uid).get();
     snap.forEach(doc=>{const d=doc.data();const ts=d.startedAt||d.completedAt;if(!ts)return;const dt=ts.toDate?ts.toDate():new Date(ts);const ds=dateStr(dt);if(!sessionsByDay[ds])sessionsByDay[ds]={breathe:false,audio:false,test:[]};if(d.type==='breathe')sessionsByDay[ds].breathe=true;if(d.type==='audio')sessionsByDay[ds].audio=true;if(d.type==='test')sessionsByDay[ds].test.push(d.average||0);});
+    if(isAdminUser())admIndexSessions(snap);
   }catch(e){console.error(e);}
 
   // Load custom habits
@@ -963,11 +965,11 @@ function renderHabitTable(days){
     h+=`<tr><td class="h-name" style="min-width:136px"><div class="habit-name-cell" onclick="openHabitDetail('${dh.key}',true)" style="cursor:pointer"><div class="habit-dot" style="background:${dh.color}"></div>${dh.name}</div></td>`;
     days.forEach(day=>{
       const sd=sessionsByDay[day]||{breathe:false,audio:false,test:[]};
-      if(dh.key==='breathe'){h+=`<td class="h-day">${sd.breathe?`<span class="h-check" style="background:${dh.color}" role="img" aria-label="feito"><svg viewBox="0 0 14 14" width="14" height="14" fill="none" aria-hidden="true"><path d="M3 7.5l2.6 2.5L11 4.5" stroke="#072A6B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>`:'<span class="h-cross" role="img" aria-label="não feito"></span>'}</td>`;}
-      else if(dh.key==='audio'){h+=`<td class="h-day">${sd.audio?`<span class="h-check" style="background:${dh.color}" role="img" aria-label="feito"><svg viewBox="0 0 14 14" width="14" height="14" fill="none" aria-hidden="true"><path d="M3 7.5l2.6 2.5L11 4.5" stroke="#072A6B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>`:'<span class="h-cross" role="img" aria-label="não feito"></span>'}</td>`;}
+      if(dh.key==='breathe'){h+=`<td class="h-day"${admAttr(dh.key,day)}>${sd.breathe?`<span class="h-check" style="background:${dh.color}" role="img" aria-label="feito"><svg viewBox="0 0 14 14" width="14" height="14" fill="none" aria-hidden="true"><path d="M3 7.5l2.6 2.5L11 4.5" stroke="#072A6B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>`:'<span class="h-cross" role="img" aria-label="não feito"></span>'}</td>`;}
+      else if(dh.key==='audio'){h+=`<td class="h-day"${admAttr(dh.key,day)}>${sd.audio?`<span class="h-check" style="background:${dh.color}" role="img" aria-label="feito"><svg viewBox="0 0 14 14" width="14" height="14" fill="none" aria-hidden="true"><path d="M3 7.5l2.6 2.5L11 4.5" stroke="#072A6B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>`:'<span class="h-cross" role="img" aria-label="não feito"></span>'}</td>`;}
       else if(dh.key==='test'){
-        if(sd.test.length>0){const avg=parseFloat((sd.test.reduce((a,b)=>a+b,0)/sd.test.length).toFixed(0));const cls=avg>=25?'good':'low';h+=`<td class="h-day"><span class="h-val ${cls}" style="${cls==='good'?'border-color:'+dh.color:''}">${avg}s</span></td>`;}
-        else h+=`<td class="h-day"><span class="h-cross" role="img" aria-label="não feito"></span></td>`;
+        if(sd.test.length>0){const avg=parseFloat((sd.test.reduce((a,b)=>a+b,0)/sd.test.length).toFixed(0));const cls=avg>=25?'good':'low';h+=`<td class="h-day"${admAttr(dh.key,day)}><span class="h-val ${cls}" style="${cls==='good'?'border-color:'+dh.color:''}">${avg}s</span></td>`;}
+        else h+=`<td class="h-day"${admAttr(dh.key,day)}><span class="h-cross" role="img" aria-label="não feito"></span></td>`;
       }
     });
     h+='</tr>';
@@ -1199,6 +1201,7 @@ window.openHabitDetail=async function(key,isDefault){
       const snap=await db.collection('sessions').where('userId','==',currentUser.uid).get();
       const byDate={};
       snap.forEach(doc=>{const d=doc.data();const ts=d.startedAt||d.completedAt;if(!ts)return;const dt=ts.toDate?ts.toDate():new Date(ts);const ds=dateStr(dt);if(!byDate[ds])byDate[ds]={breathe:false,audio:false,tests:[]};if(d.type==='breathe')byDate[ds].breathe=true;if(d.type==='audio')byDate[ds].audio=true;if(d.type==='test')byDate[ds].tests.push(d.average||0);});
+      if(isAdminUser())admIndexSessions(snap);
       for(const[date,data] of Object.entries(byDate)){
         if(key==='breathe'&&data.breathe)entries.push({date,completed:true,value:1});
         else if(key==='audio'&&data.audio)entries.push({date,completed:true,value:1});
@@ -1362,7 +1365,7 @@ window.openHabitDetail=async function(key,isDefault){
 
   $('habitDetailContent').innerHTML=h;
   // Store detail context for calendar edit
-  detailHabitKey=key;detailIsDefault=isDefault;detailIsMeas=isMeas;detailClr=clr;detailEntries=entries;detailCSet=cSet;detailHabit=habit;calEditMode=false;
+  detailHabitKey=key;detailIsDefault=isDefault;detailOwn=true;detailIsMeas=isMeas;detailClr=clr;detailEntries=entries;detailCSet=cSet;detailHabit=habit;calEditMode=false;
   const hUnit=isMeas?(habit.unit||''):'';
   renderDetStability(entries,clr);
   $('detStabPeriod').addEventListener('change',()=>renderDetStability(entries,clr));
@@ -1537,7 +1540,7 @@ function renderDetCal(cSet,clr,isMeas,habit){
   }
   ch+='</div>';
   ch+=`<div class="cal-legend"><span><i style="background:${clr}"></i>Feito</span><span><i style="background:${clr}30"></i>Meta cumprida no período</span><span><i></i>Sem registro</span></div>`;
-  if(!detailIsDefault) ch+=`<button class="cal-edit-btn ${isEdit?'active':''}" id="calEditBtn">${isEdit?'Concluir':'Editar dias'}</button>`;
+  if(!detailIsDefault||(detailOwn&&isAdminUser())) ch+=`<button class="cal-edit-btn ${isEdit?'active':''}" id="calEditBtn">${isEdit?'Concluir':'Editar dias'}</button>`;
   $('detCalendar').innerHTML=ch;
   $('detCalendar').scrollLeft=$('detCalendar').scrollWidth;
   if($('calEditBtn')) $('calEditBtn').addEventListener('click',()=>{calEditMode=!calEditMode;renderDetCal(detailCSet,detailClr,detailIsMeas,detailHabit);});
@@ -1672,6 +1675,7 @@ function renderDetStability(entries,clr){
 // ═══ CALENDAR EDIT FUNCTIONS ═══
 window.calCellClick=async function(ds){
   if(!calEditMode)return;
+  if(detailIsDefault){if(detailOwn&&isAdminUser()){const k=detailHabitKey;adminMarkDay(k,ds,()=>Promise.resolve(openHabitDetail(k,true)).then(()=>{calEditMode=true;renderDetCal(detailCSet,detailClr,detailIsMeas,detailHabit);}));}return;}
   if(detailIsMeas){
     // Show modal for measurable
     calMeasDate=ds;
@@ -1725,6 +1729,89 @@ $('calMeasSave').addEventListener('click',async()=>{
 });
 
 $('calModalOverlay').addEventListener('click',function(e){if(e.target===this)this.classList.remove('show');});
+
+
+// ═══ ADMIN: registrar dias dos hábitos padrão (só a conta admin, só nos próprios dados) ═══
+let admDayIndex={},admDayKey=null,admDayDate=null,admDayAfter=null,admAudioList=[];
+function admIndexSessions(snap){
+  admDayIndex={};
+  snap.forEach(doc=>{
+    const d=doc.data();const ts=d.startedAt||d.completedAt;if(!ts)return;
+    const dt=ts.toDate?ts.toDate():new Date(ts);const ds=dateStr(dt);
+    let label='';
+    if(d.type==='breathe')label=d.protocolName||d.protocol||'Protocolo';
+    else if(d.type==='audio')label=(d.level?'Nível '+d.level+' — ':'')+(d.audioTitle||'Áudio');
+    else if(d.type==='test')label=(d.testLabel||d.testName||'Teste')+' — '+(d.average!=null?d.average+'s':'');
+    (admDayIndex[ds]=admDayIndex[ds]||[]).push({id:doc.id,type:d.type,manual:d.manual===true,label});
+  });
+}
+function admAttr(key,day){
+  if(!isAdminUser())return '';
+  return ` onclick="adminMarkDay('${key}','${day}',admReloadDash)" style="cursor:pointer"`;
+}
+function admReloadDash(){loadDashboard();}
+function admClose(){$('admDayOverlay').classList.remove('show');}
+function admFmtDate(ds){const p=ds.split('-');return p[2]+'/'+p[1]+'/'+p[0];}
+const ADM_TITLES={breathe:'Respire Agora',audio:'Protocolos com Áudio',test:'Testes Respiratórios'};
+const ADM_ASK={breathe:'Qual protocolo foi feito?',audio:'Qual áudio foi feito?',test:'Qual teste foi feito?'};
+window.adminMarkDay=function(key,ds,after){
+  if(!isAdminUser()||!ADM_TITLES[key])return;
+  admDayKey=key;admDayDate=ds;admDayAfter=after||null;
+  const list=(admDayIndex[ds]||[]).filter(x=>x.type===key);
+  if(list.length)admRenderDay(list);else admRenderPicker();
+  $('admDayOverlay').classList.add('show');
+};
+function admHead(sub){return `<div class="cal-modal-title">${esc(ADM_TITLES[admDayKey])}</div><div style="text-align:center;color:var(--text-dim);font-size:.9rem;margin-top:-.6rem">${esc(sub)}</div><hr>`;}
+function admRenderDay(list){
+  let h=admHead(admFmtDate(admDayDate));
+  h+='<div style="font-size:.85rem;color:var(--text-dim);margin-bottom:.5rem">Registros neste dia</div>';
+  list.forEach((x,i)=>{
+    h+=`<div style="display:flex;align-items:center;gap:.5rem;padding:.55rem 0;border-bottom:1px solid var(--line-soft)"><div style="flex:1;font-size:.95rem">${esc(x.label)}${x.manual?'':'<div style="font-size:.72rem;color:var(--text-dim)">feito no app</div>'}</div>${x.manual?`<button class="btn btn-s" style="min-height:2.2rem;padding:0 .9rem" onclick="admRemove(${i})">Remover</button>`:''}</div>`;
+  });
+  h+='<div class="cal-modal-actions"><button class="btn btn-s" onclick="admClose()">Fechar</button><button class="btn btn-p" onclick="admRenderPicker()">Adicionar</button></div>';
+  $('admDayBox').innerHTML=h;
+}
+window.admRenderPicker=function(){
+  let h=admHead(admFmtDate(admDayDate))+`<div style="font-size:.95rem;margin-bottom:.6rem">${esc(ADM_ASK[admDayKey])}</div>`;
+  const opt=(label,call)=>`<button class="btn btn-s" style="width:100%;justify-content:flex-start;text-align:left;margin-bottom:.4rem;min-height:2.6rem" onclick="${call}">${esc(label)}</button>`;
+  if(admDayKey==='breathe'){Object.keys(PROTOCOLS).forEach(k=>{const p=PROTOCOLS[k];h+=opt(p.name+' '+p.subtitle,`admSave('${k}')`);});}
+  else if(admDayKey==='audio'){
+    admAudioList=[];
+    Object.keys(AUDIO_LEVELS).forEach(lv=>{AUDIO_LEVELS[lv].groups.forEach(g=>{g.audios.forEach(a=>{admAudioList.push({level:Number(lv),title:a.title});});});});
+    admAudioList.forEach((a,i)=>{h+=opt('Nível '+a.level+' — '+a.title,`admSave(${i})`);});
+  }else{Object.keys(TESTS).forEach(k=>{h+=opt(TESTS[k].name,`admTestTime('${k}')`);});}
+  h+='<div class="cal-modal-actions"><button class="btn btn-s" onclick="admClose()">Cancelar</button></div>';
+  $('admDayBox').innerHTML=h;
+};
+window.admTestTime=function(k){
+  $('admDayBox').innerHTML=admHead(admFmtDate(admDayDate))+`<div style="font-size:.95rem;margin-bottom:.6rem">${esc(TESTS[k].name)}: quantos segundos?</div><input class="input" id="admTestInput" type="number" min="1" max="600" step="0.1" placeholder="0" style="text-align:center;font-size:1.8rem;margin-bottom:0"><div class="cal-modal-actions"><button class="btn btn-s" onclick="admRenderPicker()">Voltar</button><button class="btn btn-p" onclick="admSave('${k}')" style="font-weight:600">Salvar</button></div>`;
+  setTimeout(()=>{const i=$('admTestInput');if(i)i.focus();},100);
+};
+window.admSave=async function(sel){
+  if(!isAdminUser()||!currentUser)return;
+  const [y,m,d]=admDayDate.split('-').map(Number);const at=new Date(y,m-1,d,12,0,0);
+  let doc;
+  if(admDayKey==='breathe'){const p=PROTOCOLS[sel];if(!p)return;doc={userId:currentUser.uid,type:'breathe',protocol:sel,protocolName:p.name+' '+p.subtitle,startedAt:at,endedAt:at,manual:true};}
+  else if(admDayKey==='audio'){const a=admAudioList[sel];if(!a)return;doc={userId:currentUser.uid,type:'audio',level:a.level,audioTitle:a.title,startedAt:at,completedAt:at,manual:true};}
+  else{
+    const t=TESTS[sel];if(!t)return;
+    const v=parseFloat(($('admTestInput')||{}).value);
+    if(isNaN(v)||v<=0||v>600){alert('Informe o tempo em segundos (entre 1 e 600).');return;}
+    doc={userId:currentUser.uid,type:'test',testName:sel,testLabel:t.name,times:[v],average:v,completedAt:at,manual:true};
+  }
+  try{await db.collection('sessions').add(doc);}
+  catch(e){console.error(e);alert('Não foi possível salvar. Confira se as regras do Firestore foram atualizadas (campo "manual").');return;}
+  admClose();if(admDayAfter)admDayAfter();
+};
+window.admRemove=async function(i){
+  const list=(admDayIndex[admDayDate]||[]).filter(x=>x.type===admDayKey);const x=list[i];
+  if(!x||!x.manual||!isAdminUser())return;
+  if(!confirm('Remover este registro manual?'))return;
+  try{await db.collection('sessions').doc(x.id).delete();}
+  catch(e){console.error(e);alert('Não foi possível remover. Confira se as regras do Firestore foram atualizadas.');return;}
+  admClose();if(admDayAfter)admDayAfter();
+};
+$('admDayOverlay').addEventListener('click',function(e){if(e.target===this)admClose();});
 
 // ═══ ADMIN ═══
 $('adminLink').addEventListener('click',()=>{show('adminScreen');loadAdmin('overview');});
@@ -2059,7 +2146,7 @@ window.adminHabitDetail=async function(key,isDefault){
 
     $('adminContent').innerHTML=h;
     // Set globals for render functions (read-only, no calendar editing)
-    detailHabitKey=key;detailIsDefault=true;detailIsMeas=isMeas;detailClr=clr;detailEntries=entries;detailCSet=cSet;detailHabit=habit;calEditMode=false;
+    detailHabitKey=key;detailIsDefault=true;detailOwn=false;detailIsMeas=isMeas;detailClr=clr;detailEntries=entries;detailCSet=cSet;detailHabit=habit;calEditMode=false;
     const hUnit=isMeas?(habit.unit||''):'';
     renderDetStability(entries,clr);
     $('detStabPeriod').addEventListener('change',()=>renderDetStability(entries,clr));

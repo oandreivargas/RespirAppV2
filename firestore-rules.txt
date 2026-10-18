@@ -1,11 +1,12 @@
 rules_version = '2';
 // ═══════════════════════════════════════════════════════════════
-// RespirApp — Regras Firestore ENDURECIDAS (v44)
+// RespirApp — Regras Firestore ENDURECIDAS (v45)
 // Princípio: negar por padrão; cada usuário só enxerga e grava o que é dele;
 // o admin só faz o estritamente necessário; ninguém altera o próprio plano.
 // v44: valida formato e tamanho de tudo o que é gravado (métricas confiáveis,
 //      sem lixo nem documentos gigantes) e permite ao usuário excluir os
 //      próprios dados (LGPD — botão "Excluir minha conta").
+// v45: o admin pode registrar manualmente dias dos hábitos padrão (sessions).
 // ═══════════════════════════════════════════════════════════════
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -171,6 +172,21 @@ service cloud.firestore {
           || (request.resource.data.type == 'audio' && validAudio(request.resource.data))
           || (request.resource.data.type == 'test' && validTest(request.resource.data))
         );
+
+      // v45: registro manual de dias feito pelo ADMIN (hábitos padrão), só nos próprios dados.
+      // Regra separada: as demais contas continuam presas às validações acima.
+      allow create: if isAdmin()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.manual == true
+        && request.resource.data.type in ['breathe','audio','test']
+        && request.resource.data.keys().hasOnly(['userId','type','protocol','protocolName','startedAt','endedAt','completedAt','level','audioTitle','testName','testLabel','times','average','manual'])
+        && strMax(request.resource.data.get('protocol', ''), 40)
+        && strMax(request.resource.data.get('protocolName', ''), 120)
+        && strMax(request.resource.data.get('audioTitle', ''), 120)
+        && strMax(request.resource.data.get('testName', ''), 40)
+        && strMax(request.resource.data.get('testLabel', ''), 80)
+        && numIn(request.resource.data.get('average', 0), 0, 3600)
+        && request.resource.data.get('times', [0]) is list;
       allow read: if signedIn() && (resource.data.userId == request.auth.uid || isAdmin());
       allow update: if false;
       // LGPD: o próprio usuário pode excluir as suas sessões.
