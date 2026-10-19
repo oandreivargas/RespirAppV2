@@ -1784,9 +1784,16 @@ window.admRenderPicker=function(){
   $('admDayBox').innerHTML=h;
 };
 window.admTestTime=function(k){
-  $('admDayBox').innerHTML=admHead(admFmtDate(admDayDate))+`<div style="font-size:.95rem;margin-bottom:.6rem">${esc(TESTS[k].name)}: quantos segundos?</div><input class="input" id="admTestInput" type="number" min="1" max="600" step="0.1" placeholder="0" style="text-align:center;font-size:1.8rem;margin-bottom:0"><div class="cal-modal-actions"><button class="btn btn-s" onclick="admRenderPicker()">Voltar</button><button class="btn btn-p" onclick="admSave('${k}')" style="font-weight:600">Salvar</button></div>`;
-  setTimeout(()=>{const i=$('admTestInput');if(i)i.focus();},100);
+  let h=admHead(admFmtDate(admDayDate))+`<div style="font-size:.95rem;margin-bottom:.6rem">${esc(TESTS[k].name)}: tempo de cada tentativa (segundos)</div>`;
+  for(let i=1;i<=3;i++)h+=`<div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.45rem"><span style="flex:1;font-size:.9rem">Tentativa ${i}</span><input class="input adm-t" id="admT${i}" type="number" inputmode="decimal" min="1" max="600" step="0.1" placeholder="0" style="width:6.5rem;text-align:center;font-size:1.2rem;margin:0" oninput="admUpdAvg()"></div>`;
+  h+=`<div style="display:flex;justify-content:space-between;padding:.6rem 0 0;border-top:1px solid var(--line-soft);margin-top:.3rem;font-weight:600"><span>Média</span><span id="admTAvg">—</span></div>`;
+  h+=`<div class="cal-modal-actions"><button class="btn btn-s" onclick="admRenderPicker()">Voltar</button><button class="btn btn-p" onclick="admSave('${k}')" style="font-weight:600">Salvar</button></div>`;
+  $('admDayBox').innerHTML=h;
+  setTimeout(()=>{const i=$('admT1');if(i)i.focus();},100);
 };
+function admReadTimes(){const v=[1,2,3].map(i=>parseFloat((($('admT'+i)||{}).value||'').replace(',','.')));return v;}
+function admAvg3(v){return parseFloat((v.reduce((a,b)=>a+b,0)/3).toFixed(1));}
+window.admUpdAvg=function(){const v=admReadTimes();const ok=v.every(x=>!isNaN(x)&&x>0&&x<=600);const el=$('admTAvg');if(el)el.textContent=ok?admAvg3(v.map(x=>parseFloat(x.toFixed(1))))+'s':'—';};
 window.admSave=async function(sel){
   if(!isAdminUser()||!currentUser)return;
   const [y,m,d]=admDayDate.split('-').map(Number);const at=new Date(y,m-1,d,12,0,0);
@@ -1795,9 +1802,10 @@ window.admSave=async function(sel){
   else if(admDayKey==='audio'){const a=admAudioList[sel];if(!a)return;doc={userId:currentUser.uid,type:'audio',level:a.level,audioTitle:a.title,startedAt:at,completedAt:at,manual:true};}
   else{
     const t=TESTS[sel];if(!t)return;
-    const v=parseFloat(($('admTestInput')||{}).value);
-    if(isNaN(v)||v<=0||v>600){alert('Informe o tempo em segundos (entre 1 e 600).');return;}
-    doc={userId:currentUser.uid,type:'test',testName:sel,testLabel:t.name,times:[v],average:v,completedAt:at,manual:true};
+    const raw=admReadTimes();
+    if(!raw.every(x=>!isNaN(x)&&x>0&&x<=600)){alert('Informe o tempo das 3 tentativas em segundos (entre 1 e 600).');return;}
+    const times=raw.map(x=>parseFloat(x.toFixed(1)));
+    doc={userId:currentUser.uid,type:'test',testName:sel,testLabel:t.name,times,average:admAvg3(times),completedAt:at,manual:true};
   }
   try{await db.collection('sessions').add(doc);}
   catch(e){console.error(e);alert('Não foi possível salvar. Confira se as regras do Firestore foram atualizadas (campo "manual").');return;}
