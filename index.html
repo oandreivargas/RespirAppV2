@@ -472,7 +472,7 @@ html{background:#06235C}
 
 <div class="screen center" id="chronoScreen">
   <div class="top-bar"><button class="back-btn" id="chronoBack">‹ Voltar</button><div class="badge" id="chronoBadge"></div></div>
-  <div class="exercise-center"><div class="chrono-instruction" id="chronoInstruction"></div><div class="chrono-cycle" id="chronoCycle"></div><div class="chrono-display" id="chronoDisplay">0.0</div><button class="btn btn-p" id="chronoBtn" style="max-width:280px">Iniciar</button></div>
+  <div class="exercise-center"><div class="chrono-instruction" id="chronoInstruction"></div><div class="chrono-cycle" id="chronoCycle"></div><div class="chrono-display" id="chronoDisplay">0.0</div><button class="btn btn-p" id="chronoBtn" style="max-width:280px">Iniciar</button><button class="btn btn-o" id="chronoRedoBtn" style="max-width:280px;display:none;margin-top:-.6rem">Refazer esta tentativa</button></div>
 </div>
 
 <div class="screen center" id="chronoResultScreen">
@@ -650,7 +650,7 @@ const DEFAULT_HABITS=[{key:'breathe',name:'Respire Agora',type:'boolean',color:'
 
 let currentUser=null,currentProtocolKey=null,sessionData={},totalCyclesCompleted=0;
 let running=false,animFrame=null,qIndex=0,qAnswers={};
-let chronoInterval=null,chronoStart=0,chronoCycleNum=0,chronoTimes=[],currentTestKey=null;
+let chronoInterval=null,chronoStart=0,chronoCycleNum=0,chronoTimes=[],chronoPending=null,currentTestKey=null;
 let currentAudioLevel=null,userHabits=[],habitLogs={},sessionsByDay={};
 let logMeasHabitId=null,logMeasDate=null;
 let detailOwn=false,detailHabitKey=null,detailIsDefault=false,detailIsMeas=false,detailClr='#8FDAFA',detailEntries=[],detailCSet=new Set(),detailHabit=null;
@@ -887,12 +887,14 @@ $('audioWbAfterNext').addEventListener('click',async()=>{
 $('audioDoneHome').addEventListener('click',()=>showHome());
 
 // ═══ TESTS ═══
-document.querySelectorAll('[data-test]').forEach(c=>c.addEventListener('click',()=>{currentTestKey=c.dataset.test;const t=TESTS[currentTestKey];$('chronoBadge').textContent=t.name;$('chronoInstruction').textContent=t.instruction;chronoCycleNum=0;chronoTimes=[];updateChronoUI();show('chronoScreen');}));
+document.querySelectorAll('[data-test]').forEach(c=>c.addEventListener('click',()=>{currentTestKey=c.dataset.test;const t=TESTS[currentTestKey];$('chronoBadge').textContent=t.name;$('chronoInstruction').textContent=t.instruction;chronoCycleNum=0;chronoTimes=[];chronoPending=null;updateChronoUI();show('chronoScreen');}));
 $('testsBack').addEventListener('click',()=>showHome());
 $('chronoBack').addEventListener('click',()=>{stopChrono();show('testsScreen');});
-function updateChronoUI(){$('chronoCycle').textContent=`Tentativa ${chronoCycleNum+1} de 3`;$('chronoDisplay').textContent='0.0';$('chronoBtn').textContent='Iniciar';$('chronoBtn').className='btn btn-p';$('chronoBtn').onclick=startChrono;}
+function updateChronoUI(){chronoPending=null;$('chronoRedoBtn').style.display='none';$('chronoCycle').textContent=`Tentativa ${chronoCycleNum+1} de 3`;$('chronoDisplay').textContent='0.0';$('chronoBtn').textContent='Iniciar';$('chronoBtn').className='btn btn-p';$('chronoBtn').onclick=startChrono;}
 function startChrono(){chronoStart=performance.now();$('chronoBtn').textContent='Parar';$('chronoBtn').className='btn btn-d';$('chronoBtn').onclick=stopChronoCycle;if(navigator.vibrate)navigator.vibrate(30);chronoInterval=setInterval(()=>{$('chronoDisplay').textContent=((performance.now()-chronoStart)/1000).toFixed(1);},100);}
-function stopChronoCycle(){clearInterval(chronoInterval);const el=parseFloat(((performance.now()-chronoStart)/1000).toFixed(1));chronoTimes.push(el);if(navigator.vibrate)navigator.vibrate([30,50,30]);chronoCycleNum++;if(chronoCycleNum<3){$('chronoDisplay').textContent=el.toFixed(1);$('chronoBtn').textContent=`Próxima (${chronoCycleNum+1}/3)`;$('chronoBtn').className='btn btn-p';$('chronoBtn').onclick=()=>updateChronoUI();$('chronoCycle').textContent=`✓ ${el.toFixed(1)}s — ${3-chronoCycleNum} restante(s)`;}else showChronoResult();}
+function stopChronoCycle(){clearInterval(chronoInterval);const el=parseFloat(((performance.now()-chronoStart)/1000).toFixed(1));chronoPending=el;if(navigator.vibrate)navigator.vibrate([30,50,30]);const last=chronoCycleNum>=2;$('chronoDisplay').textContent=el.toFixed(1);$('chronoCycle').textContent=last?`✓ ${el.toFixed(1)}s — última tentativa`:`✓ ${el.toFixed(1)}s — ${2-chronoCycleNum} restante(s)`;$('chronoBtn').textContent=last?'Concluir teste':`Próxima (${chronoCycleNum+2}/3)`;$('chronoBtn').className='btn btn-p';$('chronoBtn').onclick=confirmChronoCycle;$('chronoRedoBtn').style.display='';}
+function confirmChronoCycle(){if(chronoPending==null)return;chronoTimes.push(chronoPending);chronoPending=null;$('chronoRedoBtn').style.display='none';chronoCycleNum++;if(chronoCycleNum<3)updateChronoUI();else showChronoResult();}
+$('chronoRedoBtn').addEventListener('click',()=>{updateChronoUI();});
 function stopChrono(){clearInterval(chronoInterval);}
 async function showChronoResult(){const t=TESTS[currentTestKey];const avg=parseFloat((chronoTimes.reduce((a,b)=>a+b,0)/3).toFixed(1));$('chronoResultTitle').textContent=t.name;let h='';chronoTimes.forEach((v,i)=>{h+=`<div class="chrono-result-row"><span>Tentativa ${i+1}</span><span>${v}s</span></div>`;});$('chronoResults').innerHTML=h;$('chronoAvg').textContent=avg+'s';try{await db.collection('sessions').add({userId:currentUser.uid,type:'test',testName:currentTestKey,testLabel:t.name,times:chronoTimes,average:avg,completedAt:firebase.firestore.FieldValue.serverTimestamp()});}catch(e){}show('chronoResultScreen');}
 $('chronoResultHome').addEventListener('click',()=>showHome());
