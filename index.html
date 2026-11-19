@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="RespirApp">
 <meta name="theme-color" content="#072A6B">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com https://www.google.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self' data:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://www.gstatic.com https://www.google.com; frame-src https://respirapp-58d2b.firebaseapp.com https://accounts.google.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'self'; form-action 'self'; manifest-src 'self'; worker-src 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com https://www.google.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self' data:; connect-src 'self' https://respirapp-audios.andrei-94.workers.dev https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://www.gstatic.com https://www.google.com; frame-src https://respirapp-58d2b.firebaseapp.com https://accounts.google.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'self'; form-action 'self'; manifest-src 'self'; worker-src 'self'">
 <meta name="referrer" content="no-referrer">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="description" content="Exercício guiado de respiração para regulação do sistema nervoso">
@@ -863,6 +863,25 @@ document.querySelectorAll('.level-card').forEach(c=>c.addEventListener('click',(
     show('audioDurationScreen');
   }));
   show('audioLevelScreen');}));
+const AUDIO_CDN='https://respirapp-audios.andrei-94.workers.dev/';
+let audioBlobUrl=null,audioLoadSeq=0;
+// Baixa o áudio do Cloudflare (exige login); se falhar, usa o arquivo do próprio app (GitHub).
+async function loadAudioSource(file){
+  const seq=++audioLoadSeq,el=$('activeAudio'),msg=$('audioLoadMsg');
+  const ready=src=>{if(seq!==audioLoadSeq||!el)return;el.src=src;el.style.display='';if(msg)msg.remove();};
+  try{
+    const u=auth.currentUser;if(!u)throw new Error('sem login');
+    const token=await u.getIdToken();
+    const name=decodeURIComponent(file.replace(/^\.\//,''));
+    const r=await fetch(AUDIO_CDN+encodeURIComponent(name),{headers:{Authorization:'Bearer '+token}});
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    const blob=await r.blob();
+    if(seq!==audioLoadSeq)return;
+    if(audioBlobUrl)URL.revokeObjectURL(audioBlobUrl);
+    audioBlobUrl=URL.createObjectURL(blob);
+    ready(audioBlobUrl);
+  }catch(e){console.warn('Áudio via Cloudflare indisponível, usando arquivo local:',e);ready(file);}
+}
 let audioSessionData={};
 $('audioWbBeforeBack').addEventListener('click',()=>show('audioDurationScreen'));
 $('audioWbBeforeNext').addEventListener('click',()=>{
@@ -870,8 +889,9 @@ $('audioWbBeforeNext').addEventListener('click',()=>{
   audioSessionData.wellbeingBefore=wb;audioSessionData.startedAt=new Date();
   $('audioPlayerBadge').textContent=audioSessionData.levelName+' · '+audioSessionData.groupName;
   $('audioPlayerTitle').textContent=audioSessionData.audioTitle;
-  $('audioPlayerContainer').innerHTML=`<audio controls style="width:100%;margin-top:1rem;filter:invert(.85)" src="${audioSessionData.audioFile}" id="activeAudio"></audio>`;
+  $('audioPlayerContainer').innerHTML=`<div id="audioLoadMsg" style="margin-top:1rem;font-size:.8rem;color:var(--text-dim);text-align:center">Carregando áudio…</div><audio controls style="width:100%;margin-top:1rem;filter:invert(.85);display:none" id="activeAudio"></audio>`;
   $('activeAudio').addEventListener('ended',()=>{renderWellbeing('audioWbAfterFields');show('audioWbAfterScreen');});
+  loadAudioSource(audioSessionData.audioFile);
   show('audioPlayerScreen');
 });
 $('audioLevelBack').addEventListener('click',()=>show('audioScreen'));
